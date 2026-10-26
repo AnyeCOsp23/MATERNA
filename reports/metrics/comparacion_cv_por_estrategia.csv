@@ -1,0 +1,5 @@
+modelo,balanceo,hiperparametros,cv_f1_macro_media,cv_f1_macro_std,cv_f1_weighted_media,cv_f1_weighted_std,cv_balanced_accuracy_media,cv_balanced_accuracy_std,cv_accuracy_media,cv_accuracy_std,cv_recall_alto_media,cv_recall_alto_std,cv_precision_alto_media,cv_precision_alto_std,cv_f1_alto_media,cv_f1_alto_std,tiempo_ajuste_s
+SVM,class_weight,"{'C': 100.0, 'gamma': 'scale', 'kernel': 'rbf'}",0.8608,0.011,0.8668,0.0132,0.8569,0.0154,0.8667,0.0139,0.8316,0.0771,0.8871,0.0973,0.8509,0.0391,0.1649
+SVM,SMOTE,"{'C': 10.0, 'gamma': 0.1, 'kernel': 'rbf'}",0.8454,0.0296,0.8507,0.0329,0.846,0.0262,0.8512,0.0337,0.8411,0.0825,0.8525,0.085,0.8392,0.0306,0.1905
+Regresión Logística,class_weight,{'C': 10.0},0.7499,0.0129,0.7222,0.013,0.7633,0.0171,0.7238,0.0139,0.9065,0.0649,0.8134,0.0689,0.8542,0.0384,0.1748
+Regresión Logística,SMOTE,{'C': 0.3162},0.7467,0.033,0.7195,0.0309,0.7582,0.0214,0.7214,0.0311,0.8965,0.0343,0.8166,0.0915,0.8508,0.0454,0.2053

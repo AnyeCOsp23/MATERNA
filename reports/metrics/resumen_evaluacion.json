@@ -1,0 +1,24 @@
+{
+  "modelo_principal_para_hibrido": "SVM",
+  "criterio_seleccion": "Mayor F1-macro del sistema híbrido en validación (desempate: recall Alto Riesgo)",
+  "n_test": 180,
+  "n_alto_riesgo_test": 23,
+  "n_test_con_signos_criticos": 14,
+  "matriz_costo_clinico": [
+    [
+      0,
+      1,
+      2
+    ],
+    [
+      3,
+      0,
+      1
+    ],
+    [
+      10,
+      5,
+      0
+    ]
+  ]
+}

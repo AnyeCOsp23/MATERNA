@@ -1,0 +1,5 @@
+sistema,n,accuracy,precision_macro,recall_macro,f1_macro,precision_weighted,recall_weighted,f1_weighted,recall_alto,precision_alto,falsos_negativos_alto,alto_clasificado_como_bajo,costo_clinico_total,roc_auc_ovr_macro
+Regresión Logística,166,0.7108,0.6384,0.7578,0.6728,0.725,0.7108,0.7131,0.8889,0.4444,1,0,89,0.839
+SVM,166,0.8675,0.8277,0.876,0.8472,0.8769,0.8675,0.869,0.8889,0.7273,1,0,34,0.9648
+Híbrido (Regresión Logística + reglas),166,0.7108,0.6384,0.7578,0.6728,0.725,0.7108,0.7131,0.8889,0.4444,1,0,89,0.839
+Híbrido (SVM + reglas),166,0.8675,0.8277,0.876,0.8472,0.8769,0.8675,0.869,0.8889,0.7273,1,0,34,0.9648

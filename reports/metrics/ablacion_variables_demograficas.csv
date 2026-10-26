@@ -1,0 +1,5 @@
+modelo,variables,cv_f1_macro_media,cv_recall_alto_media,cv_balanced_accuracy_media
+Regresión Logística,clínicas + acceso (por defecto),0.7499,0.9065,0.7633
+Regresión Logística,clínicas + acceso + demográficas,0.7273,0.8597,0.7401
+SVM,clínicas + acceso (por defecto),0.8608,0.8316,0.8569
+SVM,clínicas + acceso + demográficas,0.8279,0.7662,0.8215

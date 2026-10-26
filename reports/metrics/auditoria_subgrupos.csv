@@ -1,0 +1,16 @@
+sistema,variable,grupo,n,n_alto_real,accuracy,f1_macro,recall_alto
+"Híbrido (SVM + reglas), predicción fuera de fold",area_residencia,Cabecera,499,71,0.882,0.889,0.944
+"Híbrido (SVM + reglas), predicción fuera de fold",area_residencia,Rural disperso,701,81,0.862,0.848,0.778
+"Híbrido (SVM + reglas), predicción fuera de fold",pertenencia_etnica,Afro,120,13,0.875,0.875,0.846
+"Híbrido (SVM + reglas), predicción fuera de fold",pertenencia_etnica,Arhuaco,31,5,0.903,0.922,1.0
+"Híbrido (SVM + reglas), predicción fuera de fold",pertenencia_etnica,Kogui,20,2,0.9,0.925,1.0
+"Híbrido (SVM + reglas), predicción fuera de fold",pertenencia_etnica,Mestiza,370,47,0.884,0.883,0.872
+"Híbrido (SVM + reglas), predicción fuera de fold",pertenencia_etnica,Wayuu,564,70,0.851,0.845,0.814
+"Híbrido (SVM + reglas), predicción fuera de fold",pertenencia_etnica,Wiwa,20,4,0.85,0.839,1.0
+"Híbrido (SVM + reglas), predicción fuera de fold",pertenencia_etnica,Yukpa,75,11,0.92,0.91,0.909
+"Híbrido (SVM + reglas), predicción fuera de fold",departamento,Cesar,431,52,0.905,0.905,0.904
+"Híbrido (SVM + reglas), predicción fuera de fold",departamento,La Guajira,769,100,0.85,0.848,0.83
+"Híbrido (SVM + reglas), predicción fuera de fold",atendido_por,Auxiliar de enfermeria,111,11,0.883,0.86,0.727
+"Híbrido (SVM + reglas), predicción fuera de fold",atendido_por,Enfermero(a),92,11,0.815,0.822,0.727
+"Híbrido (SVM + reglas), predicción fuera de fold",atendido_por,Medico,859,116,0.874,0.876,0.897
+"Híbrido (SVM + reglas), predicción fuera de fold",atendido_por,Partera tradicional,138,14,0.87,0.832,0.714
