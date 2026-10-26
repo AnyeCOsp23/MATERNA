@@ -1,0 +1,27 @@
+{
+  "Regresión Logística": {
+    "mejores_hiperparametros": {
+      "balanceo": "class_weight",
+      "C": 10.0
+    },
+    "cv_f1_macro": 0.7499,
+    "configuraciones_probadas": 26,
+    "tiempo_busqueda_s": 19.6
+  },
+  "SVM": {
+    "mejores_hiperparametros": {
+      "balanceo": "class_weight",
+      "C": 100,
+      "gamma": "scale",
+      "kernel": "rbf"
+    },
+    "cv_f1_macro": 0.8608,
+    "configuraciones_probadas": 104,
+    "tiempo_busqueda_s": 28.6,
+    "calibracion": {
+      "metodo": "sigmoid (Platt)",
+      "cv": 5,
+      "tiempo_s": 0.5
+    }
+  }
+}
