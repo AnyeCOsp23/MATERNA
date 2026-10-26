@@ -1,0 +1,14 @@
+# Entorno
+.venv/
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+
+# Particiones regenerables (python -m src.data_preprocessing)
+data/processed/
+
+# Base de datos local de la app demo (registros de prueba)
+data/registros_locales.sqlite
+
+# Copias comprimidas
+*.zip
