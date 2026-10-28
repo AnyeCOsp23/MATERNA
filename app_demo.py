@@ -7,8 +7,10 @@ Ejecutar:  streamlit run app_demo.py
 Requiere los modelos entrenados:  python -m src.train_models
 """
 import json
+import os
 import sqlite3
 from datetime import datetime
+from pathlib import Path
 
 import joblib
 import pandas as pd
@@ -17,17 +19,17 @@ import streamlit as st
 from src.clinical_rules import ETIQUETAS_PROTEINURIA, PROTOCOLO, evaluar_riesgo_hibrido
 from src.config import DIR_METRICAS, DIR_MODELOS, RAIZ, RUTA_DATASET
 from src.data_preprocessing import cargar_dataset
+from src import ui_theme as ui
 
-RUTA_BD_LOCAL = RAIZ / "data" / "registros_locales.sqlite"
+# MATERNA_BD permite a las pruebas usar una base temporal sin tocar la del dispositivo
+RUTA_BD_LOCAL = Path(os.environ.get("MATERNA_BD", RAIZ / "data" / "registros_locales.sqlite"))
 ARCHIVOS_MODELO = {
+    "Random Forest": "modelo_random_forest.joblib",
     "SVM (calibrado)": "modelo_svm_calibrado.joblib",
     "Regresión Logística": "modelo_regresion_logistica.joblib",
 }
-ESTILO_CATEGORIA = {
-    "Alto Riesgo": ("#C62828", "🔴", "ALTO RIESGO — EMERGENCIA OBSTÉTRICA"),
-    "Riesgo Medio": ("#F9A825", "🟡", "RIESGO MEDIO — VALORACIÓN PRIORITARIA"),
-    "Bajo Riesgo": ("#2E7D32", "🟢", "BAJO RIESGO — CONTROL PRENATAL DE RUTINA"),
-}
+# nombre en reports/metrics -> nombre en la interfaz
+NOMBRE_UI = {"Random Forest": "Random Forest", "SVM": "SVM (calibrado)", "Regresión Logística": "Regresión Logística"}
 
 # Casos precargados para la demostración en vivo
 CASOS_DEMO = {
@@ -85,15 +87,45 @@ def pendientes_sincronizar():
         return con.execute("SELECT COUNT(*) FROM evaluaciones WHERE sincronizado = 0").fetchone()[0]
 
 
-def modelo_recomendado():
+def resumen_evaluacion():
     try:
         with open(DIR_METRICAS / "resumen_evaluacion.json", encoding="utf-8") as f:
-            return "SVM (calibrado)" if json.load(f)["modelo_principal_para_hibrido"] == "SVM" else "Regresión Logística"
+            return json.load(f)
     except FileNotFoundError:
-        return "SVM (calibrado)"
+        return {}
 
 
-st.set_page_config(page_title="MATERNA — Alerta temprana", page_icon="🤰", layout="wide")
+def modelo_recomendado():
+    return NOMBRE_UI.get(resumen_evaluacion().get("modelo_principal_para_hibrido"), "Random Forest")
+
+
+@st.cache_data
+def kpis_prueba():
+    """Métricas del sistema híbrido seleccionado en el conjunto de prueba (reports/metrics)."""
+    try:
+        sistema = resumen_evaluacion()["sistema_principal"]
+        fila = pd.read_csv(DIR_METRICAS / "metricas_test.csv", index_col=0).loc[sistema]
+    except (FileNotFoundError, KeyError):
+        return []
+    fmt = lambda v: f"{float(v):.3f}".replace(".", ",")  # 3 decimales: 0,998 no debe verse como 1,00
+    return [("F1-macro", fmt(fila["f1_macro"])), ("Recall Alto", fmt(fila["recall_alto"])),
+            ("ROC-AUC", fmt(fila["roc_auc_ovr_macro"]))]
+
+
+def html(bloque):
+    st.markdown(bloque, unsafe_allow_html=True)
+
+
+st.set_page_config(page_title="MATERNA — Alerta temprana", page_icon="🪷", layout="wide")
+
+# Pantalla de bienvenida solo al abrir la página: Streamlit vuelve a ejecutar el script en cada
+# interacción, y sin esta marca el logo reaparecería con cada clic. Es el primer elemento, para que
+# la app no asome antes del logo.
+if not st.session_state.get("bienvenida_mostrada"):
+    # HTML propio (no de usuarios): seguro de incrustar. st.iframe exige altura positiva; el CSS lo oculta.
+    st.iframe(ui.pantalla_bienvenida(), height=1, alt=ui.ETIQUETA_IFRAME_BIENVENIDA)
+    st.session_state["bienvenida_mostrada"] = True
+html(ui.estilos())
 
 faltantes = [a for a in ARCHIVOS_MODELO.values() if not (DIR_MODELOS / a).exists()]
 if faltantes:
@@ -104,35 +136,33 @@ cat = catalogos()
 
 # ---------------------------------------------------------------- barra lateral
 with st.sidebar:
-    st.markdown("### ⚙️ Configuración")
+    st.markdown("#### Modelo")
     opciones = list(ARCHIVOS_MODELO)
     nombre_modelo = st.selectbox("Modelo estadístico", opciones, index=opciones.index(modelo_recomendado()),
-                                 help="El SVM fue el modelo seleccionado en validación. La regla clínica aplica con cualquiera.")
-    st.markdown("### 🧪 Casos de demostración")
+                                 label_visibility="collapsed",
+                                 help="Random Forest fue el modelo seleccionado en validación. La regla clínica aplica con cualquiera.")
+    st.markdown("#### Casos de demostración")
     for nombre_caso, caso in CASOS_DEMO.items():
         if st.button(nombre_caso, width="stretch"):
             st.session_state["caso"] = caso
-    st.divider()
-    st.markdown(f"📴 **Modo offline-first**  \nInferencia local · **{pendientes_sincronizar()}** registro(s) pendiente(s) de sincronización")
-    if st.button("🔄 Simular sincronización con la ESE/IPS", width="stretch"):
+    st.markdown("#### Sincronización")
+    if st.button("Simular sincronización con la ESE/IPS", width="stretch"):
         with bd_local() as con:
             n = con.execute("UPDATE evaluaciones SET sincronizado = 1 WHERE sincronizado = 0").rowcount
-        st.success(f"{n} registro(s) marcados como sincronizados (simulación: no se envían datos).")
+        st.toast(f"{n} registro(s) marcados como sincronizados (simulación: no se envían datos).",
+                 icon=":material/cloud_done:", duration=3)
     st.caption("Idioma: Español. La interfaz en Wayuunaiki queda para la Fase 3 y requiere una traducción validada con la comunidad.")
 
 caso = st.session_state.get("caso", CASOS_DEMO["Caso 3 · Control de rutina (Valledupar)"])
-
-st.markdown("## 🤰 MATERNA — Sistema de Alerta Temprana de Riesgo Materno-Perinatal")
-st.caption("Universidad Popular del Cesar · Proyecto de aula IA · La Guajira y Cesar · "
-           "Prototipo académico entrenado con datos sintéticos: NO usar para decisiones clínicas reales.")
+encabezado = st.empty()  # se dibuja al final para que el contador de pendientes incluya la evaluación actual
 
 # ---------------------------------------------------------------- módulo 1
-st.markdown("### Módulo 1 · Registro de la gestante y signos vitales")
+html(ui.titulo_seccion("01", "Registro de la gestante y signos vitales"))
 municipios = sorted(cat["municipio_a_depto"])
-with st.form("registro"):
-    c1, c2 = st.columns(2)
+with st.form("registro", border=False):
+    c1, c2 = st.columns(2, gap="large")
     with c1:
-        st.markdown("**Demografía y ubicación**")
+        html(ui.grupo("Demografía y ubicación"))
         edad = st.number_input("Edad (años)", 10, 55, int(caso["edad"]))
         municipio = st.selectbox("Municipio", municipios, index=municipios.index(caso["municipio"]),
                                  format_func=lambda m: f"{m} ({cat['municipio_a_depto'][m]})")
@@ -144,7 +174,7 @@ with st.form("registro"):
         controles = st.number_input("Controles prenatales previos", 0, 20, int(caso["n_controles_prenatales"]))
         atendido = st.selectbox("Atendido por", cat["atendido_por"], index=cat["atendido_por"].index(caso["atendido_por"]))
     with c2:
-        st.markdown("**Constantes vitales y paraclínicos**")
+        html(ui.grupo("Constantes vitales y paraclínicos"))
         pas = st.number_input("Presión sistólica — PAS (mmHg)", 60, 250, int(caso["pas_mmhg"]))
         pad = st.number_input("Presión diastólica — PAD (mmHg)", 30, 150, int(caso["pad_mmhg"]))
         sin_fcf = st.checkbox("FCF no disponible (sin doppler fetal)", value=caso["fcf_bpm"] is None)
@@ -154,7 +184,7 @@ with st.form("registro"):
         proteinuria = st.select_slider("Proteinuria en tira reactiva", options=[0, 1, 2], value=int(caso["proteinuria"]),
                                        format_func=lambda v: ETIQUETAS_PROTEINURIA[v])
         convulsiones = st.radio("Convulsiones / eclampsia", ["No", "Sí"], horizontal=True, index=int(caso["convulsiones"]))
-    evaluar = st.form_submit_button("🩺 EVALUAR RIESGO MATERNO", type="primary", width="stretch")
+    evaluar = st.form_submit_button("Evaluar riesgo materno", type="primary", width="stretch")
 
 if evaluar:
     registro = {
@@ -164,49 +194,36 @@ if evaluar:
         "fcf_bpm": None if sin_fcf else fcf, "glucosa_mgdl": None if sin_glu else glucosa,
         "proteinuria": proteinuria, "convulsiones": int(convulsiones == "Sí"),
     }
-    resultado = evaluar_riesgo_hibrido(registro, cargar_modelo(ARCHIVOS_MODELO[nombre_modelo]))
-    guardar_local(registro, resultado, nombre_modelo)
-    color, icono, titulo = ESTILO_CATEGORIA[resultado.categoria]
+    with st.spinner("Evaluando riesgo…"):
+        resultado = evaluar_riesgo_hibrido(registro, cargar_modelo(ARCHIVOS_MODELO[nombre_modelo]))
+        guardar_local(registro, resultado, nombre_modelo)
 
     # ------------------------------------------------------------ módulo 2
-    st.markdown("### Módulo 2 · Panel de diagnóstico e inferencia híbrida")
-    st.markdown(
-        f"<div style='background:{color};color:white;padding:18px 22px;border-radius:12px;"
-        f"font-size:1.45rem;font-weight:700'>{icono} CATEGORÍA FINAL: {titulo}</div>",
-        unsafe_allow_html=True)
-    st.write("")
+    html(ui.titulo_seccion("02", "Diagnóstico e inferencia híbrida"))
+    html(ui.tarjeta_resultado(resultado.categoria, resultado.origen))
     if resultado.origen == "regla_clinica":
-        st.error("⚠️ **Alerta de seguridad clínica: regla de sobreescritura activada.**  \n"
-                 + "  \n".join(f"• {a}" for a in resultado.alertas)
-                 + f"  \nEl modelo estadístico por sí solo habría clasificado: **{resultado.categoria_modelo}**. "
-                 "La regla prevalece sobre el modelo.")
+        html(ui.aviso_regla(resultado.alertas, resultado.categoria_modelo))
     else:
-        st.info("Ninguna regla crítica se activó. La categoría proviene del modelo estadístico.")
-
-    c1, c2 = st.columns([3, 2])
-    with c1:
-        st.markdown(f"**📊 Probabilidades del modelo ({nombre_modelo})**")
-        for clase, p in resultado.probabilidades_modelo.items():
-            st.progress(p, text=f"{clase}: {p:.1%}")
-    with c2:
-        st.markdown("**🔎 Trazabilidad de la decisión**")
-        st.markdown(
-            f"- Origen: **{'Regla clínica (GPC Minsalud)' if resultado.origen == 'regla_clinica' else 'Modelo de aprendizaje automático'}**\n"
-            f"- Predicción del modelo: **{resultado.categoria_modelo}**\n"
-            f"- Sobreescritura por regla: **{'SÍ' if resultado.origen == 'regla_clinica' else 'NO'}**")
-        if sin_fcf or sin_glu:
-            faltan = ", ".join(n for n, f in [("FCF", sin_fcf), ("glucosa", sin_glu)] if f)
-            st.warning(f"Dato(s) no disponible(s): {faltan}. Se imputaron con la mediana de entrenamiento "
-                       "por área y trimestre. Interpretar con cautela.")
+        html(ui.aviso("Ninguna regla crítica se activó. La categoría proviene del modelo estadístico.", "info"))
+    if sin_fcf or sin_glu:
+        faltan = " y ".join(n for n, f in [("FCF", sin_fcf), ("glucosa", sin_glu)] if f)
+        html(ui.aviso(f"Sin dato de {faltan}: se imputó con la mediana de entrenamiento por área y trimestre. "
+                      "Interpretar con cautela.", "warn", "Dato no disponible", orden=2))
+    html(ui.panel_probabilidades(resultado.probabilidades_modelo, resultado.categoria_modelo,
+                                 nombre_modelo, resultado.origen))
 
     # ------------------------------------------------------------ módulo 3
-    st.markdown("### Módulo 3 · Acciones orientadoras")
-    for i, paso in enumerate(PROTOCOLO[resultado.categoria], 1):
-        st.markdown(f"{i}. {paso}")
-    st.caption("Texto orientativo para la demostración académica: debe validarse con un asesor clínico y con la red de "
-               "referencia de cada ESE/IPS antes de cualquier uso en campo.")
-    st.success("💾 Evaluación guardada localmente (SQLite), pendiente de sincronización.")
+    html(ui.titulo_seccion("03", "Acciones orientadoras"))
+    html(ui.protocolo(resultado.categoria, PROTOCOLO[resultado.categoria]))
+    st.toast("Evaluación guardada en el dispositivo · pendiente de sincronización",
+             icon=":material/cloud_upload:", duration=3)
 
-with st.expander("📁 Registros guardados en este dispositivo"):
+with encabezado:
+    html(ui.encabezado(nombre_modelo, pendientes_sincronizar(), kpis_prueba()))
+
+st.write("")
+with st.expander("Registros guardados en este dispositivo"):
     with bd_local() as con:
         st.dataframe(pd.read_sql("SELECT * FROM evaluaciones ORDER BY id DESC LIMIT 50", con), width="stretch")
+st.caption("Universidad Popular del Cesar · Proyecto de aula de Inteligencia Artificial · "
+           "Prototipo académico entrenado con datos sintéticos: no usar para decisiones clínicas reales.")
