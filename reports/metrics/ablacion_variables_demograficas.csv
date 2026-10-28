@@ -3,3 +3,5 @@ Regresión Logística,clínicas + acceso (por defecto),0.7499,0.9065,0.7633
 Regresión Logística,clínicas + acceso + demográficas,0.7273,0.8597,0.7401
 SVM,clínicas + acceso (por defecto),0.8608,0.8316,0.8569
 SVM,clínicas + acceso + demográficas,0.8279,0.7662,0.8215
+Random Forest,clínicas + acceso (por defecto),0.9318,0.8502,0.931
+Random Forest,clínicas + acceso + demográficas,0.9302,0.8312,0.9259

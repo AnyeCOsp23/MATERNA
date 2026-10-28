@@ -9,6 +9,10 @@ Decisiones metodológicas (ver README, sección "Decisiones técnicas"):
   obtienen calibrando el mejor pipeline con CalibratedClassifierCV (Platt / sigmoide, 5 folds).
 - `LogisticRegression(multi_class='multinomial')` ya no existe: con solver lbfgs el modelo
   multiclase es multinomial por defecto.
+- Random Forest se agregó tras las pruebas de coherencia clínica (tests/test_coherencia_clinica.py):
+  el SVM clasificaba como Bajo Riesgo casos con un único factor de riesgo cerca del umbral
+  (p. ej. PA 140/90 o cero controles prenatales). Los árboles capturan umbrales de forma nativa y no
+  extrapolan fuera del rango de entrenamiento.
 
 Uso:  python -m src.train_models
 """
@@ -21,6 +25,7 @@ import pandas as pd
 from imblearn.over_sampling import SMOTE
 from imblearn.pipeline import Pipeline as ImbPipeline
 from sklearn.calibration import CalibratedClassifierCV
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import f1_score, make_scorer, precision_score, recall_score
 from sklearn.model_selection import GridSearchCV, StratifiedKFold, cross_validate
@@ -76,6 +81,15 @@ def grid_svm():
     ])
 
 
+def grid_random_forest():
+    return con_estrategias_balanceo([{
+        "modelo__n_estimators": [300],
+        "modelo__max_depth": [None, 8, 12],
+        "modelo__min_samples_leaf": [1, 3, 5],
+        "modelo__max_features": ["sqrt", 0.5],
+    }])
+
+
 def buscar_hiperparametros(nombre, estimador, grid, X_train, y_train):
     busqueda = GridSearchCV(
         construir_pipeline(estimador), grid, scoring=SCORING, refit=METRICA_REFIT,
@@ -102,8 +116,11 @@ def describir_params(params):
 def tabla_experimentos(nombre, busqueda):
     """Registro completo de experimentos: una fila por configuración probada."""
     res = pd.DataFrame(busqueda.cv_results_)
-    filas = pd.DataFrame([describir_params(p) for p in res["params"]])
+    legibles = [describir_params(p) for p in res["params"]]
+    filas = pd.DataFrame(legibles)
     filas.insert(0, "modelo", nombre)
+    # texto armado desde los parámetros originales: conserva enteros y valores None (p. ej. max_depth=None)
+    filas.insert(2, "hiperparametros", [str({k: v for k, v in p.items() if k != "balanceo"}) for p in legibles])
     for m in SCORING:
         filas[f"cv_{m}_media"] = res[f"mean_test_{m}"].round(4)
         filas[f"cv_{m}_std"] = res[f"std_test_{m}"].round(4)
@@ -114,12 +131,10 @@ def tabla_experimentos(nombre, busqueda):
 
 def resumen_por_estrategia(experimentos):
     """Mejor configuración de cada (modelo, estrategia de balanceo): la tabla comparativa del informe."""
-    columnas = ["modelo", "balanceo"] + [c for c in experimentos.columns if c.startswith("cv_")] + ["tiempo_ajuste_s"]
+    columnas = (["modelo", "balanceo", "hiperparametros"] + [c for c in experimentos.columns if c.startswith("cv_")]
+                + ["tiempo_ajuste_s"])
     mejores = experimentos.sort_values(f"cv_{METRICA_REFIT}_media", ascending=False).groupby(["modelo", "balanceo"]).head(1)
-    params = experimentos.drop(columns=columnas + ["ranking"]).loc[mejores.index]
-    mejores = mejores[columnas].copy()
-    mejores.insert(2, "hiperparametros", params.apply(lambda f: str({k: v for k, v in f.items() if pd.notna(v)}), axis=1))
-    return mejores.reset_index(drop=True)
+    return mejores[columnas].reset_index(drop=True)
 
 
 def ablacion_demograficas(busquedas, X_train, y_train):
@@ -146,6 +161,7 @@ def entrenar_todo():
     candidatos = {
         "Regresión Logística": (LogisticRegression(solver="lbfgs", max_iter=5000), grid_regresion_logistica()),
         "SVM": (SVC(), grid_svm()),
+        "Random Forest": (RandomForestClassifier(random_state=SEMILLA), grid_random_forest()),
     }
     busquedas, tiempos = {}, {}
     for nombre, (estimador, grid) in candidatos.items():
@@ -167,9 +183,11 @@ def entrenar_todo():
     inicio = time.perf_counter()
     modelo_svm = CalibratedClassifierCV(busquedas["SVM"].best_estimator_, method="sigmoid", cv=CV).fit(X_train, y_train)
     tiempo_calibracion = time.perf_counter() - inicio
+    modelo_rf = busquedas["Random Forest"].best_estimator_
 
     joblib.dump(modelo_lr, DIR_MODELOS / "modelo_regresion_logistica.joblib")
     joblib.dump(modelo_svm, DIR_MODELOS / "modelo_svm_calibrado.joblib")
+    joblib.dump(modelo_rf, DIR_MODELOS / "modelo_random_forest.joblib", compress=3)
     metadatos = {
         nombre: {
             "mejores_hiperparametros": describir_params(b.best_params_),
@@ -182,7 +200,7 @@ def entrenar_todo():
     metadatos["SVM"]["calibracion"] = {"metodo": "sigmoid (Platt)", "cv": 5, "tiempo_s": round(tiempo_calibracion, 1)}
     with open(DIR_MODELOS / "metadatos_modelos.json", "w", encoding="utf-8") as f:
         json.dump(metadatos, f, ensure_ascii=False, indent=2)
-    return {"Regresión Logística": modelo_lr, "SVM": modelo_svm}
+    return {"Regresión Logística": modelo_lr, "SVM": modelo_svm, "Random Forest": modelo_rf}
 
 
 if __name__ == "__main__":

@@ -48,6 +48,7 @@ def cargar_modelos():
     return {
         "Regresión Logística": joblib.load(DIR_MODELOS / "modelo_regresion_logistica.joblib"),
         "SVM": joblib.load(DIR_MODELOS / "modelo_svm_calibrado.joblib"),
+        "Random Forest": joblib.load(DIR_MODELOS / "modelo_random_forest.joblib"),
     }
 
 
@@ -201,10 +202,13 @@ def evaluar_todo():
     tabla_val.round(4).to_csv(DIR_METRICAS / "metricas_validacion.csv")
     hibridos = tabla_val.loc[tabla_val.index.str.startswith("Híbrido")]
     seleccionado = hibridos.sort_values(["f1_macro", "recall_alto"], ascending=False).index[0]
-    modelo_principal = "SVM" if "SVM" in seleccionado else "Regresión Logística"
+    modelo_principal = next(n for n in modelos if seleccionado == f"Híbrido ({n} + reglas)")
+    sistema_principal = seleccionado
 
     # 2) Prueba: evaluación final, una sola vez.
     salidas = predecir_sistemas(modelos, X_test)
+    # Las figuras muestran los 3 modelos y el sistema híbrido seleccionado
+    salidas_figuras = {k: v for k, v in salidas.items() if not k.startswith("Híbrido") or k == sistema_principal}
     tabla_test = tabla_metricas(salidas, y_test)
     for nombre, (pred, _) in salidas.items():
         for metrica, fn in [("recall_alto", lambda a, b: recall_score(a, b, labels=[CLASE_ALTO], average="macro", zero_division=0)),
@@ -219,9 +223,9 @@ def evaluar_todo():
     tabla_sin_reglas.round(4).to_csv(DIR_METRICAS / "metricas_test_sin_signos_criticos.csv")
 
     # 4) Gráficas
-    graficar_matrices_confusion(salidas, y_test, DIR_FIGURAS / "matrices_confusion_test.png")
-    graficar_roc(salidas, y_test, DIR_FIGURAS / "curvas_roc_test.png")
-    graficar_comparacion(tabla_test, DIR_FIGURAS / "comparacion_sistemas_test.png")
+    graficar_matrices_confusion(salidas_figuras, y_test, DIR_FIGURAS / "matrices_confusion_test.png")
+    graficar_roc(salidas_figuras, y_test, DIR_FIGURAS / "curvas_roc_test.png")
+    graficar_comparacion(tabla_test.loc[list(salidas_figuras)], DIR_FIGURAS / "comparacion_sistemas_test.png")
 
     # 5) Auditoría de sesgos por subgrupo
     subgrupos = auditoria_subgrupos(modelos[modelo_principal], modelo_principal)
@@ -229,6 +233,7 @@ def evaluar_todo():
 
     resumen = {
         "modelo_principal_para_hibrido": modelo_principal,
+        "sistema_principal": sistema_principal,
         "criterio_seleccion": "Mayor F1-macro del sistema híbrido en validación (desempate: recall Alto Riesgo)",
         "n_test": int(len(y_test)),
         "n_alto_riesgo_test": int((y_test == CLASE_ALTO).sum()),

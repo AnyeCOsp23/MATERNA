@@ -6,7 +6,7 @@
     },
     "cv_f1_macro": 0.7499,
     "configuraciones_probadas": 26,
-    "tiempo_busqueda_s": 19.6
+    "tiempo_busqueda_s": 17.7
   },
   "SVM": {
     "mejores_hiperparametros": {
@@ -17,11 +17,23 @@
     },
     "cv_f1_macro": 0.8608,
     "configuraciones_probadas": 104,
-    "tiempo_busqueda_s": 28.6,
+    "tiempo_busqueda_s": 26.9,
     "calibracion": {
       "metodo": "sigmoid (Platt)",
       "cv": 5,
       "tiempo_s": 0.5
     }
+  },
+  "Random Forest": {
+    "mejores_hiperparametros": {
+      "balanceo": "SMOTE",
+      "max_depth": null,
+      "max_features": 0.5,
+      "min_samples_leaf": 1,
+      "n_estimators": 300
+    },
+    "cv_f1_macro": 0.9318,
+    "configuraciones_probadas": 36,
+    "tiempo_busqueda_s": 56.7
   }
 }
