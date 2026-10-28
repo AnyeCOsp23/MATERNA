@@ -1,0 +1,15 @@
+[theme]
+base = "light"
+primaryColor = "#A54178"
+backgroundColor = "#F3F3E7"
+secondaryBackgroundColor = "#EFE6E9"
+textColor = "#3A1F30"
+borderColor = "#E6D6DF"
+baseRadius = "16px"
+
+[browser]
+gatherUsageStats = false
+
+[server]
+# Sirve la carpeta static/ (logo de la pantalla de bienvenida) desde el mismo servidor local: funciona offline
+enableStaticServing = true
