@@ -11,3 +11,6 @@ streamlit==1.66.1
 ipykernel==7.4.0
 nbformat
 nbconvert==7.17.2
+# Pruebas
+pytest==9.1.1
+playwright==1.64.1  # solo para  pytest -m e2e  (usa el Google Chrome instalado)
