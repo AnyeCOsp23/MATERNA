@@ -1,5 +1,6 @@
 {
-  "modelo_principal_para_hibrido": "SVM",
+  "modelo_principal_para_hibrido": "Random Forest",
+  "sistema_principal": "Híbrido (Random Forest + reglas)",
   "criterio_seleccion": "Mayor F1-macro del sistema híbrido en validación (desempate: recall Alto Riesgo)",
   "n_test": 180,
   "n_alto_riesgo_test": 23,
