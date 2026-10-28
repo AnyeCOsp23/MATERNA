@@ -110,8 +110,12 @@ class MedianaEstratificadaImputer(BaseEstimator, TransformerMixin):
         X = X.copy()
         area, tri = self._estratos(X)
         for col in self.columnas:
+            # float explícito: una columna entera sin nulos (p. ej. glucosa=100) no admite la asignación
+            X[col] = pd.to_numeric(X[col], errors="coerce").astype(float)
             faltante = X[col].isna()
             X[self.NOMBRES_INDICADOR.get(col, f"{col}_no_disponible")] = faltante.astype(int)
+            if not faltante.any():
+                continue
             valores = [
                 self.mediana_estrato_[col].get((a, t), self.mediana_area_[col].get(a, self.mediana_global_[col]))
                 for a, t in zip(area[faltante], tri[faltante])
