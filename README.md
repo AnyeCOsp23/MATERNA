@@ -162,6 +162,6 @@ API FastAPI documentada · app móvil Flutter offline (SQLite) con exportación 
 
 ## 9. Flujo de trabajo con Git
 
-- Rama `main` estable; una rama por tarea (`feat/preprocesamiento`, `feat/app-demo`, `docs/informe-fase2`…) integrada mediante *pull request* revisado por otro integrante.
+- Rama `main` estable; una rama por bloque (`paso-1-fix-imputacion`, `paso-2-random-forest`, etc.) integrada mediante *pull request* revisado por otro integrante.
 - Mensajes de commit con prefijo: `feat:`, `fix:`, `docs:`, `exp:` (experimentos), `refactor:`.
 - Cada integrante sube su propio trabajo con su cuenta. El historial de `git log` es la evidencia de trabajo incremental que pide la rúbrica.
