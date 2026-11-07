@@ -1,0 +1,58 @@
+{
+ "descripcion": "Signos críticos (GPC Minsalud 2013): si se cumple cualquiera, el resultado es Alto Riesgo.",
+ "clase_alto": 2,
+ "clases": [
+  "Bajo Riesgo",
+  "Riesgo Medio",
+  "Alto Riesgo"
+ ],
+ "reglas": [
+  {
+   "id": "pas_severa",
+   "variable": "pas_mmhg",
+   "condicion": "mayor_igual",
+   "umbral": 160,
+   "mensaje": "Hipertensión severa: PAS ≥ 160 mmHg"
+  },
+  {
+   "id": "pad_severa",
+   "variable": "pad_mmhg",
+   "condicion": "mayor_igual",
+   "umbral": 110,
+   "mensaje": "Hipertensión severa: PAD ≥ 110 mmHg"
+  },
+  {
+   "id": "convulsiones",
+   "variable": "convulsiones",
+   "condicion": "verdadero",
+   "mensaje": "Convulsiones: sospecha de eclampsia"
+  },
+  {
+   "id": "proteinuria",
+   "variable": "proteinuria",
+   "condicion": "mayor_igual",
+   "umbral": 2,
+   "mensaje": "Proteinuria ≥ ++ en tira reactiva"
+  }
+ ],
+ "protocolo": {
+  "Alto Riesgo": [
+   "Remisión INMEDIATA a una institución con capacidad resolutiva obstétrica (II/III nivel, p. ej. Riohacha o Valledupar); coordinar el traslado con el CRUE departamental.",
+   "Si hay hipertensión severa, proteinuria o convulsiones: iniciar el manejo de preeclampsia severa/eclampsia según la GPC de complicaciones hipertensivas del embarazo (Minsalud 2013), incluido el sulfato de magnesio y el antihipertensivo, solo por personal habilitado y con el esquema de la guía.",
+   "No dejar sola a la gestante; vigilar signos vitales, conciencia y sangrado hasta la entrega en la institución receptora.",
+   "Registrar el caso; se sincronizará con la consola de la ESE/IPS al recuperar conectividad."
+  ],
+  "Riesgo Medio": [
+   "Valoración por médico en los próximos días (no esperar al siguiente control de rutina).",
+   "Completar los paraclínicos pendientes (glucemia, uroanálisis/proteinuria) y repetir la toma de presión arterial.",
+   "Educar a la gestante y a la familia sobre los signos de alarma: cefalea intensa, visión borrosa, dolor epigástrico, sangrado, edema súbito, disminución de movimientos fetales.",
+   "Programar el seguimiento con el equipo extramural / promotora de la zona."
+  ],
+  "Bajo Riesgo": [
+   "Continuar los controles prenatales según la ruta materno-perinatal (Resolución 3280 de 2018).",
+   "Reforzar la educación en signos de alarma y el plan de parto institucional.",
+   "Verificar la micronutrición y el esquema de vacunación."
+  ]
+ },
+ "aviso": "Protocolos orientativos para la demostración académica; deben validarse con un asesor clínico."
+}

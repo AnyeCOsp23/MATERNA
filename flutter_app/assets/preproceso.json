@@ -1,0 +1,155 @@
+{
+ "variables_entrada": [
+  "edad",
+  "semanas_gestacion",
+  "n_controles_prenatales",
+  "pas_mmhg",
+  "pad_mmhg",
+  "fcf_bpm",
+  "glucosa_mgdl",
+  "proteinuria",
+  "convulsiones",
+  "glucosa_no_disponible",
+  "fcf_no_disponible",
+  "area_residencia_Cabecera",
+  "area_residencia_Rural disperso",
+  "atendido_por_Auxiliar de enfermeria",
+  "atendido_por_Enfermero(a)",
+  "atendido_por_Medico",
+  "atendido_por_Partera tradicional"
+ ],
+ "obligatorias": [
+  "edad",
+  "semanas_gestacion",
+  "n_controles_prenatales",
+  "pas_mmhg",
+  "pad_mmhg",
+  "proteinuria",
+  "convulsiones",
+  "area_residencia",
+  "atendido_por"
+ ],
+ "imputacion": {
+  "columnas": [
+   "glucosa_mgdl",
+   "fcf_bpm"
+  ],
+  "estrato": [
+   "area_residencia",
+   "trimestre"
+  ],
+  "trimestres": [
+   {
+    "nombre": "T1",
+    "desde_exclusivo": 0,
+    "hasta": 13
+   },
+   {
+    "nombre": "T2",
+    "desde_exclusivo": 13,
+    "hasta": 27
+   },
+   {
+    "nombre": "T3",
+    "desde_exclusivo": 27,
+    "hasta": 45
+   }
+  ],
+  "mediana_estrato": {
+   "glucosa_mgdl": {
+    "Cabecera": {
+     "T2": 102.4,
+     "T3": 96.3
+    },
+    "Rural disperso": {
+     "T1": 101.3,
+     "T2": 97.25,
+     "T3": 99.55000000000001
+    }
+   },
+   "fcf_bpm": {
+    "Cabecera": {
+     "T2": 139.8,
+     "T3": 139.8
+    },
+    "Rural disperso": {
+     "T1": 146.2,
+     "T2": 140.5,
+     "T3": 139.0
+    }
+   }
+  },
+  "mediana_area": {
+   "glucosa_mgdl": {
+    "Cabecera": 99.2,
+    "Rural disperso": 98.85
+   },
+   "fcf_bpm": {
+    "Cabecera": 139.8,
+    "Rural disperso": 140.2
+   }
+  },
+  "mediana_global": {
+   "glucosa_mgdl": 98.9,
+   "fcf_bpm": 139.9
+  }
+ },
+ "escalado": {
+  "metodo": "RobustScaler: (x - centro) / escala",
+  "columnas": [
+   "edad",
+   "semanas_gestacion",
+   "n_controles_prenatales",
+   "pas_mmhg",
+   "pad_mmhg",
+   "fcf_bpm",
+   "glucosa_mgdl"
+  ],
+  "centro": [
+   25.0,
+   28.0,
+   3.0,
+   113.0,
+   73.0,
+   139.8,
+   99.35
+  ],
+  "escala": [
+   9.0,
+   9.0,
+   4.0,
+   17.0,
+   11.0,
+   16.625,
+   30.75
+  ]
+ },
+ "discretas": [
+  "proteinuria",
+  "convulsiones",
+  "glucosa_no_disponible",
+  "fcf_no_disponible"
+ ],
+ "indicadores": {
+  "glucosa_no_disponible": "glucosa_mgdl",
+  "fcf_no_disponible": "fcf_bpm"
+ },
+ "one_hot": [
+  {
+   "columna": "area_residencia",
+   "categorias": [
+    "Cabecera",
+    "Rural disperso"
+   ]
+  },
+  {
+   "columna": "atendido_por",
+   "categorias": [
+    "Auxiliar de enfermeria",
+    "Enfermero(a)",
+    "Medico",
+    "Partera tradicional"
+   ]
+  }
+ ]
+}
