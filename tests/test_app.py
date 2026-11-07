@@ -15,6 +15,7 @@ def app(tmp_path, monkeypatch):
     bd = tmp_path / "registros.sqlite"
     monkeypatch.setenv("MATERNA_BD", str(bd))
     at = AppTest.from_file(APP, default_timeout=120)
+    at.session_state["bienvenida_mostrada"] = True  # el simulador no ejecuta JavaScript: ver test_bienvenida_*
     at.session_state["usuario"] = USUARIO_PRUEBA  # sesión iniciada: el login se prueba en test_consola.py
     at.switch_page("paginas/triaje.py")  # la página de inicio es el laboratorio (Módulo 1)
     at.run()
@@ -46,14 +47,23 @@ def cargar_caso(at, numero):
     return at
 
 
-def iframes(at):
-    return [e for e in at.main if getattr(e, "type", None) == "iframe"]
+def bienvenidas(at):
+    return [e for e in at.main if getattr(e, "type", None) == "bidi_component"]
 
 
-def test_bienvenida_solo_al_abrir(app):
-    assert len(iframes(app)) == 1  # el iframe invisible que inserta la pantalla de bienvenida
+def test_bienvenida_es_lo_unico_de_la_primera_ejecucion(tmp_path, monkeypatch):
+    """Al abrir la página solo se envía la capa del logo: ni login ni contenido pueden asomar antes."""
+    monkeypatch.setenv("MATERNA_BD", str(tmp_path / "registros.sqlite"))
+    at = AppTest.from_file(APP, default_timeout=120).run()
+    assert not at.exception
+    assert len(bienvenidas(at)) == 1
+    assert not at.text_input and not at.button and not at.markdown and not at.sidebar.children
+
+
+def test_bienvenida_no_reaparece(app):
+    assert bienvenidas(app) == []  # ya se mostró en esta sesión
     cargar_caso(app, 3)  # cualquier interacción vuelve a ejecutar el script
-    assert iframes(app) == []
+    assert bienvenidas(app) == []
 
 
 def test_carga_inicial_con_encabezado_y_metricas(app):
