@@ -580,3 +580,26 @@ def protocolo(categoria, pasos):
     <div class="mt-steps">{filas}</div>
     <div class="mt-foot">Texto orientativo para la demostración académica: debe validarse con un asesor clínico y con la red
     de referencia de cada ESE/IPS antes de cualquier uso en campo.</div>""")
+
+
+# ---------------------------------------------------------------- consola de la Fase 3
+def cabecera(eyebrow, titulo, sub, pills=()):
+    """Cabecera de las páginas de la consola, con el mismo vidrio y tipografía que la del triaje."""
+    etiquetas = "".join(f'<span class="mt-pill" style="--i:{i + 1}">{html.escape(p)}</span>' for i, p in enumerate(pills))
+    return _html(f"""
+    <div class="mt-hero mt-glass" style="--i:0">
+      <div class="mt-logo">{LOGO_ISOTIPO}</div>
+      <div>
+        <div class="mt-eyebrow">{html.escape(eyebrow)}</div>
+        <h1 class="mt-title">{html.escape(titulo)}</h1>
+        <p class="mt-sub">{html.escape(sub)}</p>
+        {f'<div class="mt-pills">{etiquetas}</div>' if pills else ''}
+      </div>
+      <div></div>
+    </div>""")
+
+
+def tarjeta_usuario(nombre, rol):
+    return _html(f"""
+    <div class="mt-group">Sesión</div>
+    <div class="mt-pill" style="--i:0"><i class="mt-dot"></i>{html.escape(nombre)} · {html.escape(rol)}</div>""")

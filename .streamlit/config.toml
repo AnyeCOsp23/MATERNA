@@ -13,3 +13,7 @@ gatherUsageStats = false
 [server]
 # Sirve la carpeta static/ (logo de la pantalla de bienvenida) desde el mismo servidor local: funciona offline
 enableStaticServing = true
+
+[client]
+# Oculta el botón "Desplegar" y el menú de desarrollador de Streamlit: la app se usa en local
+toolbarMode = "minimal"
