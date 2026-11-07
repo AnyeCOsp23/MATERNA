@@ -10,8 +10,8 @@ Respeta `prefers-reduced-motion` (sin animaciones) y `prefers-reduced-transparen
 """
 import html
 
-# Nombre accesible del iframe invisible de la pantalla de bienvenida; el CSS lo usa para ocultar su contenedor
-ETIQUETA_IFRAME_BIENVENIDA = "Pantalla de bienvenida de MATERNA"
+from streamlit import components
+
 
 # Por categoría: fondo pastel (color de alerta), tinta legible sobre ese fondo (contraste >= 5:1),
 # un tono más intenso del mismo color para el anillo y una barra en degradado.
@@ -129,8 +129,123 @@ html, body, .stApp, p, label, input, button, textarea, li, h1, h2, h3, h4, .mt-h
 @keyframes mt-deriva-b { to { transform: translate(-140px, 60px) scale(1.08); } }
 
 header[data-testid="stHeader"] { background: transparent; }
-/* el iframe invisible que inserta la pantalla de bienvenida no debe dejar hueco en la página */
-[data-testid="stElementContainer"]:has(iframe[title="Pantalla de bienvenida de MATERNA"]) { display: none; }
+/* ---------- inicio de sesión a pantalla completa: marca (50 %) | acceso (50 %) ----------
+   El contenedor se fija a toda la ventana (100vw x 100vh): sin márgenes de Streamlit ni barras de desplazamiento.
+   Entra con una transición continua tras la bienvenida: la vista se aclara del desenfoque y el contenido de
+   cada panel sube en cascada. Las animaciones esperan en pausa (en su primer cuadro, invisibles bajo el logo)
+   hasta que el logo empieza a desvanecerse (body.mt-revelado); si no hay bienvenida en pantalla (al cerrar
+   sesión o al equivocarse de clave) corren de inmediato. Los tamaños escalan con la ventana (clamp). */
+@keyframes mt-login-entra {
+  from { opacity: 0; filter: blur(18px); }
+  to { opacity: 1; filter: blur(0); }
+}
+@keyframes mt-login-aparece {
+  from { opacity: 0; transform: translateY(18px); filter: blur(8px); }
+  to { opacity: 1; transform: none; filter: blur(0); }
+}
+.st-key-mt-login {
+  position: fixed; inset: 0; z-index: 99; margin: 0; padding: 0; gap: 0;
+  overflow-x: hidden; overflow-y: auto; background: #FFFFFF;
+}
+.st-key-mt-login [data-testid="stHorizontalBlock"] {
+  gap: 0 !important; min-height: 100vh; min-height: 100dvh; align-items: stretch; flex-wrap: nowrap;
+  animation: mt-login-entra 1s var(--mt-curva) both;
+}
+.st-key-mt-login .mt-escalon, .st-key-mt-login-acceso div[data-testid="stForm"],
+.st-key-mt-login-acceso [data-testid="stCaptionContainer"], .st-key-mt-login-acceso [data-testid="stAlert"] {
+  animation: mt-login-aparece .75s var(--mt-curva) calc(.25s + var(--paso, 0) * 90ms) both;
+}
+.st-key-mt-login-acceso div[data-testid="stForm"] { --paso: 3; }
+.st-key-mt-login-acceso [data-testid="stCaptionContainer"], .st-key-mt-login-acceso [data-testid="stAlert"] { --paso: 4; }
+.st-key-mt-login [data-testid="stHorizontalBlock"], .st-key-mt-login .mt-escalon,
+.st-key-mt-login-acceso div[data-testid="stForm"], .st-key-mt-login-acceso [data-testid="stCaptionContainer"],
+.st-key-mt-login-acceso [data-testid="stAlert"] { animation-play-state: paused; }
+body.mt-revelado .st-key-mt-login [data-testid="stHorizontalBlock"], body.mt-revelado .st-key-mt-login .mt-escalon,
+body.mt-revelado .st-key-mt-login-acceso div[data-testid="stForm"],
+body.mt-revelado .st-key-mt-login-acceso [data-testid="stCaptionContainer"],
+body.mt-revelado .st-key-mt-login-acceso [data-testid="stAlert"],
+body:not(:has(#mt-splash)) .st-key-mt-login [data-testid="stHorizontalBlock"],
+body:not(:has(#mt-splash)) .st-key-mt-login .mt-escalon,
+body:not(:has(#mt-splash)) .st-key-mt-login-acceso div[data-testid="stForm"],
+body:not(:has(#mt-splash)) .st-key-mt-login-acceso [data-testid="stCaptionContainer"],
+body:not(:has(#mt-splash)) .st-key-mt-login-acceso [data-testid="stAlert"] { animation-play-state: running; }
+/* mientras el login cubre la ventana, la página de abajo no debe desplazarse */
+body:has(.st-key-mt-login) { overflow: hidden; }
+
+/* panel de marca (izquierda) */
+.st-key-mt-login [data-testid="stColumn"]:first-child {
+  position: relative; overflow: hidden;
+  background:
+    radial-gradient(110% 80% at 0% 0%, rgba(216, 99, 155, .55) 0%, transparent 60%),
+    radial-gradient(70% 60% at 100% 100%, rgba(239, 198, 217, .14) 0%, transparent 70%),
+    linear-gradient(160deg, var(--mt-ciruela-900) 0%, #5C1F45 100%);
+}
+.mt-marca {
+  position: relative; display: flex; flex-direction: column; min-height: 100vh; min-height: 100dvh; color: #FFFFFF;
+  padding: clamp(2.2rem, 5vh, 4.5rem) clamp(2.2rem, 5.5vw, 6.5rem);
+}
+.mt-marca-arcos { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+/* isotipo en blanco: el filtro va en la imagen y la animación (que también usa filter) en su contenedor */
+.mt-marca-logo {
+  position: relative; display: block; width: clamp(76px, 6.4vw, 124px); height: auto;
+  filter: brightness(0) invert(1); opacity: .96;
+}
+.mt-marca-texto { position: relative; margin: auto 0; }
+.mt-marca-titulo {
+  font-size: clamp(2.5rem, 3.9vw, 4.6rem); line-height: 1.05; font-weight: 700; letter-spacing: -.035em;
+  color: #FFFFFF; margin-bottom: clamp(1rem, 2.4vh, 1.8rem); max-width: 14ch;
+}
+.mt-marca-texto p { margin: 0; max-width: 34ch; font-size: clamp(1.02rem, 1.2vw, 1.32rem); line-height: 1.6; color: rgba(255, 255, 255, .84); }
+.mt-marca-pie { position: relative; font-size: clamp(.78rem, .8vw, .9rem); color: rgba(255, 255, 255, .66); }
+
+/* panel de acceso (derecha) */
+.st-key-mt-login [data-testid="stColumn"]:last-child { background: #FFFFFF; }
+/* la columna envuelve el panel en un bloque vertical de alto completo: se centra ahí */
+.st-key-mt-login [data-testid="stColumn"]:last-child > [data-testid="stVerticalBlock"] { justify-content: center; }
+.st-key-mt-login-acceso {
+  width: min(500px, 100%); margin: 0 auto; gap: clamp(1rem, 2vh, 1.5rem);
+  padding: clamp(2rem, 5vh, 4rem) clamp(1.6rem, 4vw, 3rem);
+}
+.mt-acceso-logo { display: flex; align-items: center; gap: clamp(.7rem, 1vw, 1.1rem); margin-bottom: clamp(1.4rem, 4vh, 2.8rem); }
+.mt-acceso-logo img { width: clamp(62px, 5vw, 92px); height: auto; }
+.mt-acceso-logo span {
+  font-size: clamp(2.1rem, 2.8vw, 3.1rem); font-weight: 700; letter-spacing: -.035em; line-height: 1;
+  background: linear-gradient(120deg, var(--mt-ciruela-900) 0%, var(--mt-ciruela-700) 55%, var(--mt-ciruela-500) 100%);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.mt-acceso-titulo { font-size: clamp(1.85rem, 2.3vw, 2.6rem); font-weight: 700; letter-spacing: -.03em; color: var(--mt-tinta); line-height: 1.12; }
+.mt-acceso-sub { margin: .55rem 0 clamp(1rem, 2.4vh, 1.6rem); font-size: clamp(.95rem, 1vw, 1.1rem); color: var(--mt-tinta-suave); line-height: 1.5; }
+/* el formulario va sin tarjeta propia; campos y botón más grandes */
+.st-key-mt-login-acceso div[data-testid="stForm"] {
+  background: transparent !important; border: 0 !important; box-shadow: none !important; padding: 0 !important;
+  -webkit-backdrop-filter: none !important; backdrop-filter: none !important;
+}
+.st-key-mt-login-acceso label p { font-size: clamp(.86rem, .9vw, .98rem) !important; }
+.st-key-mt-login-acceso [data-testid="stTextInputRootElement"] { min-height: clamp(2.9rem, 5.6vh, 3.4rem); }
+.st-key-mt-login-acceso input { font-size: clamp(.98rem, 1vw, 1.08rem) !important; }
+.st-key-mt-login-acceso [data-testid="stBaseButton-primaryFormSubmit"] {
+  min-height: clamp(3rem, 6vh, 3.5rem); margin-top: .4rem; font-size: clamp(1rem, 1.05vw, 1.12rem);
+}
+.st-key-mt-login-acceso [data-testid="stCaptionContainer"], .st-key-mt-login-acceso [data-testid="stCaptionContainer"] p {
+  text-align: left; color: var(--mt-tinta-suave) !important; font-size: clamp(.8rem, .85vw, .9rem); line-height: 1.55;
+}
+
+/* pantallas angostas: los paneles se apilan y se desplaza el login completo */
+@media (max-width: 760px) {
+  .st-key-mt-login [data-testid="stHorizontalBlock"] { flex-wrap: wrap; }
+  .mt-marca { min-height: 0; padding: 2rem 1.6rem 1.8rem; gap: 1.1rem; }
+  .mt-marca-logo { width: 56px; }
+  .mt-marca-titulo { font-size: 2rem; margin-bottom: .6rem; }
+  .mt-marca-pie { display: none; }
+  .st-key-mt-login-acceso { padding: 2rem 1.6rem 2.4rem; }
+  .mt-acceso-logo { margin-bottom: 1.2rem; }
+}
+/* un solo ojito en la contraseña: el de la app (igual en todos los navegadores), no el que agrega Edge */
+.st-key-mt-login input::-ms-reveal, .st-key-mt-login input::-ms-clear { display: none; }
+/* el aviso "Press Enter to submit form" (en inglés) se montaba sobre el campo; Enter sigue enviando */
+.st-key-mt-login [data-testid="InputInstructions"] { display: none; }
+/* el componente que monta la pantalla de bienvenida no debe dejar hueco en la página */
+[data-testid="stElementContainer"]:has([data-testid="stBidiComponentRegular"]) { display: none; }
 [data-testid="stToolbar"] { opacity: .55; }
 .block-container { max-width: 1120px; padding-top: 2.2rem; padding-bottom: 4rem; position: relative; z-index: 1; }
 
@@ -414,9 +529,11 @@ def estilos():
     return CSS
 
 
-# Streamlit dibuja sus controles nativos ~1,7 s antes que cualquier bloque st.markdown con HTML, así que
-# una bienvenida hecha con st.markdown llega tarde y la app asoma primero. Por eso la capa la inserta un
-# componente HTML (iframe invisible, que se monta enseguida) directamente en la página principal.
+# Bienvenida. Antes la insertaba un iframe invisible, pero el iframe carga su propio documento después de que
+# Streamlit pinta el resto de la página, así que el login asomaba una fracción de segundo antes del logo.
+# Ahora es un componente v2 montado directamente en la página (sin iframe): app_demo.py lo envía SOLO en la
+# primera ejecución y se detiene; cuando la capa ya cubre la pantalla, el componente avisa a Python
+# ("montada") y recién entonces se dibuja la app, debajo del logo. Sin esperas por tiempo.
 # Usa la misma curva que el resto de la página.
 CSS_BIENVENIDA = """
 .mt-splash {
@@ -437,16 +554,10 @@ CSS_BIENVENIDA = """
 """
 
 
-def pantalla_bienvenida():
-    """Script para st.iframe: inserta en la página principal el logo centrado, que sube con
-    ease-out; a los 2,5 s la capa se desvanece, deja ver la app y se elimina del DOM.
-
-    El logo lo sirve el propio servidor de Streamlit (static/, enableStaticServing): funciona sin internet.
-    """
-    return f"""<script>
-(() => {{
-  const doc = window.parent.document;
-  if (doc.getElementById("mt-splash")) return;
+JS_BIENVENIDA = f"""
+export default function ({{ setTriggerValue }}) {{
+  const doc = document;
+  if (doc.getElementById("mt-splash")) return;  // ya está en pantalla: no volver a avisar
   const estilo = doc.createElement("style");
   estilo.textContent = `{CSS_BIENVENIDA}`;
   doc.head.appendChild(estilo);
@@ -460,13 +571,26 @@ def pantalla_bienvenida():
   logo.alt = "MATERNA";
   capa.appendChild(logo);
   doc.body.appendChild(capa);
-  const retirar = () => {{ capa.remove(); estilo.remove(); }};
+  // "mt-revelado": el login entra en cuanto el logo empieza a desvanecerse (transición continua)
+  const revelar = () => doc.body.classList.add("mt-revelado");
+  const retirar = () => {{ revelar(); capa.remove(); estilo.remove(); }};
+  capa.addEventListener("animationstart", (e) => {{ if (e.animationName === "mt-splash-out") revelar(); }});
   capa.addEventListener("animationend", (e) => {{ if (e.animationName === "mt-splash-out") retirar(); }});
   // con movimiento reducido no hay animación que termine: se retira a los 2,5 s
-  const sinMovimiento = window.parent.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const sinMovimiento = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   setTimeout(retirar, sinMovimiento ? 2500 : 4000);  // respaldo por si el navegador no emite animationend
-}})();
-</script>"""
+  // La capa ya tapa la página: en el siguiente cuadro, Python puede dibujar la app debajo
+  requestAnimationFrame(() => setTriggerValue("montada", true));
+}}
+"""
+
+_BIENVENIDA = components.v2.component("materna_bienvenida", js=JS_BIENVENIDA, isolate_styles=False)
+
+
+def bienvenida_montada():
+    """Monta la capa de bienvenida. Devuelve True cuando ya cubre la pantalla (el logo lo sirve
+    el propio servidor de Streamlit desde static/, con enableStaticServing: funciona sin internet)."""
+    return bool(_BIENVENIDA(key="bienvenida", on_montada_change=lambda: None).montada)
 
 
 def encabezado(modelo, pendientes, kpis):
@@ -583,6 +707,35 @@ def protocolo(categoria, pasos):
 
 
 # ---------------------------------------------------------------- consola de la Fase 3
+def login_marca():
+    """Panel izquierdo del inicio de sesión: isotipo en blanco, mensaje de la marca y arcos decorativos."""
+    arcos = "".join(f'<circle cx="-40" cy="660" r="{r}" fill="none" stroke="#FFFFFF" stroke-opacity="{o}" stroke-width="1.2"/>'
+                    for r, o in [(260, .16), (340, .13), (420, .11), (500, .09), (580, .07), (660, .05)])
+    return _html(f"""
+    <div class="mt-marca">
+      <svg class="mt-marca-arcos" viewBox="0 0 520 600" preserveAspectRatio="xMinYMax slice" aria-hidden="true">{arcos}</svg>
+      <div class="mt-escalon" style="--paso:0"><img class="mt-marca-logo" src="./app/static/logo_isotipo.webp" alt="" aria-hidden="true"></div>
+      <div class="mt-marca-texto mt-escalon" style="--paso:1">
+        <div class="mt-marca-titulo" role="heading" aria-level="2">Alerta temprana para cuidar cada gestación.</div>
+        <p>Laboratorio auditable del modelo que clasifica el riesgo obstétrico en La Guajira y Cesar,
+        de la ingesta de datos a la generalización.</p>
+      </div>
+      <div class="mt-marca-pie mt-escalon" style="--paso:2">© 2026 MATERNA · Universidad Popular del Cesar</div>
+    </div>""")
+
+
+def login_encabezado():
+    """Panel derecho del inicio de sesión: logo MATERNA destacado y bienvenida."""
+    return _html("""
+    <div class="mt-acceso-logo mt-escalon" style="--paso:1">
+      <img src="./app/static/logo_isotipo.webp" alt="" aria-hidden="true"><span>MATERNA</span>
+    </div>
+    <div class="mt-escalon" style="--paso:2">
+      <div class="mt-acceso-titulo" role="heading" aria-level="1">Le damos la bienvenida</div>
+      <p class="mt-acceso-sub">Módulo 1 · Laboratorio de ML. Inicie sesión para continuar.</p>
+    </div>""")
+
+
 def cabecera(eyebrow, titulo, sub, pills=()):
     """Cabecera de las páginas de la consola, con el mismo vidrio y tipografía que la del triaje."""
     etiquetas = "".join(f'<span class="mt-pill" style="--i:{i + 1}">{html.escape(p)}</span>' for i, p in enumerate(pills))

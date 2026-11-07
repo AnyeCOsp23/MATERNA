@@ -15,6 +15,23 @@ from src.autenticacion import bloque_toml
 
 pytestmark = pytest.mark.e2e
 USUARIO, CLAVE = "e2e", "clave-de-prueba-e2e"
+
+# Se instala antes de que cargue la página y registra, desde el primer instante, si algo de la app se
+# pintó antes que la capa del logo y cuántas pantallas de login llegaron a verse a la vez.
+OBSERVADOR = """
+window.__mt = {contenidoAntesDelLogo: [], logoVisto: false, maxLogins: 0};
+new MutationObserver(() => {
+  const d = document;
+  if (d.getElementById('mt-splash')) window.__mt.logoVisto = true;
+  if (!window.__mt.logoVisto) {
+    d.querySelectorAll('[data-testid="stForm"], [data-testid="stMarkdownContainer"], [data-testid="stSidebarNav"], input')
+      .forEach(e => { const r = e.getBoundingClientRect();
+        if (r.width > 0 && r.height > 0) window.__mt.contenidoAntesDelLogo.push(e.getAttribute('data-testid') || e.tagName); });
+  }
+  const logins = [...d.querySelectorAll('p')].filter(e => e.textContent.includes('Inicie sesión para continuar')).length;
+  window.__mt.maxLogins = Math.max(window.__mt.maxLogins, logins);
+}).observe(document, {childList: true, subtree: true});
+"""
 playwright = pytest.importorskip("playwright.sync_api")
 
 
@@ -52,6 +69,7 @@ def pagina(url):
         pg = navegador.new_page(viewport={"width": 1440, "height": 900})
         pg.errores = []
         pg.on("pageerror", lambda e: pg.errores.append(str(e)))
+        pg.add_init_script(OBSERVADOR)
         pg.goto(url, wait_until="networkidle")
         # la bienvenida cubre la página ~3,3 s: se espera a que se retire antes de interactuar
         pg.wait_for_selector("#mt-splash", state="attached", timeout=60000)
@@ -146,6 +164,16 @@ def test_navegar_al_laboratorio(pagina):
     esperar_fin_ejecucion(pagina)
     assert pagina.get_by_role("tab").count() == 13
     ir_al_triaje(pagina)
+
+
+def test_nada_de_la_app_asoma_antes_del_logo(pagina):
+    """Regresión: antes, el login se veía una fracción de segundo antes de la capa del logo."""
+    assert pagina.evaluate("window.__mt.contenidoAntesDelLogo") == []
+
+
+def test_un_solo_login_en_el_primer_arranque(pagina):
+    """Regresión: al entrar con el servidor recién iniciado, el login aparecía duplicado y atenuado."""
+    assert pagina.evaluate("window.__mt.maxLogins") == 1
 
 
 def test_sin_errores_de_javascript(pagina):

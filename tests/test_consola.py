@@ -40,6 +40,13 @@ def pagina(nombre, rol):
     return at.run()
 
 
+def app_abierta():
+    """La app tras la bienvenida (el simulador no ejecuta el JavaScript que avisa que la capa ya cubre la pantalla)."""
+    at = AppTest.from_file(APP, default_timeout=180)
+    at.session_state["bienvenida_mostrada"] = True
+    return at.run()
+
+
 def iniciar_sesion(at, usuario, clave):
     at.text_input[0].input(usuario)
     at.text_input[1].input(clave)
@@ -83,20 +90,22 @@ def test_permisos_por_rol():
 
 # ------------------------------------------------------------------ inicio de sesión
 def test_sin_sesion_muestra_el_login(entorno):
-    at = AppTest.from_file(APP, default_timeout=120).run()
+    at = app_abierta()
     assert [t.label for t in at.text_input] == ["Usuario", "Contraseña"]
     assert not at.tabs
 
 
 def test_login_abre_el_laboratorio(entorno):
-    at = iniciar_sesion(AppTest.from_file(APP, default_timeout=180).run(), "profe", CLAVES["profe"])
+    at = iniciar_sesion(app_abierta(), "profe", CLAVES["profe"])
     assert not at.exception
     assert at.session_state["usuario"]["rol"] == "evaluador"
     assert len(at.tabs) == 13  # la página de inicio es el laboratorio (Módulo 1)
+    # el login se borra en la misma ejecución: no queda ningún campo ni texto suyo debajo del laboratorio
+    assert not at.text_input and not any("Inicie sesión" in m.value for m in at.markdown)
 
 
 def test_login_incorrecto_y_bloqueo(entorno):
-    at = AppTest.from_file(APP, default_timeout=120).run()
+    at = app_abierta()
     for _ in range(INTENTOS_MAXIMOS):
         iniciar_sesion(at, "admin", "clave-equivocada")
         assert "usuario" not in at.session_state
@@ -108,12 +117,12 @@ def test_sin_usuarios_configurados(tmp_path, monkeypatch):
     vacio = tmp_path / "vacio.toml"
     vacio.write_text("", encoding="utf-8")
     monkeypatch.setenv("MATERNA_USUARIOS", str(vacio))
-    at = AppTest.from_file(APP, default_timeout=120).run()
+    at = app_abierta()
     assert "No hay usuarios configurados" in at.warning[0].value and not at.text_input
 
 
 def test_cerrar_sesion(entorno):
-    at = iniciar_sesion(AppTest.from_file(APP, default_timeout=180).run(), "admin", CLAVES["admin"])
+    at = iniciar_sesion(app_abierta(), "admin", CLAVES["admin"])
     next(b for b in at.sidebar.button if b.label == "Cerrar sesión").click().run()
     assert "usuario" not in at.session_state and at.text_input[0].label == "Usuario"
 
