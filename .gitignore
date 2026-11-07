@@ -12,3 +12,6 @@ data/registros_locales.sqlite
 
 # Copias comprimidas
 *.zip
+
+# Salidas de la ingesta de la IPS (datos seudonimizados): no se versionan
+data/salidas/

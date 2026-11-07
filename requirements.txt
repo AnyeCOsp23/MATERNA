@@ -7,6 +7,7 @@ matplotlib==3.11.2
 seaborn==0.13.2
 joblib==1.6.0
 streamlit==1.66.1
+openpyxl==3.1.5  # leer y escribir Excel .xlsx (ingesta de la IPS, Fase 3)
 # Notebooks
 ipykernel==7.4.0
 nbformat
