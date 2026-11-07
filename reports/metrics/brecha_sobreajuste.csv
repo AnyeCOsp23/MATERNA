@@ -1,0 +1,4 @@
+modelo,f1_entrenamiento,f1_cv,f1_cv_std,brecha
+Regresión Logística,0.7728,0.7499,0.0129,0.0229
+SVM,1.0,0.8608,0.011,0.1392
+Random Forest,1.0,0.9318,0.0171,0.0682

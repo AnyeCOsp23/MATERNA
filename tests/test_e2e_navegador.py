@@ -11,8 +11,10 @@ import time
 import pytest
 
 from conftest import RAIZ
+from src.autenticacion import bloque_toml
 
 pytestmark = pytest.mark.e2e
+USUARIO, CLAVE = "e2e", "clave-de-prueba-e2e"
 playwright = pytest.importorskip("playwright.sync_api")
 
 
@@ -25,7 +27,11 @@ def puerto_libre():
 @pytest.fixture(scope="module")
 def url(tmp_path_factory):
     puerto = puerto_libre()
-    env = {**os.environ, "MATERNA_BD": str(tmp_path_factory.mktemp("bd") / "e2e.sqlite")}
+    carpeta = tmp_path_factory.mktemp("bd")
+    usuarios = carpeta / "usuarios.toml"
+    usuarios.write_text(bloque_toml(USUARIO, "administrador", "Prueba E2E", CLAVE), encoding="utf-8")
+    env = {**os.environ, "MATERNA_BD": str(carpeta / "e2e.sqlite"), "MATERNA_BD_IPS": str(carpeta / "ips.sqlite"),
+           "MATERNA_USUARIOS": str(usuarios)}
     proceso = subprocess.Popen(
         [sys.executable, "-m", "streamlit", "run", str(RAIZ / "app_demo.py"), "--server.headless", "true",
          "--server.port", str(puerto)], cwd=RAIZ, env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
@@ -47,15 +53,31 @@ def pagina(url):
         pg.errores = []
         pg.on("pageerror", lambda e: pg.errores.append(str(e)))
         pg.goto(url, wait_until="networkidle")
-        pg.wait_for_selector('[data-testid="stNumberInputField"]', timeout=60000)
         # la bienvenida cubre la página ~3,3 s: se espera a que se retire antes de interactuar
         pg.wait_for_selector("#mt-splash", state="attached", timeout=60000)
         pg.wait_for_selector("#mt-splash", state="detached", timeout=10000)
+        iniciar_sesion(pg)
+        ir_al_triaje(pg)
         yield pg
         navegador.close()
 
 
 EDAD_POR_CASO = {"Caso 1": "26", "Caso 2": "17", "Caso 3": "27"}
+
+
+def iniciar_sesion(pg):
+    """Tras el login se abre el laboratorio (Módulo 1), que es la página de inicio."""
+    pg.get_by_label("Usuario").fill(USUARIO)
+    pg.get_by_label("Contraseña").fill(CLAVE)
+    pg.get_by_role("button", name="Ingresar").click()
+    pg.get_by_role("tab", name="01 Problema").wait_for(timeout=60000)
+    esperar_fin_ejecucion(pg)
+
+
+def ir_al_triaje(pg):
+    pg.get_by_role("link", name="Triaje (Fase 2)").click()
+    pg.wait_for_selector('[data-testid="stNumberInputField"]', timeout=60000)
+    esperar_fin_ejecucion(pg)
 
 
 def esperar_fin_ejecucion(pg):
@@ -89,6 +111,8 @@ def test_pantalla_de_bienvenida(url):
         assert abs(caja["x"] + caja["width"] / 2 - 720) < 5 and abs(caja["y"] + caja["height"] / 2 - 450) < 5
         assert splash.evaluate("e => getComputedStyle(e).visibility") == "visible"
         splash.wait_for(state="detached", timeout=6000)  # 2,5 s + 0,8 s de desvanecimiento y se retira del DOM
+        iniciar_sesion(pg)  # tras la bienvenida, el inicio de sesión queda usable
+        ir_al_triaje(pg)
         pg.get_by_role("button", name="Evaluar riesgo materno").click(timeout=10000)
         navegador.close()
 
@@ -114,6 +138,14 @@ def test_escribir_en_el_formulario(pagina):
     pagina.get_by_role("button", name="Evaluar riesgo materno").click()
     pagina.wait_for_selector(".mt-result.alto", timeout=30000)
     assert "PAS 172 mmHg" in pagina.locator(".mt-chips").inner_text()
+
+
+def test_navegar_al_laboratorio(pagina):
+    pagina.get_by_role("link", name="Laboratorio ML").click()
+    pagina.get_by_role("tab", name="13 Ética y limitaciones").wait_for(timeout=60000)
+    esperar_fin_ejecucion(pagina)
+    assert pagina.get_by_role("tab").count() == 13
+    ir_al_triaje(pagina)
 
 
 def test_sin_errores_de_javascript(pagina):

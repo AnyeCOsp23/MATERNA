@@ -1,0 +1,22 @@
+modelo,n_entrenamiento,f1_entrenamiento,f1_entrenamiento_std,f1_cv,f1_cv_std
+Regresión Logística,100,0.8585,0.0211,0.6885,0.0319
+Regresión Logística,195,0.8022,0.0155,0.6894,0.0322
+Regresión Logística,291,0.7883,0.0225,0.7257,0.0153
+Regresión Logística,386,0.7871,0.0168,0.7262,0.0209
+Regresión Logística,481,0.7779,0.0143,0.7451,0.0147
+Regresión Logística,576,0.7782,0.0115,0.7417,0.01
+Regresión Logística,672,0.7728,0.0037,0.7499,0.0129
+SVM,100,1.0,0.0,0.7597,0.0425
+SVM,195,1.0,0.0,0.7769,0.0357
+SVM,291,1.0,0.0,0.7995,0.0228
+SVM,386,1.0,0.0,0.82,0.016
+SVM,481,1.0,0.0,0.8338,0.0237
+SVM,576,1.0,0.0,0.84,0.0123
+SVM,672,1.0,0.0,0.8608,0.011
+Random Forest,100,1.0,0.0,0.8183,0.0427
+Random Forest,195,1.0,0.0,0.8793,0.041
+Random Forest,291,1.0,0.0,0.9035,0.0228
+Random Forest,386,1.0,0.0,0.9144,0.0099
+Random Forest,481,1.0,0.0,0.9255,0.0218
+Random Forest,576,1.0,0.0,0.923,0.0162
+Random Forest,672,1.0,0.0,0.927,0.0232

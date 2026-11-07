@@ -1,4 +1,4 @@
-"""Interfaz (app_demo.py) ejecutada con el simulador de Streamlit: formulario, resultados y base local."""
+"""Página de triaje de la consola (app_demo.py -> paginas/triaje.py) con el simulador de Streamlit."""
 import sqlite3
 
 import pytest
@@ -7,13 +7,17 @@ from streamlit.testing.v1 import AppTest
 from conftest import RAIZ
 
 APP = str(RAIZ / "app_demo.py")
+USUARIO_PRUEBA = {"usuario": "prueba", "nombre": "Usuario de prueba", "rol": "administrador"}
 
 
 @pytest.fixture
 def app(tmp_path, monkeypatch):
     bd = tmp_path / "registros.sqlite"
     monkeypatch.setenv("MATERNA_BD", str(bd))
-    at = AppTest.from_file(APP, default_timeout=120).run()
+    at = AppTest.from_file(APP, default_timeout=120)
+    at.session_state["usuario"] = USUARIO_PRUEBA  # sesión iniciada: el login se prueba en test_consola.py
+    at.switch_page("paginas/triaje.py")  # la página de inicio es el laboratorio (Módulo 1)
+    at.run()
     assert not at.exception
     at.bd = bd
     return at
