@@ -1,0 +1,212 @@
+// Flujo central del Módulo 2: recorrer el asistente de triaje, evaluar y leer el resultado, como una auxiliar.
+import 'dart:io';
+
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:materna/main.dart';
+import 'package:materna/motor/recursos.dart';
+
+String leer(String nombre) => File('assets/$nombre').readAsStringSync();
+
+final recursos = RecursosMaterna.desdeTextos(
+  preproceso: leer('preproceso.json'),
+  modelo: leer('modelo_rf.json'),
+  reglas: leer('reglas.json'),
+  catalogo: leer('variables_3280.json'),
+);
+
+Future<void> abrir(WidgetTester tester, {Size tamano = const Size(1000, 2400)}) async {
+  tester.view.physicalSize = tamano;
+  tester.view.devicePixelRatio = 1;
+  addTearDown(tester.view.reset);
+  await tester.pumpWidget(MaternaApp(recursos: Future.value(recursos)));
+  await tester.pumpAndSettle();
+}
+
+Future<void> tocar(WidgetTester tester, Finder f) async {
+  await tester.ensureVisible(f);
+  await tester.pumpAndSettle();
+  await tester.tap(f);
+  await tester.pumpAndSettle();
+}
+
+Future<void> escribir(WidgetTester tester, String campo, String valor) async {
+  final f = find.byKey(Key('campo-$campo'));
+  await tester.ensureVisible(f);
+  await tester.pumpAndSettle();
+  await tester.enterText(f, valor);
+}
+
+Future<void> elegir(WidgetTester tester, String campo, String opcion) =>
+    tocar(tester, find.descendant(of: find.byKey(Key('campo-$campo')), matching: find.text(opcion)));
+
+Future<void> elegirEnLista(WidgetTester tester, String campo, String opcion) async {
+  await tocar(tester, find.byKey(Key('campo-$campo')));
+  await tester.tap(find.text(opcion).last);
+  await tester.pumpAndSettle();
+}
+
+Future<void> siguiente(WidgetTester tester) => tocar(tester, find.byKey(const Key('siguiente')));
+
+String pasoActual(WidgetTester tester) => tester.widget<Text>(find.byKey(const Key('paso-actual'))).data!;
+
+/// Pasos 1 a 3 de un control de rutina en Valledupar (el caso 3 de la demo de la Fase 2: Bajo Riesgo).
+Future<void> llenarRutina(WidgetTester tester) async {
+  for (final (campo, valor) in [('edad', '27'), ('semanas_gestacion', '28'), ('n_controles_prenatales', '5')]) {
+    await escribir(tester, campo, valor);
+  }
+  await siguiente(tester);
+  for (final (campo, valor) in [('pas_mmhg', '110'), ('pad_mmhg', '70'), ('fcf_bpm', '142'), ('glucosa_mgdl', '88')]) {
+    await escribir(tester, campo, valor);
+  }
+  await elegir(tester, 'proteinuria', 'Negativa');
+  await elegir(tester, 'convulsiones', 'No');
+  await siguiente(tester);
+  await elegir(tester, 'area_residencia', 'Cabecera');
+  await elegirEnLista(tester, 'atendido_por', 'Médico');
+  await siguiente(tester); // ahora en el paso 4: signos de alarma
+}
+
+/// Desde los signos de alarma (paso 4) hasta el resultado, sin la valoración opcional.
+Future<void> terminarYEvaluar(WidgetTester tester) async {
+  await siguiente(tester); // paso 5: valoración de la ruta (opcional)
+  await siguiente(tester); // paso 6: revisión
+  await tocar(tester, find.byKey(const Key('evaluar')));
+}
+
+void main() {
+  testWidgets('la barra flotante muestra las 4 pestañas y conserva el triaje a medio llenar', (tester) async {
+    await abrir(tester);
+    for (final nombre in ['Triaje', 'Carga IPS', 'Historial', 'Acerca de']) {
+      expect(find.bySemanticsLabel(nombre), findsOneWidget);
+    }
+    await escribir(tester, 'edad', '31');
+    await tocar(tester, find.byKey(const Key('pestana-2')));
+    expect(find.text('Historial local'), findsOneWidget);
+    await tocar(tester, find.byKey(const Key('pestana-0')));
+    expect(tester.widget<TextField>(find.byKey(const Key('campo-edad'))).controller!.text, '31');
+  });
+
+  testWidgets('cada paso valida antes de avanzar', (tester) async {
+    await abrir(tester);
+    expect(pasoActual(tester), 'Paso 1 de 6');
+    await siguiente(tester);
+    expect(pasoActual(tester), 'Paso 1 de 6');
+    expect(find.text('Dato obligatorio.'), findsNWidgets(3));
+    await escribir(tester, 'edad', '27');
+    await escribir(tester, 'semanas_gestacion', '50');
+    await escribir(tester, 'n_controles_prenatales', '5');
+    await siguiente(tester);
+    expect(find.textContaining('Fuera del rango válido (4 a 42)'), findsOneWidget);
+    await escribir(tester, 'semanas_gestacion', '28');
+    await siguiente(tester);
+    expect(pasoActual(tester), 'Paso 2 de 6');
+    await siguiente(tester);
+    expect(find.text('Escriba el valor o marque «Sin dato».'), findsNWidgets(2));
+    await tocar(tester, find.byKey(const Key('atras')));
+    expect(pasoActual(tester), 'Paso 1 de 6');
+  });
+
+  testWidgets('emergencia: Alto Riesgo por regla clínica, con el motivo', (tester) async {
+    await abrir(tester);
+    for (final (campo, valor) in [('edad', '26'), ('semanas_gestacion', '31'), ('n_controles_prenatales', '1')]) {
+      await escribir(tester, campo, valor);
+    }
+    await siguiente(tester);
+    for (final (campo, valor) in [('pas_mmhg', '165'), ('pad_mmhg', '108'), ('glucosa_mgdl', '110,5')]) {
+      await escribir(tester, campo, valor);
+    }
+    await tocar(tester, find.byKey(const Key('sin-dato-fcf_bpm')));
+    await elegir(tester, 'proteinuria', '++ o más');
+    await elegir(tester, 'convulsiones', 'Sí');
+    await siguiente(tester);
+    await elegir(tester, 'area_residencia', 'Rural disperso');
+    await elegirEnLista(tester, 'atendido_por', 'Partera tradicional');
+    await siguiente(tester);
+    await terminarYEvaluar(tester);
+    expect(find.text('ROJO · Alto riesgo'), findsOneWidget);
+    expect(find.text('Decidido por regla clínica (GPC Minsalud 2013):'), findsOneWidget);
+    expect(find.textContaining('PAS ≥ 160 mmHg'), findsOneWidget);
+    expect(find.textContaining('Sin dato de FCF'), findsOneWidget);
+  });
+
+  testWidgets('rutina sin alertas: Bajo Riesgo por el modelo', (tester) async {
+    await abrir(tester);
+    await llenarRutina(tester);
+    await terminarYEvaluar(tester);
+    expect(find.text('VERDE · Bajo riesgo'), findsOneWidget);
+    expect(find.text('Decidido por el modelo (Random Forest).'), findsOneWidget);
+    expect(find.byKey(const Key('alertas-urgentes')), findsNothing);
+  });
+
+  testWidgets('sangrado genital: el modelo dice verde, pero el signo de alarma eleva el semáforo a ROJO', (tester) async {
+    await abrir(tester);
+    await llenarRutina(tester);
+    await elegir(tester, 'sangrado_genital', 'Sí');
+    await elegir(tester, 'vision_borrosa', 'Sí');
+    await terminarYEvaluar(tester);
+    expect(find.text('ROJO · Alto riesgo'), findsOneWidget);
+    expect(find.text('Decidido por signos de alarma de la ruta (Res. 3280):'), findsOneWidget);
+    expect(find.text('•  Sangrado genital'), findsOneWidget);
+    expect(find.text('El modelo por sí solo habría dicho Bajo Riesgo.'), findsOneWidget);
+    expect(find.textContaining('Remisión INMEDIATA'), findsOneWidget); // protocolo de Alto, no «próximos días»
+  });
+
+  testWidgets('violencias: urgente pero no obstétrica; no cambia el semáforo y va encima de él', (tester) async {
+    await abrir(tester);
+    await llenarRutina(tester);
+    await siguiente(tester);
+    await tocar(tester, find.text('Escalas de riesgo'));
+    await elegir(tester, 'tamizaje_violencia_positivo', 'Sí');
+    await siguiente(tester);
+    await tocar(tester, find.byKey(const Key('evaluar')));
+    final alerta = find.byKey(const Key('alertas-urgentes'));
+    expect(find.text('VERDE · Bajo riesgo'), findsOneWidget);
+    expect(tester.getTopLeft(alerta).dy, lessThan(tester.getTopLeft(find.byKey(const Key('semaforo'))).dy));
+    expect(find.textContaining('ruta de atención a víctimas'), findsOneWidget);
+  });
+
+  testWidgets('la revisión muestra lo ingresado y permite volver a editar un paso', (tester) async {
+    await abrir(tester);
+    await llenarRutina(tester);
+    await elegir(tester, 'cefalea', 'No');
+    await siguiente(tester);
+    await siguiente(tester);
+    expect(pasoActual(tester), 'Paso 6 de 6');
+    expect(find.text('27 años'), findsOneWidget);
+    expect(find.text('110 mmHg'), findsOneWidget);
+    expect(find.text('Médico'), findsOneWidget);
+    await tocar(tester, find.byKey(const Key('editar-paso-1')));
+    expect(pasoActual(tester), 'Paso 2 de 6');
+  });
+
+  testWidgets('«Sin dato» no alerta; un «No» explícito del calcio sí', (tester) async {
+    await abrir(tester);
+    await llenarRutina(tester); // semana 28: el calcio ya debería darse
+    await siguiente(tester);
+    await tocar(tester, find.text('Plan de cuidado'));
+    await elegir(tester, 'calcio', 'No');
+    await siguiente(tester);
+    await tocar(tester, find.byKey(const Key('evaluar')));
+    expect(find.textContaining('Calcio pendiente'), findsOneWidget);
+  });
+
+  testWidgets('«Nueva evaluación» vuelve al paso 1 con el formulario en blanco', (tester) async {
+    await abrir(tester);
+    await llenarRutina(tester);
+    await terminarYEvaluar(tester);
+    await tocar(tester, find.byKey(const Key('nueva-evaluacion')));
+    expect(pasoActual(tester), 'Paso 1 de 6');
+    expect(tester.widget<TextField>(find.byKey(const Key('campo-edad'))).controller!.text, isEmpty);
+  });
+
+  testWidgets('en el celular el asistente cabe y la barra no tapa los botones', (tester) async {
+    await abrir(tester, tamano: const Size(390, 844));
+    final boton = find.byKey(const Key('siguiente'));
+    await tester.ensureVisible(boton);
+    await tester.pumpAndSettle();
+    final barra = tester.getTopLeft(find.byKey(const Key('pestana-0'))).dy;
+    expect(tester.getBottomLeft(boton).dy, lessThan(barra));
+    expect(tester.takeException(), isNull);
+  });
+}

@@ -25,6 +25,7 @@ void main() {
       test('caso ${caso['id']}', () {
         final obtenidas = catalogo.evaluarAlertas(Map<String, dynamic>.from(caso['entrada'] as Map));
         final esperadas = (caso['alertas'] as List).cast<Map<String, dynamic>>();
+        expect(catalogo.signosQueEscalan(Map<String, dynamic>.from(caso['entrada'] as Map)), caso['escalan']);
         expect(obtenidas.map((a) => a.variable).toList(), esperadas.map((a) => a['variable']).toList());
         for (var i = 0; i < esperadas.length; i++) {
           expect(obtenidas[i].severidad, esperadas[i]['severidad']);

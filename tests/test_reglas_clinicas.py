@@ -85,3 +85,29 @@ def test_propiedad_toda_regla_activa_termina_en_alto(modelo_principal):
 
 def test_hay_protocolo_para_cada_categoria():
     assert set(PROTOCOLO) == set(NOMBRES_CLASES) and all(len(p) >= 3 for p in PROTOCOLO.values())
+
+
+# ------------------------------------------------------------------ Fase 3: signos de alarma de la ruta 3280
+@pytest.mark.parametrize("signo", ["cefalea", "vision_borrosa", "tinnitus", "dolor_epigastrico", "sangrado_genital",
+                                   "fiebre", "disminucion_movimientos_fetales"])
+def test_signo_de_alarma_obstetrico_eleva_a_alto(modelo_principal, signo):
+    r = evaluar_riesgo_hibrido({**REGISTRO_SANO, signo: 1}, modelo_principal)
+    assert (r.categoria, r.origen, r.signos_alarma) == ("Alto Riesgo", "signo_alarma_3280", [signo])
+    assert r.categoria_modelo == "Bajo Riesgo"  # el modelo no cambia: cambia la decisión final
+
+
+def test_fiebre_medida_eleva_a_alto(modelo_principal):
+    assert evaluar_riesgo_hibrido({**REGISTRO_SANO, "temperatura_c": 38.0}, modelo_principal).origen == "signo_alarma_3280"
+    assert evaluar_riesgo_hibrido({**REGISTRO_SANO, "temperatura_c": 37.9}, modelo_principal).origen == "modelo_ml"
+
+
+@pytest.mark.parametrize("extra", [{"tamizaje_violencia_positivo": 1}, {"hemoglobina_gdl": 9.0},
+                                   {"cefalea": 0}, {"cefalea": None}, {"semanas_gestacion": 30, "calcio": 0}])
+def test_alertas_que_no_son_signos_obstetricos_no_cambian_el_triaje(modelo_principal, extra):
+    r = evaluar_riesgo_hibrido({**REGISTRO_SANO, **extra}, modelo_principal)
+    assert (r.categoria, r.origen, r.signos_alarma) == ("Bajo Riesgo", "modelo_ml", [])
+
+
+def test_regla_critica_prevalece_y_conserva_los_signos(modelo_principal):
+    r = evaluar_riesgo_hibrido({**REGISTRO_SANO, "pas_mmhg": 165, "cefalea": 1}, modelo_principal)
+    assert (r.categoria, r.origen, r.signos_alarma) == ("Alto Riesgo", "regla_clinica", ["cefalea"])

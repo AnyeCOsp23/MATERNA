@@ -37,9 +37,11 @@ st.dataframe(vista, hide_index=True, width="stretch", height=520,
 with st.expander("Alertas de la ruta y qué tan verificado está cada corte"):
     alertas = pd.DataFrame([
         {"Variable": v["etiqueta"], "Condición": v["alerta"]["condicion"], "Umbral": v["alerta"].get("umbral", ""),
-         "Severidad": v["alerta"]["severidad"], "Mensaje": v["alerta"]["mensaje"],
+         "Severidad": v["alerta"]["severidad"], "Eleva el triaje a Alto": "Sí" if v["alerta"].get("escala_a_alto") else "",
+         "Mensaje": v["alerta"]["mensaje"],
          "Verificación": catalogo["_verificacion"][v["verificacion"]]}
         for v in catalogo["variables"] if "alerta" in v])
     st.dataframe(alertas, hide_index=True, width="stretch")
     st.caption("Los cortes marcados como criterio clínico por validar deben revisarse con un asesor en ginecobstetricia "
-               "antes de cualquier uso en campo. Las alertas nunca cambian la clasificación del modelo.")
+               "antes de cualquier uso en campo. Las alertas no cambian la predicción del modelo; los signos de alarma "
+               "obstétricos sí elevan el triaje final a Alto Riesgo, como las reglas críticas (criterio por validar).")
