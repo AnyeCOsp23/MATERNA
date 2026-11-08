@@ -2,7 +2,7 @@
   "_descripcion": "Catálogo de variables de MATERNA frente a la Ruta Integral de Atención Materno Perinatal (Resolución 3280 de 2018). Lo leen src/filtro_3280.py, la consola web y la app Flutter. Para agregar un paraclínico nuevo basta con agregar una entrada aquí: el modelo no cambia.",
   "_decisiones": {
     "modelo": "Entra al modelo (Random Forest + reglas). Cambiarla exige reentrenar.",
-    "capturar_alertar": "Se registra y puede generar una alerta de la ruta, pero NO entra al modelo hasta tener datos reales de gestantes.",
+    "capturar_alertar": "Se registra y puede generar una alerta de la ruta, pero NO entra al modelo hasta tener datos reales de gestantes. Los signos de alarma obstétricos marcados con escala_a_alto elevan el triaje final a Alto Riesgo, como las reglas críticas (criterio del equipo por validar con un especialista).",
     "auditoria": "Se conserva solo para auditar sesgos. No entra al modelo por decisión ética.",
     "seudonimizar": "Identifica a la persona: se reemplaza por un HMAC-SHA256 con sal y se descarta el valor original.",
     "eliminar": "Dato personal o administrativo sin valor clínico: se descarta al ingerir el archivo."
@@ -89,7 +89,7 @@
     {"nombre": "fc_materna_lpm", "etiqueta": "Frecuencia cardiaca materna", "seccion": "Examen físico", "decision": "capturar_alertar", "tipo": "entero", "unidad": "lpm", "rango": [30, 200], "sinonimos": ["fc", "frecuencia_cardiaca"], "justificacion": "Signo vital.", "verificacion": "criterio_clinico_por_validar"},
     {"nombre": "temperatura_c", "etiqueta": "Temperatura", "seccion": "Examen físico", "decision": "capturar_alertar", "tipo": "decimal", "unidad": "°C", "rango": [33, 43], "sinonimos": ["temperatura"],
      "justificacion": "Signo vital; la fiebre es signo de alarma de la ruta.", "verificacion": "criterio_clinico_por_validar",
-     "alerta": {"condicion": "mayor_igual", "umbral": 38, "severidad": "urgente", "mensaje": "Fiebre (≥ 38 °C): signo de alarma, valoración médica."}},
+     "alerta": {"escala_a_alto": true, "condicion": "mayor_igual", "umbral": 38, "severidad": "urgente", "mensaje": "Fiebre (≥ 38 °C): signo de alarma, valoración médica."}},
     {"nombre": "altura_uterina_cm", "etiqueta": "Altura uterina", "seccion": "Examen físico", "decision": "capturar_alertar", "tipo": "decimal", "unidad": "cm", "rango": [5, 45], "sinonimos": ["altura_uterina"],
      "justificacion": "Si está por debajo del percentil 10 o muy alta, se pide ecografía (la alerta necesita la tabla por semana).", "verificacion": "resumen_secundario"},
     {"nombre": "numero_fetos", "etiqueta": "Número de fetos", "seccion": "Examen físico", "decision": "capturar_alertar", "tipo": "entero", "rango": [1, 5], "sinonimos": [],
@@ -158,24 +158,24 @@
 
     {"nombre": "cefalea", "etiqueta": "Cefalea intensa", "seccion": "Signos de alarma", "decision": "capturar_alertar", "tipo": "binaria", "sinonimos": [],
      "justificacion": "Signo de alarma de la ruta.", "verificacion": "resumen_ruta_3280",
-     "alerta": {"condicion": "verdadero", "severidad": "urgente", "mensaje": "Cefalea intensa: signo de alarma, valoración médica inmediata."}},
+     "alerta": {"escala_a_alto": true, "condicion": "verdadero", "severidad": "urgente", "mensaje": "Cefalea intensa: signo de alarma, valoración médica inmediata."}},
     {"nombre": "vision_borrosa", "etiqueta": "Visión borrosa o fosfenos", "seccion": "Signos de alarma", "decision": "capturar_alertar", "tipo": "binaria", "sinonimos": ["fosfenos"],
      "justificacion": "Signo de alarma de la ruta.", "verificacion": "resumen_ruta_3280",
-     "alerta": {"condicion": "verdadero", "severidad": "urgente", "mensaje": "Visión borrosa o fosfenos: signo de alarma, valoración médica inmediata."}},
+     "alerta": {"escala_a_alto": true, "condicion": "verdadero", "severidad": "urgente", "mensaje": "Visión borrosa o fosfenos: signo de alarma, valoración médica inmediata."}},
     {"nombre": "tinnitus", "etiqueta": "Tinnitus", "seccion": "Signos de alarma", "decision": "capturar_alertar", "tipo": "binaria", "sinonimos": [],
      "justificacion": "Signo de alarma de la ruta.", "verificacion": "resumen_ruta_3280",
-     "alerta": {"condicion": "verdadero", "severidad": "urgente", "mensaje": "Tinnitus: signo de alarma, valoración médica inmediata."}},
+     "alerta": {"escala_a_alto": true, "condicion": "verdadero", "severidad": "urgente", "mensaje": "Tinnitus: signo de alarma, valoración médica inmediata."}},
     {"nombre": "dolor_epigastrico", "etiqueta": "Dolor epigástrico", "seccion": "Signos de alarma", "decision": "capturar_alertar", "tipo": "binaria", "sinonimos": ["epigastralgia"],
      "justificacion": "Signo de alarma de la ruta.", "verificacion": "resumen_ruta_3280",
-     "alerta": {"condicion": "verdadero", "severidad": "urgente", "mensaje": "Dolor epigástrico: signo de alarma, valoración médica inmediata."}},
+     "alerta": {"escala_a_alto": true, "condicion": "verdadero", "severidad": "urgente", "mensaje": "Dolor epigástrico: signo de alarma, valoración médica inmediata."}},
     {"nombre": "sangrado_genital", "etiqueta": "Sangrado genital", "seccion": "Signos de alarma", "decision": "capturar_alertar", "tipo": "binaria", "sinonimos": ["sangrado_vaginal"],
      "justificacion": "Signo de alarma de la ruta.", "verificacion": "resumen_ruta_3280",
-     "alerta": {"condicion": "verdadero", "severidad": "urgente", "mensaje": "Sangrado genital: signo de alarma, valoración médica inmediata."}},
+     "alerta": {"escala_a_alto": true, "condicion": "verdadero", "severidad": "urgente", "mensaje": "Sangrado genital: signo de alarma, valoración médica inmediata."}},
     {"nombre": "fiebre", "etiqueta": "Fiebre referida", "seccion": "Signos de alarma", "decision": "capturar_alertar", "tipo": "binaria", "sinonimos": [],
      "justificacion": "Signo de alarma de la ruta.", "verificacion": "resumen_ruta_3280",
-     "alerta": {"condicion": "verdadero", "severidad": "urgente", "mensaje": "Fiebre: signo de alarma, valoración médica."}},
+     "alerta": {"escala_a_alto": true, "condicion": "verdadero", "severidad": "urgente", "mensaje": "Fiebre: signo de alarma, valoración médica."}},
     {"nombre": "disminucion_movimientos_fetales", "etiqueta": "Disminución de movimientos fetales", "seccion": "Signos de alarma", "decision": "capturar_alertar", "tipo": "binaria", "sinonimos": [],
      "justificacion": "Signo de alarma de la ruta.", "verificacion": "criterio_clinico_por_validar",
-     "alerta": {"condicion": "verdadero", "severidad": "urgente", "mensaje": "Disminución de movimientos fetales: signo de alarma, valoración médica inmediata."}}
+     "alerta": {"escala_a_alto": true, "condicion": "verdadero", "severidad": "urgente", "mensaje": "Disminución de movimientos fetales: signo de alarma, valoración médica inmediata."}}
   ]
 }

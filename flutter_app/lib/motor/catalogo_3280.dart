@@ -4,7 +4,8 @@
 /// usan el Módulo 1 y `src/filtro_3280.py`). La evaluación de alertas traduce `evaluar_alertas_3280` de
 /// Python y debe dar las mismas alertas, en el mismo orden: lo verifica `test/alertas_test.dart`.
 ///
-/// Las alertas de la ruta son independientes de la clasificación del modelo: no la cambian.
+/// Las alertas de la ruta no entran al modelo. Los signos de alarma obstétricos («escala_a_alto» en el catálogo)
+/// elevan el triaje FINAL a Alto Riesgo, como las reglas críticas: ver Evaluacion en recursos.dart.
 library;
 
 import 'dart:convert';
@@ -21,7 +22,8 @@ class ReglaAlerta {
       : condicion = json['condicion'] as String,
         umbral = _aDoble(json['umbral']),
         severidad = json['severidad'] as String,
-        mensaje = json['mensaje'] as String;
+        mensaje = json['mensaje'] as String,
+        escalaAAlto = json['escala_a_alto'] == true;
 
   /// 'verdadero', 'menor_que', 'mayor_igual' o 'pendiente_desde_semana'.
   final String condicion;
@@ -30,6 +32,9 @@ class ReglaAlerta {
   /// 'urgente', 'atencion' o 'seguimiento'.
   final String severidad;
   final String mensaje;
+
+  /// Signo de alarma obstétrico: si se activa, el triaje final pasa a Alto Riesgo.
+  final bool escalaAAlto;
 
   bool seCumple(double? valor, double? semanas) {
     if (condicion == 'pendiente_desde_semana') {
@@ -118,6 +123,13 @@ class Catalogo3280 {
     }
     return null;
   }
+
+  /// Variables cuyo signo de alarma obstétrico se activa y eleva el triaje a Alto (igual que
+  /// `signos_alarma_que_escalan` de Python).
+  List<String> signosQueEscalan(Map<String, dynamic> registro) => [
+        for (final a in evaluarAlertas(registro))
+          if (variable(a.variable)?.alerta?.escalaAAlto ?? false) a.variable,
+      ];
 
   /// Alertas de la ruta para un registro, de la más a la menos urgente (mismo orden que Python: por
   /// severidad y, dentro de cada severidad, en el orden del catálogo).

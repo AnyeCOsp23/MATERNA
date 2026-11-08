@@ -64,6 +64,20 @@ flutter:
     - assets/modelo_rf.json
     - assets/reglas.json
     - assets/variables_3280.json
+    - assets/logo_isotipo.webp
+
+  # Tipografía incluida en la app (Roboto, licencia Apache 2.0, del SDK de Flutter): sin ella, la versión web
+  # la descarga de fonts.gstatic.com al abrir y no funcionaría sin internet.
+  fonts:
+    - family: MaternaRoboto
+      fonts:
+        - asset: assets/fonts/roboto-regular.ttf
+        - asset: assets/fonts/roboto-medium.ttf
+          weight: 500
+        - asset: assets/fonts/roboto-bold.ttf
+          weight: 700
+        - asset: assets/fonts/roboto-black.ttf
+          weight: 900
 
   # To add assets to your application, add an assets section, like this:
   # assets:

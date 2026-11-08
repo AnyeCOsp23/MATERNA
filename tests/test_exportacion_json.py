@@ -10,7 +10,7 @@ from src.clinical_rules import (
 )
 from src.data_preprocessing import cargar_dataset, marcar_fuera_de_rango, separar_xy
 from src.exportar_a_dart import DIR_ASSETS, RUTA_MODELO, TOLERANCIA, _sha256
-from src.filtro_3280 import RUTA_CATALOGO, evaluar_alertas_3280
+from src.filtro_3280 import RUTA_CATALOGO, evaluar_alertas_3280, signos_alarma_que_escalan
 from src.inferencia_json import ClasificadorJSON, a_float32
 
 
@@ -111,3 +111,5 @@ def test_casos_de_alertas_vigentes():
     assert len(casos) >= 150 and sum(bool(c["alertas"]) for c in casos) > 50
     for c in casos:
         assert evaluar_alertas_3280(c["entrada"]) == c["alertas"], c["id"]
+        assert signos_alarma_que_escalan(c["entrada"]) == c["escalan"], c["id"]
+    assert sum(bool(c["escalan"]) for c in casos) > 20

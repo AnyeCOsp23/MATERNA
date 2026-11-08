@@ -3,6 +3,11 @@
 Si una gestante presenta un signo de alarma crítico, la regla SOBRESCRIBE la predicción del modelo
 y la clasifica como Alto Riesgo, sin depender de la confianza estadística.
 
+Fase 3: los signos de alarma obstétricos de la Resolución 3280 (cefalea intensa, visión borrosa, tinnitus,
+dolor epigástrico, sangrado genital, fiebre y disminución de movimientos fetales; "escala_a_alto" en
+config/variables_3280.json) elevan también el triaje a Alto Riesgo. No entran al modelo (el dataset no los
+tiene): actúan como reglas adicionales. Es un criterio del equipo que debe validar un especialista.
+
 Umbrales (definidos en el documento de propuesta de la Fase 1, sección 4):
   - PAS >= 160 mmHg o PAD >= 110 mmHg: hipertensión severa en el embarazo.
     Referencia: Minsalud / Colciencias (2013). Guía de Práctica Clínica para la prevención, detección
@@ -21,6 +26,7 @@ import numpy as np
 import pandas as pd
 
 from src.config import CLASE_ALTO, NOMBRES_CLASES
+from src.filtro_3280 import signos_alarma_que_escalan
 
 UMBRAL_PAS_SEVERA = 160
 UMBRAL_PAD_SEVERA = 110
@@ -59,10 +65,11 @@ def mascara_reglas(X):
 class ResultadoHibrido:
     categoria: str
     clase: int
-    origen: str                       # "regla_clinica" o "modelo_ml"
+    origen: str                       # "regla_clinica", "signo_alarma_3280" o "modelo_ml"
     alertas: list = field(default_factory=list)
     probabilidades_modelo: dict = field(default_factory=dict)
     categoria_modelo: str = ""
+    signos_alarma: list = field(default_factory=list)  # signos de la ruta 3280 que elevan el triaje
 
 
 def evaluar_riesgo_hibrido(registro, modelo):
@@ -77,11 +84,11 @@ def evaluar_riesgo_hibrido(registro, modelo):
     clase_modelo = int(np.argmax(proba))
     probabilidades = {NOMBRES_CLASES[i]: float(p) for i, p in enumerate(proba)}
     alertas = evaluar_reglas(registro)
-    if alertas:
-        return ResultadoHibrido(NOMBRES_CLASES[CLASE_ALTO], CLASE_ALTO, "regla_clinica", alertas,
-                                probabilidades, NOMBRES_CLASES[clase_modelo])
-    return ResultadoHibrido(NOMBRES_CLASES[clase_modelo], clase_modelo, "modelo_ml", [],
-                            probabilidades, NOMBRES_CLASES[clase_modelo])
+    signos = signos_alarma_que_escalan(registro)
+    origen = "regla_clinica" if alertas else "signo_alarma_3280" if signos else "modelo_ml"
+    clase = CLASE_ALTO if alertas or signos else clase_modelo
+    return ResultadoHibrido(NOMBRES_CLASES[clase], clase, origen, alertas, probabilidades,
+                            NOMBRES_CLASES[clase_modelo], signos)
 
 
 def predecir_hibrido(modelo, X):

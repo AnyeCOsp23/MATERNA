@@ -6,7 +6,8 @@ Genera en flutter_app/assets/:
   reglas.json          los 4 signos críticos, las clases y los protocolos orientativos
   casos_paridad.json   200 gestantes con la respuesta exacta de scikit-learn, para la prueba en Dart
   variables_3280.json  copia exacta del catálogo config/variables_3280.json (formulario y alertas de la ruta)
-  casos_alertas.json   gestantes con las alertas de la ruta que calcula Python, para la prueba en Dart
+  casos_alertas.json   gestantes con las alertas de la ruta y los signos de alarma que elevan el triaje a Alto,
+                       según Python, para la prueba en Dart
 
 Antes de escribir, verifica con src/inferencia_json.py (Python puro, sin scikit-learn) que los JSON
 reproducen las probabilidades del pipeline. Carga el modelo .joblib existente: no reentrena.
@@ -30,7 +31,7 @@ from src.clinical_rules import (
 )
 from src.config import CLASE_ALTO, DIR_MODELOS, NOMBRES_CLASES, RAIZ, SEMILLA, VARS_CON_NULOS
 from src.data_preprocessing import preparar_datos
-from src.filtro_3280 import RUTA_CATALOGO, evaluar_alertas_3280, variables
+from src.filtro_3280 import RUTA_CATALOGO, evaluar_alertas_3280, signos_alarma_que_escalan, variables
 from src.inferencia_json import ClasificadorJSON
 
 RUTA_MODELO = DIR_MODELOS / "modelo_random_forest.joblib"
@@ -243,7 +244,8 @@ def generar_casos_alertas(n=N_CASOS_ALERTAS, semilla=SEMILLA):
                 u = v["alerta"]["umbral"]
                 r[v["nombre"]] = round(float(u + rng.choice([-2, -.5, 0, .5, 2]) * max(1.0, u * .05)), 2)
         registros.append(r)
-    return [{"id": i + 1, "entrada": r, "alertas": evaluar_alertas_3280(r)} for i, r in enumerate(registros)]
+    return [{"id": i + 1, "entrada": r, "alertas": evaluar_alertas_3280(r), "escalan": signos_alarma_que_escalan(r)}
+            for i, r in enumerate(registros)]
 
 
 def exportar_catalogo_y_alertas():

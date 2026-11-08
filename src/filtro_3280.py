@@ -8,7 +8,8 @@ Lee el catálogo config/variables_3280.json y decide qué hacer con cada columna
   - eliminar          datos personales y administrativos.
 Las columnas que el catálogo no reconoce se descartan (privacidad por defecto) y se informan.
 
-Las alertas de la ruta son independientes de la clasificación del modelo: no la cambian.
+Las alertas de la ruta no entran al modelo. Los signos de alarma obstétricos ("escala_a_alto" en el catálogo)
+elevan el triaje FINAL a Alto Riesgo, como las reglas críticas: ver clinical_rules.evaluar_riesgo_hibrido.
 """
 import json
 import unicodedata
@@ -182,8 +183,14 @@ def _cumple(alerta, valor, semanas):
     raise ValueError(f"Condición de alerta desconocida: {condicion}")
 
 
+def signos_alarma_que_escalan(registro):
+    """Variables cuya alerta se activa y que, por ser signos de alarma obstétricos, elevan el triaje a Alto Riesgo."""
+    escalan = {v["nombre"] for v in variables("capturar_alertar") if v.get("alerta", {}).get("escala_a_alto")}
+    return [a["variable"] for a in evaluar_alertas_3280(registro) if a["variable"] in escalan]
+
+
 def evaluar_alertas_3280(registro):
-    """Alertas de la ruta para un registro (dict). No modifican la clasificación del modelo.
+    """Alertas de la ruta para un registro (dict). No modifican la predicción del modelo.
 
     Devuelve una lista de dicts {variable, etiqueta, severidad, mensaje, verificada}, de la más
     a la menos urgente. 'verificada' es False cuando el corte es un criterio clínico por validar.

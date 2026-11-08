@@ -3,7 +3,8 @@
   {
    "id": 1,
    "entrada": {},
-   "alertas": []
+   "alertas": [],
+   "escalan": []
   },
   {
    "id": 2,
@@ -11,7 +12,8 @@
     "semanas_gestacion": null,
     "calcio": 0
    },
-   "alertas": []
+   "alertas": [],
+   "escalan": []
   },
   {
    "id": 3,
@@ -19,7 +21,8 @@
     "semanas_gestacion": 13,
     "calcio": 0
    },
-   "alertas": []
+   "alertas": [],
+   "escalan": []
   },
   {
    "id": 4,
@@ -35,7 +38,8 @@
      "mensaje": "Calcio pendiente: la ruta lo indica desde la semana 14.",
      "verificada": true
     }
-   ]
+   ],
+   "escalan": []
   },
   {
    "id": 5,
@@ -43,7 +47,8 @@
     "semanas_gestacion": 14,
     "calcio": 1
    },
-   "alertas": []
+   "alertas": [],
+   "escalan": []
   },
   {
    "id": 6,
@@ -51,7 +56,8 @@
     "semanas_gestacion": 14,
     "calcio": null
    },
-   "alertas": []
+   "alertas": [],
+   "escalan": []
   },
   {
    "id": 7,
@@ -75,7 +81,8 @@
      "mensaje": "Vacuna Tdap pendiente (desde la semana 26).",
      "verificada": true
     }
-   ]
+   ],
+   "escalan": []
   },
   {
    "id": 8,
@@ -83,7 +90,8 @@
     "semanas_gestacion": 25,
     "vacuna_tdap": 0
    },
-   "alertas": []
+   "alertas": [],
+   "escalan": []
   },
   {
    "id": 9,
@@ -115,6 +123,9 @@
      "mensaje": "Calcio pendiente: la ruta lo indica desde la semana 14.",
      "verificada": true
     }
+   ],
+   "escalan": [
+    "cefalea"
    ]
   },
   {
@@ -130,14 +141,16 @@
      "mensaje": "Antecedente de preeclampsia: aplicar la escala de riesgo de preeclampsia de la ruta.",
      "verificada": false
     }
-   ]
+   ],
+   "escalan": []
   },
   {
    "id": 11,
    "entrada": {
     "preeclampsia_previa": 0
    },
-   "alertas": []
+   "alertas": [],
+   "escalan": []
   },
   {
    "id": 12,
@@ -152,14 +165,16 @@
      "mensaje": "Hipertensión crónica: requiere seguimiento médico de la presión arterial.",
      "verificada": false
     }
-   ]
+   ],
+   "escalan": []
   },
   {
    "id": 13,
    "entrada": {
     "hipertension_cronica": 0
    },
-   "alertas": []
+   "alertas": [],
+   "escalan": []
   },
   {
    "id": 14,
@@ -174,14 +189,16 @@
      "mensaje": "Diabetes previa: requiere control médico de la glicemia.",
      "verificada": false
     }
-   ]
+   ],
+   "escalan": []
   },
   {
    "id": 15,
    "entrada": {
     "diabetes": 0
    },
-   "alertas": []
+   "alertas": [],
+   "escalan": []
   },
   {
    "id": 16,
@@ -196,14 +213,16 @@
      "mensaje": "Enfermedad renal: requiere valoración médica.",
      "verificada": false
     }
-   ]
+   ],
+   "escalan": []
   },
   {
    "id": 17,
    "entrada": {
     "enfermedad_renal": 0
    },
-   "alertas": []
+   "alertas": [],
+   "escalan": []
   },
   {
    "id": 18,
@@ -218,6 +237,9 @@
      "mensaje": "Fiebre (≥ 38 °C): signo de alarma, valoración médica.",
      "verificada": false
     }
+   ],
+   "escalan": [
+    "temperatura_c"
    ]
   },
   {
@@ -225,7 +247,8 @@
    "entrada": {
     "temperatura_c": 37.99
    },
-   "alertas": []
+   "alertas": [],
+   "escalan": []
   },
   {
    "id": 20,
@@ -240,6 +263,9 @@
      "mensaje": "Fiebre (≥ 38 °C): signo de alarma, valoración médica.",
      "verificada": false
     }
+   ],
+   "escalan": [
+    "temperatura_c"
    ]
   },
   {
@@ -247,7 +273,8 @@
    "entrada": {
     "temperatura_c": null
    },
-   "alertas": []
+   "alertas": [],
+   "escalan": []
   },
   {
    "id": 22,
@@ -262,14 +289,16 @@
      "mensaje": "Embarazo múltiple: requiere control por medicina.",
      "verificada": true
     }
-   ]
+   ],
+   "escalan": []
   },
   {
    "id": 23,
    "entrada": {
     "numero_fetos": 1.99
    },
-   "alertas": []
+   "alertas": [],
+   "escalan": []
   },
   {
    "id": 24,
@@ -284,21 +313,24 @@
      "mensaje": "Embarazo múltiple: requiere control por medicina.",
      "verificada": true
     }
-   ]
+   ],
+   "escalan": []
   },
   {
    "id": 25,
    "entrada": {
     "numero_fetos": null
    },
-   "alertas": []
+   "alertas": [],
+   "escalan": []
   },
   {
    "id": 26,
    "entrada": {
     "hemoglobina_gdl": 11
    },
-   "alertas": []
+   "alertas": [],
+   "escalan": []
   },
   {
    "id": 27,
@@ -313,21 +345,24 @@
      "mensaje": "Hemoglobina < 11 g/dL (a nivel del mar): anemia, iniciar manejo según la ruta.",
      "verificada": true
     }
-   ]
+   ],
+   "escalan": []
   },
   {
    "id": 28,
    "entrada": {
     "hemoglobina_gdl": 11.01
    },
-   "alertas": []
+   "alertas": [],
+   "escalan": []
   },
   {
    "id": 29,
    "entrada": {
     "hemoglobina_gdl": null
    },
-   "alertas": []
+   "alertas": [],
+   "escalan": []
   },
   {
    "id": 30,
@@ -342,14 +377,16 @@
      "mensaje": "Urocultivo positivo: tratar y hacer urocultivo de seguimiento.",
      "verificada": true
     }
-   ]
+   ],
+   "escalan": []
   },
   {
    "id": 31,
    "entrada": {
     "urocultivo_positivo": 0
    },
-   "alertas": []
+   "alertas": [],
+   "escalan": []
   },
   {
    "id": 32,
@@ -364,14 +401,16 @@
      "mensaje": "Sífilis reactiva: iniciar tratamiento y estudio según la guía.",
      "verificada": true
     }
-   ]
+   ],
+   "escalan": []
   },
   {
    "id": 33,
    "entrada": {
     "sifilis_reactiva": 0
    },
-   "alertas": []
+   "alertas": [],
+   "escalan": []
   },
   {
    "id": 34,
@@ -386,14 +425,16 @@
      "mensaje": "VIH reactivo: confirmar y remitir al programa de prevención de la transmisión materno-infantil.",
      "verificada": true
     }
-   ]
+   ],
+   "escalan": []
   },
   {
    "id": 35,
    "entrada": {
     "vih_reactivo": 0
    },
-   "alertas": []
+   "alertas": [],
+   "escalan": []
   },
   {
    "id": 36,
@@ -408,14 +449,16 @@
      "mensaje": "HBsAg reactivo: remitir para manejo y plan para el recién nacido.",
      "verificada": true
     }
-   ]
+   ],
+   "escalan": []
   },
   {
    "id": 37,
    "entrada": {
     "hepatitis_b_reactiva": 0
    },
-   "alertas": []
+   "alertas": [],
+   "escalan": []
   },
   {
    "id": 38,
@@ -430,14 +473,16 @@
      "mensaje": "PTOG en ayunas ≥ 92 mg/dL: sospecha de diabetes gestacional (corte por validar).",
      "verificada": false
     }
-   ]
+   ],
+   "escalan": []
   },
   {
    "id": 39,
    "entrada": {
     "ptog_ayunas_mgdl": 91.99
    },
-   "alertas": []
+   "alertas": [],
+   "escalan": []
   },
   {
    "id": 40,
@@ -452,14 +497,16 @@
      "mensaje": "PTOG en ayunas ≥ 92 mg/dL: sospecha de diabetes gestacional (corte por validar).",
      "verificada": false
     }
-   ]
+   ],
+   "escalan": []
   },
   {
    "id": 41,
    "entrada": {
     "ptog_ayunas_mgdl": null
    },
-   "alertas": []
+   "alertas": [],
+   "escalan": []
   },
   {
    "id": 42,
@@ -474,14 +521,16 @@
      "mensaje": "PTOG a la hora ≥ 180 mg/dL: sospecha de diabetes gestacional (corte por validar).",
      "verificada": false
     }
-   ]
+   ],
+   "escalan": []
   },
   {
    "id": 43,
    "entrada": {
     "ptog_1h_mgdl": 179.99
    },
-   "alertas": []
+   "alertas": [],
+   "escalan": []
   },
   {
    "id": 44,
@@ -496,14 +545,16 @@
      "mensaje": "PTOG a la hora ≥ 180 mg/dL: sospecha de diabetes gestacional (corte por validar).",
      "verificada": false
     }
-   ]
+   ],
+   "escalan": []
   },
   {
    "id": 45,
    "entrada": {
     "ptog_1h_mgdl": null
    },
-   "alertas": []
+   "alertas": [],
+   "escalan": []
   },
   {
    "id": 46,
@@ -518,14 +569,16 @@
      "mensaje": "PTOG a las 2 horas ≥ 153 mg/dL: sospecha de diabetes gestacional (corte por validar).",
      "verificada": false
     }
-   ]
+   ],
+   "escalan": []
   },
   {
    "id": 47,
    "entrada": {
     "ptog_2h_mgdl": 152.99
    },
-   "alertas": []
+   "alertas": [],
+   "escalan": []
   },
   {
    "id": 48,
@@ -540,14 +593,16 @@
      "mensaje": "PTOG a las 2 horas ≥ 153 mg/dL: sospecha de diabetes gestacional (corte por validar).",
      "verificada": false
     }
-   ]
+   ],
+   "escalan": []
   },
   {
    "id": 49,
    "entrada": {
     "ptog_2h_mgdl": null
    },
-   "alertas": []
+   "alertas": [],
+   "escalan": []
   },
   {
    "id": 50,
@@ -562,14 +617,16 @@
      "mensaje": "Herrera y Hurtado ≥ 3: alto riesgo biopsicosocial (corte por validar).",
      "verificada": false
     }
-   ]
+   ],
+   "escalan": []
   },
   {
    "id": 51,
    "entrada": {
     "puntaje_herrera_hurtado": 2.99
    },
-   "alertas": []
+   "alertas": [],
+   "escalan": []
   },
   {
    "id": 52,
@@ -584,14 +641,16 @@
      "mensaje": "Herrera y Hurtado ≥ 3: alto riesgo biopsicosocial (corte por validar).",
      "verificada": false
     }
-   ]
+   ],
+   "escalan": []
   },
   {
    "id": 53,
    "entrada": {
     "puntaje_herrera_hurtado": null
    },
-   "alertas": []
+   "alertas": [],
+   "escalan": []
   },
   {
    "id": 54,
@@ -606,14 +665,16 @@
      "mensaje": "Riesgo alto de preeclampsia: seguimiento por medicina según la ruta.",
      "verificada": true
     }
-   ]
+   ],
+   "escalan": []
   },
   {
    "id": 55,
    "entrada": {
     "riesgo_preeclampsia_alto": 0
    },
-   "alertas": []
+   "alertas": [],
+   "escalan": []
   },
   {
    "id": 56,
@@ -628,14 +689,16 @@
      "mensaje": "Riesgo tromboembólico alto: valoración médica.",
      "verificada": true
     }
-   ]
+   ],
+   "escalan": []
   },
   {
    "id": 57,
    "entrada": {
     "riesgo_tromboembolico_alto": 0
    },
-   "alertas": []
+   "alertas": [],
+   "escalan": []
   },
   {
    "id": 58,
@@ -650,14 +713,16 @@
      "mensaje": "Tamizaje de depresión positivo: remitir a psicología.",
      "verificada": true
     }
-   ]
+   ],
+   "escalan": []
   },
   {
    "id": 59,
    "entrada": {
     "tamizaje_depresion_positivo": 0
    },
-   "alertas": []
+   "alertas": [],
+   "escalan": []
   },
   {
    "id": 60,
@@ -672,14 +737,16 @@
      "mensaje": "Exposición a violencias: activar la ruta de atención a víctimas.",
      "verificada": true
     }
-   ]
+   ],
+   "escalan": []
   },
   {
    "id": 61,
    "entrada": {
     "tamizaje_violencia_positivo": 0
    },
-   "alertas": []
+   "alertas": [],
+   "escalan": []
   },
   {
    "id": 62,
@@ -694,6 +761,9 @@
      "mensaje": "Cefalea intensa: signo de alarma, valoración médica inmediata.",
      "verificada": true
     }
+   ],
+   "escalan": [
+    "cefalea"
    ]
   },
   {
@@ -701,7 +771,8 @@
    "entrada": {
     "cefalea": 0
    },
-   "alertas": []
+   "alertas": [],
+   "escalan": []
   },
   {
    "id": 64,
@@ -716,6 +787,9 @@
      "mensaje": "Visión borrosa o fosfenos: signo de alarma, valoración médica inmediata.",
      "verificada": true
     }
+   ],
+   "escalan": [
+    "vision_borrosa"
    ]
   },
   {
@@ -723,7 +797,8 @@
    "entrada": {
     "vision_borrosa": 0
    },
-   "alertas": []
+   "alertas": [],
+   "escalan": []
   },
   {
    "id": 66,
@@ -738,6 +813,9 @@
      "mensaje": "Tinnitus: signo de alarma, valoración médica inmediata.",
      "verificada": true
     }
+   ],
+   "escalan": [
+    "tinnitus"
    ]
   },
   {
@@ -745,7 +823,8 @@
    "entrada": {
     "tinnitus": 0
    },
-   "alertas": []
+   "alertas": [],
+   "escalan": []
   },
   {
    "id": 68,
@@ -760,6 +839,9 @@
      "mensaje": "Dolor epigástrico: signo de alarma, valoración médica inmediata.",
      "verificada": true
     }
+   ],
+   "escalan": [
+    "dolor_epigastrico"
    ]
   },
   {
@@ -767,7 +849,8 @@
    "entrada": {
     "dolor_epigastrico": 0
    },
-   "alertas": []
+   "alertas": [],
+   "escalan": []
   },
   {
    "id": 70,
@@ -782,6 +865,9 @@
      "mensaje": "Sangrado genital: signo de alarma, valoración médica inmediata.",
      "verificada": true
     }
+   ],
+   "escalan": [
+    "sangrado_genital"
    ]
   },
   {
@@ -789,7 +875,8 @@
    "entrada": {
     "sangrado_genital": 0
    },
-   "alertas": []
+   "alertas": [],
+   "escalan": []
   },
   {
    "id": 72,
@@ -804,6 +891,9 @@
      "mensaje": "Fiebre: signo de alarma, valoración médica.",
      "verificada": true
     }
+   ],
+   "escalan": [
+    "fiebre"
    ]
   },
   {
@@ -811,7 +901,8 @@
    "entrada": {
     "fiebre": 0
    },
-   "alertas": []
+   "alertas": [],
+   "escalan": []
   },
   {
    "id": 74,
@@ -826,6 +917,9 @@
      "mensaje": "Disminución de movimientos fetales: signo de alarma, valoración médica inmediata.",
      "verificada": false
     }
+   ],
+   "escalan": [
+    "disminucion_movimientos_fetales"
    ]
   },
   {
@@ -833,7 +927,8 @@
    "entrada": {
     "disminucion_movimientos_fetales": 0
    },
-   "alertas": []
+   "alertas": [],
+   "escalan": []
   },
   {
    "id": 76,
@@ -910,6 +1005,10 @@
      "mensaje": "Tamizaje de depresión positivo: remitir a psicología.",
      "verificada": true
     }
+   ],
+   "escalan": [
+    "cefalea",
+    "vision_borrosa"
    ]
   },
   {
@@ -992,6 +1091,9 @@
      "mensaje": "Tamizaje de depresión positivo: remitir a psicología.",
      "verificada": true
     }
+   ],
+   "escalan": [
+    "temperatura_c"
    ]
   },
   {
@@ -1061,6 +1163,9 @@
      "mensaje": "Calcio pendiente: la ruta lo indica desde la semana 14.",
      "verificada": true
     }
+   ],
+   "escalan": [
+    "sangrado_genital"
    ]
   },
   {
@@ -1142,6 +1247,10 @@
      "mensaje": "Vacuna de influenza pendiente (desde la semana 14).",
      "verificada": true
     }
+   ],
+   "escalan": [
+    "temperatura_c",
+    "disminucion_movimientos_fetales"
    ]
   },
   {
@@ -1219,6 +1328,10 @@
      "mensaje": "Riesgo tromboembólico alto: valoración médica.",
      "verificada": true
     }
+   ],
+   "escalan": [
+    "cefalea",
+    "tinnitus"
    ]
   },
   {
@@ -1290,6 +1403,9 @@
      "mensaje": "Vacuna de influenza pendiente (desde la semana 14).",
      "verificada": true
     }
+   ],
+   "escalan": [
+    "disminucion_movimientos_fetales"
    ]
   },
   {
@@ -1382,6 +1498,10 @@
      "mensaje": "Riesgo alto de preeclampsia: seguimiento por medicina según la ruta.",
      "verificada": true
     }
+   ],
+   "escalan": [
+    "vision_borrosa",
+    "tinnitus"
    ]
   },
   {
@@ -1454,6 +1574,11 @@
      "mensaje": "Tamizaje de depresión positivo: remitir a psicología.",
      "verificada": true
     }
+   ],
+   "escalan": [
+    "tinnitus",
+    "fiebre",
+    "disminucion_movimientos_fetales"
    ]
   },
   {
@@ -1531,6 +1656,12 @@
      "mensaje": "Vacuna de influenza pendiente (desde la semana 14).",
      "verificada": true
     }
+   ],
+   "escalan": [
+    "cefalea",
+    "tinnitus",
+    "sangrado_genital",
+    "disminucion_movimientos_fetales"
    ]
   },
   {
@@ -1623,6 +1754,11 @@
      "mensaje": "Tamizaje de depresión positivo: remitir a psicología.",
      "verificada": true
     }
+   ],
+   "escalan": [
+    "temperatura_c",
+    "tinnitus",
+    "dolor_epigastrico"
    ]
   },
   {
@@ -1723,6 +1859,12 @@
      "mensaje": "PTOG a las 2 horas ≥ 153 mg/dL: sospecha de diabetes gestacional (corte por validar).",
      "verificada": false
     }
+   ],
+   "escalan": [
+    "temperatura_c",
+    "cefalea",
+    "vision_borrosa",
+    "fiebre"
    ]
   },
   {
@@ -1802,6 +1944,10 @@
      "mensaje": "Herrera y Hurtado ≥ 3: alto riesgo biopsicosocial (corte por validar).",
      "verificada": false
     }
+   ],
+   "escalan": [
+    "dolor_epigastrico",
+    "fiebre"
    ]
   },
   {
@@ -1862,7 +2008,8 @@
      "mensaje": "Vacuna de influenza pendiente (desde la semana 14).",
      "verificada": true
     }
-   ]
+   ],
+   "escalan": []
   },
   {
    "id": 89,
@@ -1959,6 +2106,10 @@
      "mensaje": "Tamizaje de depresión positivo: remitir a psicología.",
      "verificada": true
     }
+   ],
+   "escalan": [
+    "tinnitus",
+    "fiebre"
    ]
   },
   {
@@ -2021,7 +2172,8 @@
      "mensaje": "PTOG a la hora ≥ 180 mg/dL: sospecha de diabetes gestacional (corte por validar).",
      "verificada": false
     }
-   ]
+   ],
+   "escalan": []
   },
   {
    "id": 91,
@@ -2118,6 +2270,12 @@
      "mensaje": "Riesgo tromboembólico alto: valoración médica.",
      "verificada": true
     }
+   ],
+   "escalan": [
+    "temperatura_c",
+    "tinnitus",
+    "fiebre",
+    "disminucion_movimientos_fetales"
    ]
   },
   {
@@ -2227,6 +2385,11 @@
      "mensaje": "Vacuna de influenza pendiente (desde la semana 14).",
      "verificada": true
     }
+   ],
+   "escalan": [
+    "sangrado_genital",
+    "fiebre",
+    "disminucion_movimientos_fetales"
    ]
   },
   {
@@ -2303,6 +2466,12 @@
      "mensaje": "Riesgo alto de preeclampsia: seguimiento por medicina según la ruta.",
      "verificada": true
     }
+   ],
+   "escalan": [
+    "temperatura_c",
+    "vision_borrosa",
+    "tinnitus",
+    "dolor_epigastrico"
    ]
   },
   {
@@ -2391,6 +2560,12 @@
      "mensaje": "Herrera y Hurtado ≥ 3: alto riesgo biopsicosocial (corte por validar).",
      "verificada": false
     }
+   ],
+   "escalan": [
+    "temperatura_c",
+    "cefalea",
+    "dolor_epigastrico",
+    "sangrado_genital"
    ]
   },
   {
@@ -2435,6 +2610,9 @@
      "mensaje": "Embarazo múltiple: requiere control por medicina.",
      "verificada": true
     }
+   ],
+   "escalan": [
+    "disminucion_movimientos_fetales"
    ]
   },
   {
@@ -2489,6 +2667,10 @@
      "mensaje": "Vacuna de influenza pendiente (desde la semana 14).",
      "verificada": true
     }
+   ],
+   "escalan": [
+    "dolor_epigastrico",
+    "fiebre"
    ]
   },
   {
@@ -2533,6 +2715,9 @@
      "mensaje": "PTOG en ayunas ≥ 92 mg/dL: sospecha de diabetes gestacional (corte por validar).",
      "verificada": false
     }
+   ],
+   "escalan": [
+    "vision_borrosa"
    ]
   },
   {
@@ -2620,6 +2805,12 @@
      "mensaje": "PTOG a las 2 horas ≥ 153 mg/dL: sospecha de diabetes gestacional (corte por validar).",
      "verificada": false
     }
+   ],
+   "escalan": [
+    "cefalea",
+    "vision_borrosa",
+    "dolor_epigastrico",
+    "sangrado_genital"
    ]
   },
   {
@@ -2672,6 +2863,9 @@
      "mensaje": "Vacuna Tdap pendiente (desde la semana 26).",
      "verificada": true
     }
+   ],
+   "escalan": [
+    "temperatura_c"
    ]
   },
   {
@@ -2753,6 +2947,10 @@
      "mensaje": "Herrera y Hurtado ≥ 3: alto riesgo biopsicosocial (corte por validar).",
      "verificada": false
     }
+   ],
+   "escalan": [
+    "vision_borrosa",
+    "fiebre"
    ]
   },
   {
@@ -2807,7 +3005,8 @@
      "mensaje": "PTOG a la hora ≥ 180 mg/dL: sospecha de diabetes gestacional (corte por validar).",
      "verificada": false
     }
-   ]
+   ],
+   "escalan": []
   },
   {
    "id": 102,
@@ -2889,6 +3088,9 @@
      "mensaje": "Herrera y Hurtado ≥ 3: alto riesgo biopsicosocial (corte por validar).",
      "verificada": false
     }
+   ],
+   "escalan": [
+    "tinnitus"
    ]
   },
   {
@@ -2987,6 +3189,11 @@
      "mensaje": "Herrera y Hurtado ≥ 3: alto riesgo biopsicosocial (corte por validar).",
      "verificada": false
     }
+   ],
+   "escalan": [
+    "temperatura_c",
+    "tinnitus",
+    "dolor_epigastrico"
    ]
   },
   {
@@ -3104,6 +3311,12 @@
      "mensaje": "Vacuna de influenza pendiente (desde la semana 14).",
      "verificada": true
     }
+   ],
+   "escalan": [
+    "temperatura_c",
+    "cefalea",
+    "vision_borrosa",
+    "fiebre"
    ]
   },
   {
@@ -3165,6 +3378,11 @@
      "mensaje": "Vacuna de influenza pendiente (desde la semana 14).",
      "verificada": true
     }
+   ],
+   "escalan": [
+    "cefalea",
+    "sangrado_genital",
+    "disminucion_movimientos_fetales"
    ]
   },
   {
@@ -3243,6 +3461,10 @@
      "mensaje": "Riesgo alto de preeclampsia: seguimiento por medicina según la ruta.",
      "verificada": true
     }
+   ],
+   "escalan": [
+    "fiebre",
+    "disminucion_movimientos_fetales"
    ]
   },
   {
@@ -3303,6 +3525,10 @@
      "mensaje": "Sífilis reactiva: iniciar tratamiento y estudio según la guía.",
      "verificada": true
     }
+   ],
+   "escalan": [
+    "cefalea",
+    "dolor_epigastrico"
    ]
   },
   {
@@ -3364,6 +3590,9 @@
      "mensaje": "Vacuna Tdap pendiente (desde la semana 26).",
      "verificada": true
     }
+   ],
+   "escalan": [
+    "temperatura_c"
    ]
   },
   {
@@ -3430,6 +3659,9 @@
      "mensaje": "Tamizaje de depresión positivo: remitir a psicología.",
      "verificada": true
     }
+   ],
+   "escalan": [
+    "cefalea"
    ]
   },
   {
@@ -3507,6 +3739,12 @@
      "mensaje": "Riesgo tromboembólico alto: valoración médica.",
      "verificada": true
     }
+   ],
+   "escalan": [
+    "temperatura_c",
+    "vision_borrosa",
+    "dolor_epigastrico",
+    "fiebre"
    ]
   },
   {
@@ -3578,6 +3816,9 @@
      "mensaje": "Riesgo tromboembólico alto: valoración médica.",
      "verificada": true
     }
+   ],
+   "escalan": [
+    "cefalea"
    ]
   },
   {
@@ -3642,6 +3883,10 @@
      "mensaje": "Hemoglobina < 11 g/dL (a nivel del mar): anemia, iniciar manejo según la ruta.",
      "verificada": true
     }
+   ],
+   "escalan": [
+    "cefalea",
+    "dolor_epigastrico"
    ]
   },
   {
@@ -3705,6 +3950,9 @@
      "mensaje": "Vacuna de influenza pendiente (desde la semana 14).",
      "verificada": true
     }
+   ],
+   "escalan": [
+    "temperatura_c"
    ]
   },
   {
@@ -3772,6 +4020,9 @@
      "mensaje": "Tamizaje de depresión positivo: remitir a psicología.",
      "verificada": true
     }
+   ],
+   "escalan": [
+    "vision_borrosa"
    ]
   },
   {
@@ -3838,6 +4089,11 @@
      "mensaje": "Urocultivo positivo: tratar y hacer urocultivo de seguimiento.",
      "verificada": true
     }
+   ],
+   "escalan": [
+    "vision_borrosa",
+    "dolor_epigastrico",
+    "sangrado_genital"
    ]
   },
   {
@@ -3906,6 +4162,9 @@
      "mensaje": "Riesgo alto de preeclampsia: seguimiento por medicina según la ruta.",
      "verificada": true
     }
+   ],
+   "escalan": [
+    "disminucion_movimientos_fetales"
    ]
   },
   {
@@ -3981,6 +4240,10 @@
      "mensaje": "Tamizaje de depresión positivo: remitir a psicología.",
      "verificada": true
     }
+   ],
+   "escalan": [
+    "dolor_epigastrico",
+    "sangrado_genital"
    ]
   },
   {
@@ -4056,6 +4319,9 @@
      "mensaje": "Herrera y Hurtado ≥ 3: alto riesgo biopsicosocial (corte por validar).",
      "verificada": false
     }
+   ],
+   "escalan": [
+    "fiebre"
    ]
   },
   {
@@ -4124,6 +4390,10 @@
      "mensaje": "Vacuna de influenza pendiente (desde la semana 14).",
      "verificada": true
     }
+   ],
+   "escalan": [
+    "fiebre",
+    "disminucion_movimientos_fetales"
    ]
   },
   {
@@ -4218,6 +4488,12 @@
      "mensaje": "Vacuna de influenza pendiente (desde la semana 14).",
      "verificada": true
     }
+   ],
+   "escalan": [
+    "cefalea",
+    "vision_borrosa",
+    "tinnitus",
+    "dolor_epigastrico"
    ]
   },
   {
@@ -4297,6 +4573,9 @@
      "mensaje": "Calcio pendiente: la ruta lo indica desde la semana 14.",
      "verificada": true
     }
+   ],
+   "escalan": [
+    "cefalea"
    ]
   },
   {
@@ -4349,6 +4628,9 @@
      "mensaje": "Herrera y Hurtado ≥ 3: alto riesgo biopsicosocial (corte por validar).",
      "verificada": false
     }
+   ],
+   "escalan": [
+    "tinnitus"
    ]
   },
   {
@@ -4459,6 +4741,13 @@
      "mensaje": "Calcio pendiente: la ruta lo indica desde la semana 14.",
      "verificada": true
     }
+   ],
+   "escalan": [
+    "temperatura_c",
+    "cefalea",
+    "tinnitus",
+    "fiebre",
+    "disminucion_movimientos_fetales"
    ]
   },
   {
@@ -4536,7 +4825,8 @@
      "mensaje": "Riesgo tromboembólico alto: valoración médica.",
      "verificada": true
     }
-   ]
+   ],
+   "escalan": []
   },
   {
    "id": 125,
@@ -4639,6 +4929,12 @@
      "mensaje": "Riesgo tromboembólico alto: valoración médica.",
      "verificada": true
     }
+   ],
+   "escalan": [
+    "cefalea",
+    "dolor_epigastrico",
+    "sangrado_genital",
+    "fiebre"
    ]
   },
   {
@@ -4719,6 +5015,9 @@
      "mensaje": "Vacuna Tdap pendiente (desde la semana 26).",
      "verificada": true
     }
+   ],
+   "escalan": [
+    "disminucion_movimientos_fetales"
    ]
   },
   {
@@ -4794,6 +5093,11 @@
      "mensaje": "Tamizaje de depresión positivo: remitir a psicología.",
      "verificada": true
     }
+   ],
+   "escalan": [
+    "tinnitus",
+    "sangrado_genital",
+    "disminucion_movimientos_fetales"
    ]
   },
   {
@@ -4896,6 +5200,10 @@
      "mensaje": "PTOG a la hora ≥ 180 mg/dL: sospecha de diabetes gestacional (corte por validar).",
      "verificada": false
     }
+   ],
+   "escalan": [
+    "vision_borrosa",
+    "fiebre"
    ]
   },
   {
@@ -4935,7 +5243,8 @@
      "mensaje": "Sífilis reactiva: iniciar tratamiento y estudio según la guía.",
      "verificada": true
     }
-   ]
+   ],
+   "escalan": []
   },
   {
    "id": 130,
@@ -4998,6 +5307,9 @@
      "mensaje": "Riesgo alto de preeclampsia: seguimiento por medicina según la ruta.",
      "verificada": true
     }
+   ],
+   "escalan": [
+    "sangrado_genital"
    ]
   },
   {
@@ -5065,6 +5377,9 @@
      "mensaje": "PTOG a las 2 horas ≥ 153 mg/dL: sospecha de diabetes gestacional (corte por validar).",
      "verificada": false
     }
+   ],
+   "escalan": [
+    "vision_borrosa"
    ]
   },
   {
@@ -5129,6 +5444,10 @@
      "mensaje": "HBsAg reactivo: remitir para manejo y plan para el recién nacido.",
      "verificada": true
     }
+   ],
+   "escalan": [
+    "fiebre",
+    "disminucion_movimientos_fetales"
    ]
   },
   {
@@ -5212,6 +5531,9 @@
      "mensaje": "PTOG a la hora ≥ 180 mg/dL: sospecha de diabetes gestacional (corte por validar).",
      "verificada": false
     }
+   ],
+   "escalan": [
+    "vision_borrosa"
    ]
   },
   {
@@ -5275,6 +5597,9 @@
      "mensaje": "Herrera y Hurtado ≥ 3: alto riesgo biopsicosocial (corte por validar).",
      "verificada": false
     }
+   ],
+   "escalan": [
+    "temperatura_c"
    ]
   },
   {
@@ -5326,7 +5651,8 @@
      "mensaje": "Herrera y Hurtado ≥ 3: alto riesgo biopsicosocial (corte por validar).",
      "verificada": false
     }
-   ]
+   ],
+   "escalan": []
   },
   {
    "id": 136,
@@ -5432,6 +5758,10 @@
      "mensaje": "Vacuna de influenza pendiente (desde la semana 14).",
      "verificada": true
     }
+   ],
+   "escalan": [
+    "temperatura_c",
+    "fiebre"
    ]
   },
   {
@@ -5499,6 +5829,9 @@
      "mensaje": "Riesgo tromboembólico alto: valoración médica.",
      "verificada": true
     }
+   ],
+   "escalan": [
+    "vision_borrosa"
    ]
   },
   {
@@ -5573,6 +5906,11 @@
      "mensaje": "Tamizaje de depresión positivo: remitir a psicología.",
      "verificada": true
     }
+   ],
+   "escalan": [
+    "vision_borrosa",
+    "sangrado_genital",
+    "disminucion_movimientos_fetales"
    ]
   },
   {
@@ -5641,6 +5979,10 @@
      "mensaje": "PTOG a las 2 horas ≥ 153 mg/dL: sospecha de diabetes gestacional (corte por validar).",
      "verificada": false
     }
+   ],
+   "escalan": [
+    "sangrado_genital",
+    "fiebre"
    ]
   },
   {
@@ -5762,6 +6104,12 @@
      "mensaje": "Vacuna de influenza pendiente (desde la semana 14).",
      "verificada": true
     }
+   ],
+   "escalan": [
+    "vision_borrosa",
+    "tinnitus",
+    "sangrado_genital",
+    "disminucion_movimientos_fetales"
    ]
   },
   {
@@ -5874,6 +6222,10 @@
      "mensaje": "Vacuna de influenza pendiente (desde la semana 14).",
      "verificada": true
     }
+   ],
+   "escalan": [
+    "temperatura_c",
+    "dolor_epigastrico"
    ]
   },
   {
@@ -5949,6 +6301,9 @@
      "mensaje": "Riesgo alto de preeclampsia: seguimiento por medicina según la ruta.",
      "verificada": true
     }
+   ],
+   "escalan": [
+    "vision_borrosa"
    ]
   },
   {
@@ -6033,6 +6388,10 @@
      "mensaje": "Herrera y Hurtado ≥ 3: alto riesgo biopsicosocial (corte por validar).",
      "verificada": false
     }
+   ],
+   "escalan": [
+    "temperatura_c",
+    "disminucion_movimientos_fetales"
    ]
   },
   {
@@ -6102,6 +6461,9 @@
      "mensaje": "Calcio pendiente: la ruta lo indica desde la semana 14.",
      "verificada": true
     }
+   ],
+   "escalan": [
+    "disminucion_movimientos_fetales"
    ]
   },
   {
@@ -6150,6 +6512,9 @@
      "mensaje": "Herrera y Hurtado ≥ 3: alto riesgo biopsicosocial (corte por validar).",
      "verificada": false
     }
+   ],
+   "escalan": [
+    "vision_borrosa"
    ]
   },
   {
@@ -6238,7 +6603,8 @@
      "mensaje": "Herrera y Hurtado ≥ 3: alto riesgo biopsicosocial (corte por validar).",
      "verificada": false
     }
-   ]
+   ],
+   "escalan": []
   },
   {
    "id": 147,
@@ -6320,6 +6686,13 @@
      "mensaje": "Tamizaje de depresión positivo: remitir a psicología.",
      "verificada": true
     }
+   ],
+   "escalan": [
+    "temperatura_c",
+    "vision_borrosa",
+    "tinnitus",
+    "sangrado_genital",
+    "disminucion_movimientos_fetales"
    ]
   },
   {
@@ -6388,6 +6761,10 @@
      "mensaje": "Calcio pendiente: la ruta lo indica desde la semana 14.",
      "verificada": true
     }
+   ],
+   "escalan": [
+    "sangrado_genital",
+    "disminucion_movimientos_fetales"
    ]
   },
   {
@@ -6489,6 +6866,10 @@
      "mensaje": "Vacuna de influenza pendiente (desde la semana 14).",
      "verificada": true
     }
+   ],
+   "escalan": [
+    "cefalea",
+    "tinnitus"
    ]
   },
   {
@@ -6558,6 +6939,9 @@
      "mensaje": "Riesgo alto de preeclampsia: seguimiento por medicina según la ruta.",
      "verificada": true
     }
+   ],
+   "escalan": [
+    "temperatura_c"
    ]
   },
   {
@@ -6642,6 +7026,10 @@
      "mensaje": "Calcio pendiente: la ruta lo indica desde la semana 14.",
      "verificada": true
     }
+   ],
+   "escalan": [
+    "cefalea",
+    "disminucion_movimientos_fetales"
    ]
   },
   {
@@ -6684,7 +7072,8 @@
      "mensaje": "HBsAg reactivo: remitir para manejo y plan para el recién nacido.",
      "verificada": true
     }
-   ]
+   ],
+   "escalan": []
   },
   {
    "id": 153,
@@ -6775,6 +7164,12 @@
      "mensaje": "Herrera y Hurtado ≥ 3: alto riesgo biopsicosocial (corte por validar).",
      "verificada": false
     }
+   ],
+   "escalan": [
+    "temperatura_c",
+    "vision_borrosa",
+    "sangrado_genital",
+    "disminucion_movimientos_fetales"
    ]
   },
   {
@@ -6840,6 +7235,10 @@
      "mensaje": "Herrera y Hurtado ≥ 3: alto riesgo biopsicosocial (corte por validar).",
      "verificada": false
     }
+   ],
+   "escalan": [
+    "vision_borrosa",
+    "dolor_epigastrico"
    ]
   },
   {
@@ -6952,6 +7351,11 @@
      "mensaje": "Vacuna de influenza pendiente (desde la semana 14).",
      "verificada": true
     }
+   ],
+   "escalan": [
+    "temperatura_c",
+    "cefalea",
+    "fiebre"
    ]
   },
   {
@@ -7026,6 +7430,10 @@
      "mensaje": "Riesgo tromboembólico alto: valoración médica.",
      "verificada": true
     }
+   ],
+   "escalan": [
+    "cefalea",
+    "dolor_epigastrico"
    ]
   },
   {
@@ -7082,6 +7490,10 @@
      "mensaje": "Embarazo múltiple: requiere control por medicina.",
      "verificada": true
     }
+   ],
+   "escalan": [
+    "tinnitus",
+    "dolor_epigastrico"
    ]
   },
   {
@@ -7170,6 +7582,9 @@
      "mensaje": "Vacuna de influenza pendiente (desde la semana 14).",
      "verificada": true
     }
+   ],
+   "escalan": [
+    "sangrado_genital"
    ]
   },
   {
@@ -7227,6 +7642,9 @@
      "mensaje": "Vacuna de influenza pendiente (desde la semana 14).",
      "verificada": true
     }
+   ],
+   "escalan": [
+    "vision_borrosa"
    ]
   },
   {
@@ -7308,6 +7726,9 @@
      "mensaje": "Riesgo tromboembólico alto: valoración médica.",
      "verificada": true
     }
+   ],
+   "escalan": [
+    "cefalea"
    ]
   }
  ]
