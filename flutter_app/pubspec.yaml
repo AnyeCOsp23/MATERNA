@@ -57,12 +57,13 @@ flutter:
   # the material Icons class.
   uses-material-design: true
 
-  # Modelo validado que entrega el Módulo 1 (src/exportar_a_dart.py). casos_paridad.json no se empaqueta:
-  # solo lo usa test/paridad_test.dart.
+  # Modelo validado y catálogo 3280 que entrega el Módulo 1 (src/exportar_a_dart.py). casos_paridad.json y
+  # casos_alertas.json no se empaquetan: solo los usan las pruebas de test/.
   assets:
     - assets/preproceso.json
     - assets/modelo_rf.json
     - assets/reglas.json
+    - assets/variables_3280.json
 
   # To add assets to your application, add an assets section, like this:
   # assets:

@@ -5,13 +5,18 @@ Genera en flutter_app/assets/:
   modelo_rf.json       los 300 árboles (variable, umbral, hijos y probabilidades de las hojas)
   reglas.json          los 4 signos críticos, las clases y los protocolos orientativos
   casos_paridad.json   200 gestantes con la respuesta exacta de scikit-learn, para la prueba en Dart
+  variables_3280.json  copia exacta del catálogo config/variables_3280.json (formulario y alertas de la ruta)
+  casos_alertas.json   gestantes con las alertas de la ruta que calcula Python, para la prueba en Dart
 
 Antes de escribir, verifica con src/inferencia_json.py (Python puro, sin scikit-learn) que los JSON
 reproducen las probabilidades del pipeline. Carga el modelo .joblib existente: no reentrena.
 
-Uso:  python -m src.exportar_a_dart
+Uso:  python -m src.exportar_a_dart                 (todo)
+      python -m src.exportar_a_dart --solo-catalogo  (solo catálogo y casos de alertas: no toca el modelo)
 """
 import datetime as dt
+import shutil
+import sys
 import hashlib
 import json
 
@@ -25,12 +30,14 @@ from src.clinical_rules import (
 )
 from src.config import CLASE_ALTO, DIR_MODELOS, NOMBRES_CLASES, RAIZ, SEMILLA, VARS_CON_NULOS
 from src.data_preprocessing import preparar_datos
+from src.filtro_3280 import RUTA_CATALOGO, evaluar_alertas_3280, variables
 from src.inferencia_json import ClasificadorJSON
 
 RUTA_MODELO = DIR_MODELOS / "modelo_random_forest.joblib"
 DIR_ASSETS = RAIZ / "flutter_app" / "assets"
 TOLERANCIA = 1e-6
 N_CASOS = 200
+N_CASOS_ALERTAS = 160
 VERSION_MODELO = "v1"
 
 
@@ -200,6 +207,53 @@ def verificar(preproceso, modelo, reglas, casos):
     return max_dif_x, max_dif_p
 
 
+# ------------------------------------------------------------------ catálogo 3280 y alertas de la ruta
+def _casos_borde_alertas():
+    """Cortes exactos de cada alerta y los casos que no deben alertar (dato faltante, semana previa)."""
+    casos = [{}, {"semanas_gestacion": None, "calcio": 0}, {"semanas_gestacion": 13, "calcio": 0},
+             {"semanas_gestacion": 14, "calcio": 0}, {"semanas_gestacion": 14, "calcio": 1},
+             {"semanas_gestacion": 14, "calcio": None}, {"semanas_gestacion": 26, "vacuna_tdap": 0, "vacuna_influenza": 0},
+             {"semanas_gestacion": 25, "vacuna_tdap": 0}, {"cefalea": 1, "hemoglobina_gdl": 9.0, "semanas_gestacion": 30, "calcio": 0}]
+    for v in variables("capturar_alertar"):
+        alerta = v.get("alerta")
+        if alerta and alerta["condicion"] in ("menor_que", "mayor_igual"):
+            u = alerta["umbral"]
+            casos += [{v["nombre"]: u}, {v["nombre"]: u - 0.01}, {v["nombre"]: u + 0.01}, {v["nombre"]: None}]
+        elif alerta and alerta["condicion"] == "verdadero":
+            casos += [{v["nombre"]: 1}, {v["nombre"]: 0}]
+    return casos
+
+
+def generar_casos_alertas(n=N_CASOS_ALERTAS, semilla=SEMILLA):
+    """Registros aleatorios (con datos faltantes) más los casos borde, con las alertas que calcula Python."""
+    rng = np.random.default_rng(semilla)
+    con_alerta = [v for v in variables("capturar_alertar") if "alerta" in v]
+    registros = _casos_borde_alertas()
+    while len(registros) < n:
+        r = {"semanas_gestacion": None if rng.random() < .1 else int(rng.integers(4, 43))}
+        for v in con_alerta:
+            sorteo = rng.random()
+            if sorteo < .35:
+                continue  # la variable no se registró
+            if sorteo < .5:
+                r[v["nombre"]] = None  # se registró «sin dato»
+            elif v["tipo"] == "binaria":
+                r[v["nombre"]] = int(rng.integers(0, 2))
+            else:
+                u = v["alerta"]["umbral"]
+                r[v["nombre"]] = round(float(u + rng.choice([-2, -.5, 0, .5, 2]) * max(1.0, u * .05)), 2)
+        registros.append(r)
+    return [{"id": i + 1, "entrada": r, "alertas": evaluar_alertas_3280(r)} for i, r in enumerate(registros)]
+
+
+def exportar_catalogo_y_alertas():
+    DIR_ASSETS.mkdir(parents=True, exist_ok=True)
+    destino = DIR_ASSETS / "variables_3280.json"
+    shutil.copyfile(RUTA_CATALOGO, destino)  # copia byte a byte: una sola fuente de verdad
+    casos = generar_casos_alertas()
+    return [destino, _escribir("casos_alertas.json", {"casos": casos})]
+
+
 def _escribir(nombre, datos, compacto=False):
     ruta = DIR_ASSETS / nombre
     with open(ruta, "w", encoding="utf-8") as f:
@@ -218,10 +272,15 @@ def exportar():
     DIR_ASSETS.mkdir(parents=True, exist_ok=True)
     rutas = [_escribir("preproceso.json", preproceso), _escribir("modelo_rf.json", modelo, compacto=True),
              _escribir("reglas.json", reglas), _escribir("casos_paridad.json", {"tolerancia": TOLERANCIA, "casos": casos})]
+    rutas += exportar_catalogo_y_alertas()
     print(f"Paridad JSON vs scikit-learn en {len(casos)} casos: variables {dif_x:.1e}, probabilidades {dif_p:.1e}")
     for r in rutas:
         print(f"  {r.relative_to(RAIZ)}  {r.stat().st_size / 1024:,.0f} KB")
 
 
 if __name__ == "__main__":
-    exportar()
+    if "--solo-catalogo" in sys.argv:
+        for ruta in exportar_catalogo_y_alertas():
+            print(f"  {ruta.relative_to(RAIZ)}  {ruta.stat().st_size / 1024:,.0f} KB")
+    else:
+        exportar()

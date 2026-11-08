@@ -10,6 +10,7 @@ from src.clinical_rules import (
 )
 from src.data_preprocessing import cargar_dataset, marcar_fuera_de_rango, separar_xy
 from src.exportar_a_dart import DIR_ASSETS, RUTA_MODELO, TOLERANCIA, _sha256
+from src.filtro_3280 import RUTA_CATALOGO, evaluar_alertas_3280
 from src.inferencia_json import ClasificadorJSON, a_float32
 
 
@@ -97,3 +98,16 @@ def test_reglas_json_coinciden_con_el_motor(clf):
 
 def test_float32_como_scikit_learn():
     assert a_float32(0.1) != 0.1 and a_float32(0.1) == float(np.float32(0.1))
+
+
+def test_catalogo_de_la_app_es_copia_exacta():
+    """La app Flutter usa el mismo catálogo 3280 que el Módulo 1 (si se edita uno, hay que volver a exportar)."""
+    assert (DIR_ASSETS / "variables_3280.json").read_bytes() == RUTA_CATALOGO.read_bytes()
+
+
+def test_casos_de_alertas_vigentes():
+    """Lo guardado en casos_alertas.json es lo que hoy calcula Python (la prueba de Dart compara contra esto)."""
+    casos = json.loads((DIR_ASSETS / "casos_alertas.json").read_text(encoding="utf-8"))["casos"]
+    assert len(casos) >= 150 and sum(bool(c["alertas"]) for c in casos) > 50
+    for c in casos:
+        assert evaluar_alertas_3280(c["entrada"]) == c["alertas"], c["id"]
