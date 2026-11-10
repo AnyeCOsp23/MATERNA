@@ -11,6 +11,7 @@ Consume, sin modificarlos, los artefactos que entrega el Módulo 1 (laboratorio 
 | `assets/casos_paridad.json` | 200 casos con la respuesta exacta de scikit-learn (solo para pruebas) | ídem |
 | `assets/variables_3280.json` | Copia exacta de `config/variables_3280.json`: secciones, rangos y alertas de la ruta | ídem |
 | `assets/casos_alertas.json` | 160 casos con las alertas que calcula Python (solo para pruebas) | ídem |
+| `assets/casos_carga.json` | Carga masiva del ejemplo ficticio de la IPS según `src/carga_masiva.py`: reporte, triaje ordenado fila por fila y seudónimos, con una sal **solo de prueba** (solo para pruebas) | `python -m src.exportar_a_dart --solo-carga` |
 
 ## Estado
 
@@ -44,15 +45,30 @@ Consume, sin modificarlos, los artefactos que entrega el Módulo 1 (laboratorio 
     categorías del modelo, e IPS o municipio) y PIN de 4 dígitos; después, teclado numérico. El PIN se guarda como
     PBKDF2-HMAC-SHA256 con sal (`lib/datos/seguridad.dart`); 5 intentos fallidos bloquean 30 s; si se olvida, la app se
     reinicia y se borran los datos locales. La sesión no se recuerda al cerrar la app.
-  - Historial (`ui/pantallas/pantalla_historial.dart`): filtros por riesgo y fecha, búsqueda por seudónimo (desde el
-    commit C), detalle de cada evaluación y sincronización simulada.
+  - Historial (`ui/pantallas/pantalla_historial.dart`): filtros por riesgo y fecha, búsqueda por seudónimo o por
+    documento (desde el commit C), detalle de cada evaluación y sincronización simulada.
   - «Acerca de» (`ui/pantallas/pantalla_acerca_de.dart`): versión, modelo y su huella, paridad, velocidad medida en el
     dispositivo (menos de 5 ms), limitaciones y deslinde médico.
-- 4b · Commit C (carga masiva con la plantilla 3280, seudonimización HMAC y exportación CSV): pendiente.
+- 4b · Commit C, carga masiva de la IPS (pestaña «Carga IPS», `ui/pantallas/pantalla_carga.dart`):
+  - Clave de la IPS, configurada una vez por dispositivo (mínimo 16 caracteres). Con ella el documento se reemplaza
+    por su seudónimo HMAC-SHA256 (`lib/datos/seudonimizacion.dart`, traducción de `src/seudonimizacion.py`); la app
+    muestra solo una huella corta de la clave para comprobar que todos los dispositivos de la IPS usan la misma.
+  - Archivo con la plantilla 3280 (`data/plantillas/`): CSV o TXT con «|», «,», «;» o tabulador, en UTF-8 o Latin-1,
+    y Excel .xlsx (`lib/datos/lector_ips.dart`, con un lector propio del .xlsx: el paquete `excel` falla con los
+    archivos que genera openpyxl). Se elige con `file_picker`.
+  - Motor (`lib/motor/carga_masiva.dart`, traducción de `src/carga_masiva.py`): centinelas, filtro 3280 por los
+    sinónimos del catálogo, columnas personales y desconocidas descartadas, valores imposibles como vacíos, filas
+    repetidas fuera; cada registro se evalúa con el mismo sistema híbrido del triaje y la lista queda ordenada por
+    urgencia (rojo > ámbar > verde y, en cada color, por probabilidad de Alto Riesgo). Las filas sin una variable
+    obligatoria no se evalúan y se informan.
+  - Se guarda en el historial con la carga (base local versión 2, tabla `cargas`); el mismo archivo no se guarda dos
+    veces salvo que se pida. Exportación a CSV con el seudónimo, sin nombres ni documentos.
+  - Paridad con Python: el ejemplo ficticio de `data/ejemplos/` (CSV y XLSX) da el mismo reporte, el mismo orden, los
+    mismos resultados y los mismos seudónimos que `casos_carga.json` (`test/carga_test.dart`).
 
-**Limitaciones del prototipo:** datos locales sin cifrar; un PIN de 4 dígitos protege el acceso casual, no los archivos
-de la app; sincronización simulada (no hay servidor); iOS no se compila desde Windows.
-- 4c · Carga masiva de archivos de la IPS: pendiente.
+**Limitaciones del prototipo:** datos locales sin cifrar (también la clave de la IPS); un PIN de 4 dígitos protege el
+acceso casual, no los archivos de la app; sincronización simulada (no hay servidor); iOS no se compila desde Windows;
+en Excel, una fórmula sin valor calculado guardado se lee vacía.
 
 ## Comandos
 

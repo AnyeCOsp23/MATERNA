@@ -133,8 +133,9 @@ class _EstadoAcercaDe extends State<PantallaAcercaDe> {
                   key: const Key('velocidad')),
               const SizedBox(height: 10),
               const Text(
-                'Entregado por el Módulo 1 (laboratorio de ML). La app reproduce a scikit-learn: 200 casos del modelo y '
-                '160 de las alertas de la Resolución 3280 dan lo mismo en Python y en Dart (tolerancia 1e-6).',
+                'Entregado por el Módulo 1 (laboratorio de ML). La app reproduce a scikit-learn: 200 casos del modelo, '
+                '160 de las alertas de la Resolución 3280 y la carga masiva del archivo de ejemplo de la IPS (fila por '
+                'fila, con los mismos seudónimos) dan lo mismo en Python y en Dart (tolerancia 1e-6).',
                 style: TextStyle(color: ColoresMaterna.tintaSuave, height: 1.4),
               ),
             ]),
@@ -145,6 +146,7 @@ class _EstadoAcercaDe extends State<PantallaAcercaDe> {
                   'con un especialista en ginecobstetricia.'),
               _vineta('Los datos se guardan en el dispositivo sin cifrar. El PIN de 4 dígitos protege el acceso casual, no los '
                   'archivos de la app.'),
+              _vineta('La clave de la IPS para seudonimizar los documentos también se guarda sin cifrar en el dispositivo.'),
               _vineta('La sincronización es una simulación: no hay servidor y no se envía ningún dato.'),
               _vineta('Si se olvida el PIN, la app se reinicia y se pierden las evaluaciones guardadas.'),
             ]),

@@ -1,12 +1,14 @@
 /// Pestaña 3: historial de las evaluaciones guardadas en el dispositivo (base local SQLite).
 ///
-/// Filtros por nivel de riesgo y por fecha, búsqueda por seudónimo (llega con la carga masiva) y
-/// sincronización SIMULADA: no hay servidor, así que solo se marcan como sincronizadas.
+/// Filtros por nivel de riesgo y por fecha, búsqueda por seudónimo o por documento (se calcula su seudónimo con la
+/// clave de la IPS; el documento no se guarda) y sincronización SIMULADA: no hay servidor, así que solo se marcan
+/// como sincronizadas.
 library;
 
 import 'package:flutter/material.dart';
 
 import '../../datos/base_local.dart';
+import '../../datos/seudonimizacion.dart';
 import '../../motor/recursos.dart';
 import '../tema/tema_materna.dart';
 import '../widgets/barra_flotante.dart';
@@ -37,6 +39,8 @@ class _EstadoHistorial extends State<PantallaHistorial> {
   int? _clase;
   int? _dias;
   final _busqueda = TextEditingController();
+  var _porDocumento = false;
+  String? _avisoBusqueda;
   late Future<(List<RegistroEvaluacion>, int)> _datos = _cargar();
 
   @override
@@ -52,9 +56,30 @@ class _EstadoHistorial extends State<PantallaHistorial> {
     super.dispose();
   }
 
+  /// Seudónimo a buscar: el texto tal cual o, por documento, el HMAC del documento con la clave de la IPS.
+  Future<String?> _seudonimoBuscado() async {
+    _avisoBusqueda = null;
+    final texto = _busqueda.text.trim();
+    if (!_porDocumento || texto.isEmpty) return texto;
+    final clave = await widget.base.claveIps();
+    if (clave == null) {
+      _avisoBusqueda = 'Configure primero la clave de la IPS en «Carga IPS».';
+      return null;
+    }
+    final m = RegExp(r'^([A-Za-z]{1,3})[\s.:-]*(\S.*)$').firstMatch(texto);
+    if (m == null || normalizarDocumento(m[1]!, m[2]!).$2.isEmpty) {
+      _avisoBusqueda = 'Escriba el tipo y el número del documento, p. ej. CC 1065432.';
+      return null;
+    }
+    return seudonimizar(m[1]!, m[2]!, clave);
+  }
+
   Future<(List<RegistroEvaluacion>, int)> _cargar() async {
     final desde = _dias == null ? null : DateTime.now().subtract(Duration(days: _dias!));
-    final lista = await widget.base.listar(clase: _clase, desde: desde, seudonimo: _busqueda.text);
+    final seudonimo = await _seudonimoBuscado();
+    final lista = seudonimo == null && _porDocumento
+        ? <RegistroEvaluacion>[]
+        : await widget.base.listar(clase: _clase, desde: desde, seudonimo: seudonimo);
     return (lista, await widget.base.pendientesDeSincronizar());
   }
 
@@ -117,16 +142,35 @@ class _EstadoHistorial extends State<PantallaHistorial> {
             ),
         ]),
         const SizedBox(height: 10),
+        Wrap(spacing: 8, children: [
+          for (final (documento, texto) in [(false, 'Por seudónimo'), (true, 'Por documento')])
+            ChoiceChip(
+              key: Key(documento ? 'buscar-por-documento' : 'buscar-por-seudonimo'),
+              label: Text(texto),
+              selected: _porDocumento == documento,
+              onSelected: (_) {
+                _porDocumento = documento;
+                if (_busqueda.text.trim().isNotEmpty) _recargar();
+                setState(() {});
+              },
+            ),
+        ]),
+        const SizedBox(height: 8),
         TextField(
           key: const Key('buscar-seudonimo'),
           controller: _busqueda,
           onSubmitted: (_) => _recargar(),
           decoration: InputDecoration(
             prefixIcon: const Icon(Icons.search_rounded),
-            hintText: 'Buscar por seudónimo',
+            hintText: _porDocumento ? 'Tipo y número, p. ej. CC 1065432 (no se guarda)' : 'Primeros caracteres del seudónimo',
             suffixIcon: IconButton(icon: const Icon(Icons.arrow_forward_rounded), onPressed: _recargar, tooltip: 'Buscar'),
           ),
         ),
+        if (_avisoBusqueda != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 6),
+            child: Text(_avisoBusqueda!, key: const Key('aviso-busqueda'), style: const TextStyle(color: Color(0xFF6B1832))),
+          ),
       ]);
 
   Widget _fila(RegistroEvaluacion r) {
@@ -141,6 +185,7 @@ class _EstadoHistorial extends State<PantallaHistorial> {
         subtitle: Text(
           '${fechaLegible(r.fecha)} · ${atiende[r.atendidoPor] ?? r.atendidoPor} · ${origenLegible[r.origen] ?? r.origen}'
           '${r.alertas.isEmpty ? '' : ' · ${r.alertas.length} alerta(s)'}'
+          '${r.idCarga == null ? '' : ' · carga IPS'}'
           '${r.idSeudonimo == null ? '' : '\nSeudónimo ${r.idSeudonimo!.substring(0, 12)}…'}',
         ),
         trailing: Icon(r.sincronizado ? Icons.cloud_done_outlined : Icons.cloud_upload_outlined,

@@ -8,12 +8,15 @@ Genera en flutter_app/assets/:
   variables_3280.json  copia exacta del catálogo config/variables_3280.json (formulario y alertas de la ruta)
   casos_alertas.json   gestantes con las alertas de la ruta y los signos de alarma que elevan el triaje a Alto,
                        según Python, para la prueba en Dart
+  casos_carga.json     la carga masiva del ejemplo ficticio de la IPS (reporte, triaje ordenado de cada fila y
+                       seudónimos) según src/carga_masiva.py, con una sal SOLO de prueba, para la prueba en Dart
 
 Antes de escribir, verifica con src/inferencia_json.py (Python puro, sin scikit-learn) que los JSON
 reproducen las probabilidades del pipeline. Carga el modelo .joblib existente: no reentrena.
 
 Uso:  python -m src.exportar_a_dart                 (todo)
       python -m src.exportar_a_dart --solo-catalogo  (solo catálogo y casos de alertas: no toca el modelo)
+      python -m src.exportar_a_dart --solo-carga     (solo casos_carga.json: no toca el modelo)
 """
 import datetime as dt
 import shutil
@@ -32,7 +35,10 @@ from src.clinical_rules import (
 from src.config import CLASE_ALTO, DIR_MODELOS, NOMBRES_CLASES, RAIZ, SEMILLA, VARS_CON_NULOS
 from src.data_preprocessing import preparar_datos
 from src.filtro_3280 import RUTA_CATALOGO, evaluar_alertas_3280, signos_alarma_que_escalan, variables
+from src.carga_masiva import evaluar_archivo
+from src.generar_ejemplo_ips import DIR_EJEMPLOS
 from src.inferencia_json import ClasificadorJSON
+from src.seudonimizacion import seudonimizar
 
 RUTA_MODELO = DIR_MODELOS / "modelo_random_forest.joblib"
 DIR_ASSETS = RAIZ / "flutter_app" / "assets"
@@ -40,6 +46,9 @@ TOLERANCIA = 1e-6
 N_CASOS = 200
 N_CASOS_ALERTAS = 160
 VERSION_MODELO = "v1"
+# Sal pública, SOLO para las pruebas de paridad: la de la IPS es secreta y nunca se exporta
+SAL_PRUEBA = "sal-solo-para-pruebas-0123456789"
+EJEMPLO_IPS = DIR_EJEMPLOS / "ips_ficticio_3280.csv"
 
 
 def _sha256(ruta):
@@ -256,6 +265,40 @@ def exportar_catalogo_y_alertas():
     return [destino, _escribir("casos_alertas.json", {"casos": casos})]
 
 
+# ------------------------------------------------------------------ carga masiva y seudonimización
+DOCUMENTOS_PRUEBA = [("CC", "1065432"), (" cc ", "1.065.432"), ("CC", "1065-432 "), ("TI", "1065432"), ("", "1065432"),
+                     ("CE", "ab-12.34"), ("RC", "  99 88 77"), ("CC", "1999999999"), ("pa", "x9"), ("CC", "ñandú 1")]
+
+
+def generar_casos_carga(pipeline):
+    """Lo que calcula src/carga_masiva.py con el ejemplo ficticio, más seudónimos de documentos escritos de varias formas."""
+    reporte, resultados, rechazadas = evaluar_archivo(EJEMPLO_IPS, SAL_PRUEBA, pipeline)
+    return {
+        "sal_prueba": SAL_PRUEBA,
+        "archivo": EJEMPLO_IPS.relative_to(RAIZ).as_posix(),
+        "tolerancia": TOLERANCIA,
+        "reporte": {
+            "formato": reporte.formato, "separador": reporte.separador, "filas_leidas": reporte.filas_leidas,
+            "columnas_por_decision": reporte.columnas_por_decision, "columnas_eliminadas": reporte.columnas_eliminadas,
+            "columnas_desconocidas": reporte.columnas_desconocidas, "centinelas": reporte.centinelas,
+            "fuera_de_rango": reporte.fuera_de_rango, "filas_duplicadas_eliminadas": reporte.filas_duplicadas_eliminadas,
+            "gestantes_unicas": reporte.gestantes_unicas,
+            "gestantes_con_varias_atenciones": reporte.gestantes_con_varias_atenciones,
+            "sin_documento": reporte.sin_documento, "aptas_modelo": reporte.aptas_modelo,
+            "faltantes_que_impiden_modelo": reporte.faltantes_que_impiden_modelo,
+        },
+        "resultados": resultados,
+        "rechazadas": rechazadas,
+        "seudonimos": [{"tipo": t, "numero": n, "id_seudonimo": seudonimizar(t, n, SAL_PRUEBA)} for t, n in DOCUMENTOS_PRUEBA],
+    }
+
+
+def exportar_casos_carga(pipeline=None):
+    pipeline = pipeline if pipeline is not None else joblib.load(RUTA_MODELO)
+    DIR_ASSETS.mkdir(parents=True, exist_ok=True)
+    return _escribir("casos_carga.json", generar_casos_carga(pipeline))
+
+
 def _escribir(nombre, datos, compacto=False):
     ruta = DIR_ASSETS / nombre
     with open(ruta, "w", encoding="utf-8") as f:
@@ -275,13 +318,17 @@ def exportar():
     rutas = [_escribir("preproceso.json", preproceso), _escribir("modelo_rf.json", modelo, compacto=True),
              _escribir("reglas.json", reglas), _escribir("casos_paridad.json", {"tolerancia": TOLERANCIA, "casos": casos})]
     rutas += exportar_catalogo_y_alertas()
+    rutas.append(exportar_casos_carga(pipeline))
     print(f"Paridad JSON vs scikit-learn en {len(casos)} casos: variables {dif_x:.1e}, probabilidades {dif_p:.1e}")
     for r in rutas:
         print(f"  {r.relative_to(RAIZ)}  {r.stat().st_size / 1024:,.0f} KB")
 
 
 if __name__ == "__main__":
-    if "--solo-catalogo" in sys.argv:
+    if "--solo-carga" in sys.argv:
+        ruta = exportar_casos_carga()
+        print(f"  {ruta.relative_to(RAIZ)}  {ruta.stat().st_size / 1024:,.0f} KB")
+    elif "--solo-catalogo" in sys.argv:
         for ruta in exportar_catalogo_y_alertas():
             print(f"  {ruta.relative_to(RAIZ)}  {ruta.stat().st_size / 1024:,.0f} KB")
     else:

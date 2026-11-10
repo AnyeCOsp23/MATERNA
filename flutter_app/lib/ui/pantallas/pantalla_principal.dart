@@ -3,17 +3,17 @@
 ///   1 Triaje individual · 2 Carga masiva IPS · 3 Historial local · 4 Acerca de
 ///
 /// Cada pestaña conserva su estado al cambiar de una a otra (un triaje a medio llenar no se pierde).
-/// Cada evaluación se guarda en la base local al mostrar su resultado y aparece en el historial.
+/// Cada evaluación (individual o de una carga masiva) se guarda en la base local y aparece en el historial.
 library;
 
 import 'package:flutter/material.dart';
 
 import '../../datos/base_local.dart';
 import '../../motor/recursos.dart';
-import '../tema/tema_materna.dart';
 import '../widgets/barra_flotante.dart';
 import '../widgets/iconos_trazo.dart';
 import 'pantalla_acerca_de.dart';
+import 'pantalla_carga.dart';
 import 'pantalla_historial.dart';
 import 'pantalla_triaje.dart';
 
@@ -31,12 +31,18 @@ class PantallaPrincipal extends StatefulWidget {
     required this.base,
     required this.perfil,
     required this.alCerrarSesion,
+    this.elegirArchivo,
+    this.guardarArchivo,
   });
 
   final RecursosMaterna recursos;
   final BaseLocal base;
   final Perfil perfil;
   final VoidCallback alCerrarSesion;
+
+  /// Reemplazan el selector de archivos del sistema en la carga masiva (para las pruebas).
+  final ElegirArchivo? elegirArchivo;
+  final GuardarArchivo? guardarArchivo;
 
   @override
   State<PantallaPrincipal> createState() => _EstadoPrincipal();
@@ -67,12 +73,13 @@ class _EstadoPrincipal extends State<PantallaPrincipal> {
         extendBody: true, // el contenido pasa por detrás de la barra flotante
         body: IndexedStack(index: _pestana, children: [
           PantallaTriaje(recursos: widget.recursos, atendidoPor: widget.perfil.atendidoPor, alGuardar: _guardar),
-          const _Pendiente(
-            icono: Icons.note_add_rounded,
-            titulo: 'Carga masiva IPS',
-            texto: 'Aquí se cargarán los archivos de la IPS con la plantilla de la Resolución 3280 (CSV, TXT con «|» o '
-                'Excel): seudonimización del documento, triaje de todas las gestantes ordenado por urgencia y '
-                'exportación a CSV.',
+          PantallaCarga(
+            recursos: widget.recursos,
+            base: widget.base,
+            perfil: widget.perfil,
+            alGuardar: () => _cambios.value++,
+            elegirArchivo: widget.elegirArchivo,
+            guardarArchivo: widget.guardarArchivo,
           ),
           PantallaHistorial(recursos: widget.recursos, base: widget.base, cambios: _cambios),
           PantallaAcercaDe(recursos: widget.recursos, perfil: widget.perfil, alCerrarSesion: widget.alCerrarSesion),
@@ -81,41 +88,6 @@ class _EstadoPrincipal extends State<PantallaPrincipal> {
           destinos: destinos,
           indice: _pestana,
           alCambiar: (i) => setState(() => _pestana = i),
-        ),
-      );
-}
-
-/// Pestaña que se completa en la siguiente entrega del Módulo 2.
-class _Pendiente extends StatelessWidget {
-  const _Pendiente({required this.icono, required this.titulo, required this.texto});
-
-  final IconData icono;
-  final String titulo;
-  final String texto;
-
-  @override
-  Widget build(BuildContext context) => SafeArea(
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 520),
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(28, 24, 28, BarraFlotante.espacioInferior),
-              child: Column(mainAxisSize: MainAxisSize.min, children: [
-                Container(
-                  width: 72,
-                  height: 72,
-                  decoration: BoxDecoration(color: ColoresMaterna.ciruela100, borderRadius: BorderRadius.circular(22)),
-                  child: Icon(icono, size: 36, color: ColoresMaterna.ciruela900),
-                ),
-                const SizedBox(height: 18),
-                Text(titulo, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
-                const SizedBox(height: 8),
-                Text(texto, textAlign: TextAlign.center, style: const TextStyle(color: ColoresMaterna.tintaSuave, height: 1.5)),
-                const SizedBox(height: 14),
-                const Chip(label: Text('En la siguiente entrega del Módulo 2'), avatar: Icon(Icons.schedule_rounded, size: 18)),
-              ]),
-            ),
-          ),
         ),
       );
 }
