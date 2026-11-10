@@ -16,10 +16,16 @@ import '../tema/tema_materna.dart';
 String _pct(double p) => '${(p * 100).toStringAsFixed(1).replaceAll('.', ',')} %';
 
 class PantallaResultado extends StatelessWidget {
-  const PantallaResultado({super.key, required this.recursos, required this.evaluacion});
+  const PantallaResultado({super.key, required this.recursos, required this.evaluacion, this.soloLectura = false, this.nota});
 
   final RecursosMaterna recursos;
   final Evaluacion evaluacion;
+
+  /// Abierta desde el historial: sin los botones de evaluación nueva ni de corrección.
+  final bool soloLectura;
+
+  /// Contexto de una evaluación guardada (fecha, quién atendió).
+  final String? nota;
 
   @override
   Widget build(BuildContext context) {
@@ -28,12 +34,16 @@ class PantallaResultado extends StatelessWidget {
     final estilo = estiloPorCategoria[categoria]!;
     final urgentes = evaluacion.urgentesSinEscalar;
     return Scaffold(
-      appBar: AppBar(title: const Text('Resultado del triaje')),
+      appBar: AppBar(title: Text(soloLectura ? 'Evaluación guardada' : 'Resultado del triaje')),
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 760),
             child: ListView(padding: const EdgeInsets.fromLTRB(16, 8, 16, 32), children: [
+              if (nota != null) ...[
+                Text(nota!, key: const Key('nota-resultado'), style: const TextStyle(color: ColoresMaterna.tintaSuave)),
+                const SizedBox(height: 12),
+              ],
               if (urgentes.isNotEmpty) ...[
                 _AlertasUrgentes(urgentes, contradiceAlModelo: categoria != 'Alto Riesgo'),
                 const SizedBox(height: 14),
@@ -55,20 +65,22 @@ class PantallaResultado extends StatelessWidget {
               ],
               const SizedBox(height: 14),
               _Protocolo(recursos.protocolo(categoria), recursos.aviso),
-              const SizedBox(height: 22),
-              FilledButton.icon(
-                key: const Key('nueva-evaluacion'),
-                onPressed: () => Navigator.of(context).pop('nueva'),
-                icon: const Icon(Icons.add_rounded),
-                label: const Text('Nueva evaluación'),
-              ),
-              const SizedBox(height: 10),
-              OutlinedButton.icon(
-                key: const Key('editar-datos'),
-                onPressed: () => Navigator.of(context).pop('editar'),
-                icon: const Icon(Icons.edit_rounded),
-                label: const Text('Corregir los datos'),
-              ),
+              if (!soloLectura) ...[
+                const SizedBox(height: 22),
+                FilledButton.icon(
+                  key: const Key('nueva-evaluacion'),
+                  onPressed: () => Navigator.of(context).pop('nueva'),
+                  icon: const Icon(Icons.add_rounded),
+                  label: const Text('Nueva evaluación'),
+                ),
+                const SizedBox(height: 10),
+                OutlinedButton.icon(
+                  key: const Key('editar-datos'),
+                  onPressed: () => Navigator.of(context).pop('editar'),
+                  icon: const Icon(Icons.edit_rounded),
+                  label: const Text('Corregir los datos'),
+                ),
+              ],
             ]),
           ),
         ),

@@ -3,8 +3,11 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:materna/main.dart';
+import 'package:materna/datos/base_local.dart';
 import 'package:materna/motor/recursos.dart';
+import 'package:materna/ui/pantallas/pantalla_principal.dart';
+import 'package:materna/ui/tema/tema_materna.dart';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 String leer(String nombre) => File('assets/$nombre').readAsStringSync();
 
@@ -15,11 +18,20 @@ final recursos = RecursosMaterna.desdeTextos(
   catalogo: leer('variables_3280.json'),
 );
 
+const operador = Perfil(atendidoPor: 'Medico', ips: 'ESE Valledupar');
+late BaseLocal base;
+
+/// La pantalla principal con sesión iniciada y una base SQLite en memoria (el acceso se prueba en acceso_test).
 Future<void> abrir(WidgetTester tester, {Size tamano = const Size(1000, 2400)}) async {
   tester.view.physicalSize = tamano;
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
-  await tester.pumpWidget(MaternaApp(recursos: Future.value(recursos)));
+  base = (await tester.runAsync(() => BaseLocal.abrir(databaseFactoryFfiNoIsolate, inMemoryDatabasePath)))!;
+  addTearDown(() => tester.runAsync(base.cerrar));
+  await tester.pumpWidget(MaterialApp(
+    theme: temaMaterna(),
+    home: PantallaPrincipal(recursos: recursos, base: base, perfil: operador, alCerrarSesion: () {}),
+  ));
   await tester.pumpAndSettle();
 }
 
@@ -62,8 +74,7 @@ Future<void> llenarRutina(WidgetTester tester) async {
   await elegir(tester, 'proteinuria', 'Negativa');
   await elegir(tester, 'convulsiones', 'No');
   await siguiente(tester);
-  await elegir(tester, 'area_residencia', 'Cabecera');
-  await elegirEnLista(tester, 'atendido_por', 'Médico');
+  await elegir(tester, 'area_residencia', 'Cabecera'); // quién atiende ya viene del perfil del operador
   await siguiente(tester); // ahora en el paso 4: signos de alarma
 }
 
@@ -83,6 +94,7 @@ void main() {
     await escribir(tester, 'edad', '31');
     await tocar(tester, find.byKey(const Key('pestana-2')));
     expect(find.text('Historial local'), findsOneWidget);
+    expect(find.byKey(const Key('historial-vacio')), findsOneWidget);
     await tocar(tester, find.byKey(const Key('pestana-0')));
     expect(tester.widget<TextField>(find.byKey(const Key('campo-edad'))).controller!.text, '31');
   });
@@ -208,5 +220,34 @@ void main() {
     final barra = tester.getTopLeft(find.byKey(const Key('pestana-0'))).dy;
     expect(tester.getBottomLeft(boton).dy, lessThan(barra));
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('cada evaluación queda guardada y aparece en el historial', (tester) async {
+    await abrir(tester);
+    await llenarRutina(tester);
+    await terminarYEvaluar(tester);
+    await tocar(tester, find.byKey(const Key('nueva-evaluacion')));
+    await tocar(tester, find.byKey(const Key('pestana-2')));
+    expect(find.text('1 evaluación(es)'), findsOneWidget);
+    expect(find.text('VERDE · Bajo riesgo'), findsOneWidget);
+    await tocar(tester, find.descendant(of: find.byKey(const Key('filtro-riesgo')), matching: find.text('Rojo')));
+    expect(find.byKey(const Key('historial-vacio')), findsOneWidget);
+    await tocar(tester, find.descendant(of: find.byKey(const Key('filtro-riesgo')), matching: find.text('Todas')));
+    await tocar(tester, find.byKey(const Key('sincronizar')));
+    expect(find.textContaining('Simulación: no se envía ningún dato'), findsOneWidget);
+    await tocar(tester, find.textContaining('VERDE · Bajo riesgo'));
+    expect(find.text('Evaluación guardada'), findsOneWidget);
+    expect(find.textContaining('Médico · ESE Valledupar'), findsOneWidget);
+    expect(find.byKey(const Key('nueva-evaluacion')), findsNothing);
+  });
+
+  testWidgets('«Acerca de» muestra versión, modelo, velocidad y el deslinde', (tester) async {
+    await abrir(tester);
+    await tocar(tester, find.byKey(const Key('pestana-3')));
+    expect(find.text('Herramienta de apoyo al diagnóstico maternal; no reemplaza el criterio médico profesional.'), findsOneWidget);
+    expect(find.textContaining('Versión 1.0.0'), findsOneWidget);
+    expect(find.text('v1'), findsOneWidget);
+    expect(find.textContaining(' ms'), findsWidgets);
+    expect(find.text('ESE Valledupar'), findsOneWidget);
   });
 }

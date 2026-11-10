@@ -36,8 +36,22 @@ Consume, sin modificarlos, los artefactos que entrega el Módulo 1 (laboratorio 
     `ui/widgets/iconos_trazo.dart`; sin emojis) y tipografía Roboto incluida en `assets/fonts/`
     (licencia Apache 2.0): sin internet, la web no depende de fonts.gstatic.com para el texto.
   - Pruebas de pantallas en `test/flujo_test.dart`.
-- 4b · Commit B (base local SQLite, historial, PIN con perfil y «Acerca de») y commit C (carga masiva con la
-  plantilla 3280, seudonimización HMAC y exportación CSV): pendientes.
+- 4b · Commit B, acceso, base local, historial y «Acerca de»:
+  - Base local SQLite (`lib/datos/base_local.dart`): sqflite en Android/iOS y SQLite en WebAssembly en la web
+    (`sqflite_common_ffi_web`; sus archivos `web/sqlite3.wasm` y `web/sqflite_sw.js` se generan con
+    `dart run sqflite_common_ffi_web:setup`). Cada evaluación se guarda al mostrar su resultado, sin nombre ni documento.
+  - Acceso (`ui/pantallas/pantalla_acceso.dart`): la primera vez, perfil del operador (quién atiende, una de las 4
+    categorías del modelo, e IPS o municipio) y PIN de 4 dígitos; después, teclado numérico. El PIN se guarda como
+    PBKDF2-HMAC-SHA256 con sal (`lib/datos/seguridad.dart`); 5 intentos fallidos bloquean 30 s; si se olvida, la app se
+    reinicia y se borran los datos locales. La sesión no se recuerda al cerrar la app.
+  - Historial (`ui/pantallas/pantalla_historial.dart`): filtros por riesgo y fecha, búsqueda por seudónimo (desde el
+    commit C), detalle de cada evaluación y sincronización simulada.
+  - «Acerca de» (`ui/pantallas/pantalla_acerca_de.dart`): versión, modelo y su huella, paridad, velocidad medida en el
+    dispositivo (menos de 5 ms), limitaciones y deslinde médico.
+- 4b · Commit C (carga masiva con la plantilla 3280, seudonimización HMAC y exportación CSV): pendiente.
+
+**Limitaciones del prototipo:** datos locales sin cifrar; un PIN de 4 dígitos protege el acceso casual, no los archivos
+de la app; sincronización simulada (no hay servidor); iOS no se compila desde Windows.
 - 4c · Carga masiva de archivos de la IPS: pendiente.
 
 ## Comandos

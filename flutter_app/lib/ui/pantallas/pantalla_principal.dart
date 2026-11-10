@@ -3,14 +3,18 @@
 ///   1 Triaje individual · 2 Carga masiva IPS · 3 Historial local · 4 Acerca de
 ///
 /// Cada pestaña conserva su estado al cambiar de una a otra (un triaje a medio llenar no se pierde).
+/// Cada evaluación se guarda en la base local al mostrar su resultado y aparece en el historial.
 library;
 
 import 'package:flutter/material.dart';
 
+import '../../datos/base_local.dart';
 import '../../motor/recursos.dart';
 import '../tema/tema_materna.dart';
 import '../widgets/barra_flotante.dart';
 import '../widgets/iconos_trazo.dart';
+import 'pantalla_acerca_de.dart';
+import 'pantalla_historial.dart';
 import 'pantalla_triaje.dart';
 
 final destinos = [
@@ -21,9 +25,18 @@ final destinos = [
 ];
 
 class PantallaPrincipal extends StatefulWidget {
-  const PantallaPrincipal({super.key, required this.recursos});
+  const PantallaPrincipal({
+    super.key,
+    required this.recursos,
+    required this.base,
+    required this.perfil,
+    required this.alCerrarSesion,
+  });
 
   final RecursosMaterna recursos;
+  final BaseLocal base;
+  final Perfil perfil;
+  final VoidCallback alCerrarSesion;
 
   @override
   State<PantallaPrincipal> createState() => _EstadoPrincipal();
@@ -31,12 +44,29 @@ class PantallaPrincipal extends StatefulWidget {
 
 class _EstadoPrincipal extends State<PantallaPrincipal> {
   var _pestana = 0;
+  final _cambios = ValueNotifier(0); // avisa al historial que hay una evaluación nueva
+
+  @override
+  void dispose() {
+    _cambios.dispose();
+    super.dispose();
+  }
+
+  Future<void> _guardar(Evaluacion evaluacion) async {
+    await widget.base.guardar(
+      evaluacion,
+      perfil: widget.perfil,
+      versionModelo: widget.recursos.clasificador.version,
+      categoria: widget.recursos.clasificador.clases[evaluacion.clase],
+    );
+    _cambios.value++;
+  }
 
   @override
   Widget build(BuildContext context) => Scaffold(
         extendBody: true, // el contenido pasa por detrás de la barra flotante
         body: IndexedStack(index: _pestana, children: [
-          PantallaTriaje(recursos: widget.recursos),
+          PantallaTriaje(recursos: widget.recursos, atendidoPor: widget.perfil.atendidoPor, alGuardar: _guardar),
           const _Pendiente(
             icono: Icons.note_add_rounded,
             titulo: 'Carga masiva IPS',
@@ -44,18 +74,8 @@ class _EstadoPrincipal extends State<PantallaPrincipal> {
                 'Excel): seudonimización del documento, triaje de todas las gestantes ordenado por urgencia y '
                 'exportación a CSV.',
           ),
-          const _Pendiente(
-            icono: Icons.storage_rounded,
-            titulo: 'Historial local',
-            texto: 'Aquí aparecerán las evaluaciones guardadas en el dispositivo, con filtros por nivel de riesgo y '
-                'fecha, búsqueda por seudónimo y sincronización.',
-          ),
-          const _Pendiente(
-            icono: Icons.info_outline_rounded,
-            titulo: 'Acerca de',
-            texto: 'Versión del sistema y del modelo, paridad con el Módulo 1 y deslinde: MATERNA es una herramienta '
-                'de apoyo y no reemplaza el criterio médico profesional.',
-          ),
+          PantallaHistorial(recursos: widget.recursos, base: widget.base, cambios: _cambios),
+          PantallaAcercaDe(recursos: widget.recursos, perfil: widget.perfil, alCerrarSesion: widget.alCerrarSesion),
         ]),
         bottomNavigationBar: BarraFlotante(
           destinos: destinos,

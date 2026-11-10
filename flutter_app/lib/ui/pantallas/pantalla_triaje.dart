@@ -41,9 +41,12 @@ class _Paso {
 }
 
 class PantallaTriaje extends StatefulWidget {
-  const PantallaTriaje({super.key, required this.recursos, this.atendidoPor});
+  const PantallaTriaje({super.key, required this.recursos, this.atendidoPor, this.alGuardar});
 
   final RecursosMaterna recursos;
+
+  /// Guarda la evaluación (base local) antes de mostrar el resultado.
+  final Future<void> Function(Evaluacion evaluacion)? alGuardar;
 
   /// Quién atiende, tomado del perfil del operador (si ya inició sesión). Se puede cambiar en el paso 3.
   final String? atendidoPor;
@@ -183,6 +186,8 @@ class _EstadoTriaje extends State<PantallaTriaje> {
     final registro = _registroCompleto();
     if (registro == null) return;
     final evaluacion = widget.recursos.evaluar(registro);
+    await widget.alGuardar?.call(evaluacion);
+    if (!mounted) return;
     final accion = await Navigator.of(context).push<String>(
       MaterialPageRoute(builder: (_) => PantallaResultado(recursos: widget.recursos, evaluacion: evaluacion)),
     );
