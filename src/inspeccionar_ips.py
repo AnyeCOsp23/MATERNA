@@ -28,6 +28,8 @@ from src.seudonimizacion import COLUMNA_SEUDONIMO, obtener_sal
 CENTINELAS = {"1845-01-01", "9999", "999"}
 TAM_LOTE = 5000
 BYTES_MUESTRA = 1 << 20
+# Fila del archivo como la numera Excel (el encabezado es la fila 1; las filas vacías no se cuentan)
+COLUMNA_FILA = "fila"
 
 
 def detectar_codificacion(ruta):
@@ -157,12 +159,17 @@ def _sumar(destino, origen):
         destino[k] = destino.get(k, 0) + v
 
 
-def inspeccionar(ruta, sal, tam_lote=TAM_LOTE):
-    """Procesa el archivo completo y devuelve (datos seudonimizados y filtrados, reporte)."""
+def inspeccionar(ruta, sal, tam_lote=TAM_LOTE, con_fila=False):
+    """Procesa el archivo completo y devuelve (datos seudonimizados y filtrados, reporte).
+
+    Con con_fila=True agrega la columna 'fila' para informar en qué fila está cada registro; no cambia
+    el resto del resultado (los duplicados se buscan sin ella).
+    """
     lotes, (formato, separador) = leer_por_lotes(ruta, tam_lote)
     reporte = ReporteInspeccion(archivo=Path(ruta).name, formato=formato, separador=separador)
     partes = []
     for lote in lotes:
+        primera_fila = reporte.filas_leidas + 2
         reporte.lotes += 1
         reporte.filas_leidas += len(lote)
         lote, centinelas = reemplazar_centinelas(lote)
@@ -173,11 +180,13 @@ def inspeccionar(ruta, sal, tam_lote=TAM_LOTE):
             reporte.columnas_por_decision = resultado.columnas_por_decision
             reporte.columnas_eliminadas = resultado.columnas_eliminadas
             reporte.columnas_desconocidas = resultado.columnas_desconocidas
+        if con_fila:
+            resultado.datos.insert(0, COLUMNA_FILA, range(primera_fila, primera_fila + len(lote)))
         partes.append(resultado.datos)
 
     datos = pd.concat(partes, ignore_index=True) if partes else pd.DataFrame()
     antes = len(datos)
-    datos = datos.drop_duplicates(ignore_index=True)
+    datos = datos.drop_duplicates(subset=[c for c in datos.columns if c != COLUMNA_FILA] or None, ignore_index=True)
     reporte.filas_duplicadas_eliminadas = antes - len(datos)
 
     if COLUMNA_SEUDONIMO in datos:

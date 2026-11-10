@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:materna/datos/base_local.dart';
 import 'package:materna/motor/recursos.dart';
+import 'package:materna/ui/pantallas/pantalla_carga.dart';
 import 'package:materna/ui/pantallas/pantalla_principal.dart';
 import 'package:materna/ui/tema/tema_materna.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
@@ -22,7 +23,9 @@ const operador = Perfil(atendidoPor: 'Medico', ips: 'ESE Valledupar');
 late BaseLocal base;
 
 /// La pantalla principal con sesión iniciada y una base SQLite en memoria (el acceso se prueba en acceso_test).
-Future<void> abrir(WidgetTester tester, {Size tamano = const Size(1000, 2400)}) async {
+/// [elegirArchivo] y [guardarArchivo] reemplazan el selector de archivos del sistema en la carga masiva.
+Future<void> abrir(WidgetTester tester,
+    {Size tamano = const Size(1000, 2400), ElegirArchivo? elegirArchivo, GuardarArchivo? guardarArchivo}) async {
   tester.view.physicalSize = tamano;
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
@@ -30,7 +33,14 @@ Future<void> abrir(WidgetTester tester, {Size tamano = const Size(1000, 2400)}) 
   addTearDown(() => tester.runAsync(base.cerrar));
   await tester.pumpWidget(MaterialApp(
     theme: temaMaterna(),
-    home: PantallaPrincipal(recursos: recursos, base: base, perfil: operador, alCerrarSesion: () {}),
+    home: PantallaPrincipal(
+      recursos: recursos,
+      base: base,
+      perfil: operador,
+      alCerrarSesion: () {},
+      elegirArchivo: elegirArchivo,
+      guardarArchivo: guardarArchivo,
+    ),
   ));
   await tester.pumpAndSettle();
 }

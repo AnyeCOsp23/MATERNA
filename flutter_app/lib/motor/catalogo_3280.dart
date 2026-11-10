@@ -61,6 +61,7 @@ class VariableCatalogo {
         unidad = json['unidad'] as String?,
         rango = json['rango'] == null ? null : (json['rango'] as List).map((v) => (v as num).toDouble()).toList(),
         valores = json['valores'] == null ? const [] : List<String>.from(json['valores'] as List),
+        sinonimos = json['sinonimos'] == null ? const [] : List<String>.from(json['sinonimos'] as List),
         justificacion = json['justificacion'] as String,
         verificacion = json['verificacion'] as String,
         alerta = json['alerta'] == null ? null : ReglaAlerta(json['alerta'] as Map<String, dynamic>);
@@ -79,6 +80,9 @@ class VariableCatalogo {
   final String? unidad;
   final List<double>? rango;
   final List<String> valores;
+
+  /// Otros nombres con que una IPS escribe la columna (p. ej. 'tas' para pas_mmhg).
+  final List<String> sinonimos;
   final String justificacion;
   final String verificacion;
   final ReglaAlerta? alerta;

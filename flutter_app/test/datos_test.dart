@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:materna/datos/base_local.dart';
 import 'package:materna/datos/seguridad.dart';
+import 'package:materna/motor/carga_masiva.dart';
 import 'package:materna/ui/pantallas/pantalla_acerca_de.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
@@ -56,9 +57,13 @@ void main() {
       final base = await baseNueva();
       await base.configurar(pin: '2580', perfil: perfil);
       await base.guardar(recursos.evaluar(_rutina), perfil: perfil, versionModelo: 'v1', categoria: 'Bajo Riesgo');
+      await base.fijarClaveIps(_clave);
+      await base.guardarCarga(await _cargaEjemplo(), perfil: perfil, versionModelo: 'v1', clases: _clases, clave: _clave);
       await base.borrarTodo();
       expect(await base.tienePin(), isFalse);
+      expect(await base.claveIps(), isNull);
       expect(await base.listar(), isEmpty);
+      expect(await base.cargaPrevia((await _cargaEjemplo()).huellaArchivo), isNull);
       await base.cerrar();
     });
   });
@@ -92,6 +97,65 @@ void main() {
     });
   });
 
+  group('carga masiva', () {
+    test('la clave de la IPS se valida y se guarda en el dispositivo', () async {
+      final base = await baseNueva();
+      expect(await base.claveIps(), isNull);
+      expect(() => base.fijarClaveIps('corta'), throwsArgumentError);
+      await base.fijarClaveIps(_clave);
+      expect(await base.claveIps(), _clave);
+      await base.cerrar();
+    });
+
+    test('se guarda toda la carga en una transacción, con el seudónimo y sin documentos', () async {
+      final base = await baseNueva();
+      final carga = await _cargaEjemplo();
+      expect(await base.cargaPrevia(carga.huellaArchivo), isNull);
+      final id = await base.guardarCarga(carga, perfil: perfil, versionModelo: 'v1', clases: _clases, clave: _clave);
+      final todas = await base.listar(limite: 1000);
+      expect(todas, hasLength(carga.resultados.length));
+      expect(todas.every((r) => r.idCarga == id), isTrue);
+      expect(todas.where((r) => r.idSeudonimo != null), hasLength(carga.resultados.where((r) => r.idSeudonimo != null).length));
+      expect(todas.map((r) => jsonEncode(r.registro)).join().contains('FICTICIO'), isFalse);
+      final urgente = carga.resultados.first;
+      final encontradas = await base.listar(seudonimo: urgente.idSeudonimo);
+      expect(encontradas.first.clase, urgente.evaluacion.clase);
+      final previa = (await base.cargaPrevia(carga.huellaArchivo))!;
+      expect((previa.id, previa.archivo, previa.evaluadas, previa.sinEvaluar), (id, 'ips_ficticio_3280.csv', 300, 3));
+      await base.cerrar();
+    });
+
+    test('una base de la versión 1 (commit B) pasa a la 2 sin perder nada', () async {
+      final carpeta = Directory.systemTemp.createTempSync('materna_');
+      addTearDown(() => carpeta.deleteSync(recursive: true));
+      final ruta = '${carpeta.path}/materna.db';
+      final v1 = await databaseFactoryFfiNoIsolate.openDatabase(ruta,
+          options: OpenDatabaseOptions(version: 1, onCreate: (bd, _) async {
+            await bd.execute('CREATE TABLE ajustes (clave TEXT PRIMARY KEY, valor TEXT NOT NULL)');
+            await bd.execute('''CREATE TABLE evaluaciones (
+              id INTEGER PRIMARY KEY AUTOINCREMENT, fecha TEXT NOT NULL, atendido_por TEXT NOT NULL, ips TEXT NOT NULL,
+              categoria TEXT NOT NULL, clase INTEGER NOT NULL, origen TEXT NOT NULL,
+              prob_bajo REAL NOT NULL, prob_medio REAL NOT NULL, prob_alto REAL NOT NULL,
+              alertas TEXT NOT NULL, registro TEXT NOT NULL, version_modelo TEXT NOT NULL,
+              id_seudonimo TEXT, id_carga INTEGER, sincronizado INTEGER NOT NULL DEFAULT 0)''');
+            await bd.insert('ajustes', {'clave': 'atendido_por', 'valor': 'Medico'});
+            await bd.insert('ajustes', {'clave': 'ips', 'valor': 'ESE Valledupar'});
+            await bd.insert('evaluaciones', {
+              'fecha': '2026-11-08T10:00:00', 'atendido_por': 'Medico', 'ips': 'ESE Valledupar', 'categoria': 'Bajo Riesgo',
+              'clase': 0, 'origen': 'modelo_ml', 'prob_bajo': .9, 'prob_medio': .1, 'prob_alto': 0, 'alertas': '[]',
+              'registro': jsonEncode(_rutina), 'version_modelo': 'v1',
+            });
+          }));
+      await v1.close();
+      final base = await BaseLocal.abrir(databaseFactoryFfiNoIsolate, ruta);
+      expect((await base.perfil())!.ips, 'ESE Valledupar');
+      expect(await base.listar(), hasLength(1));
+      await base.guardarCarga(await _cargaEjemplo(), perfil: perfil, versionModelo: 'v1', clases: _clases, clave: _clave);
+      expect(await base.listar(limite: 1000), hasLength(301));
+      await base.cerrar();
+    });
+  });
+
   test('versión de la app igual a la de pubspec.yaml', () {
     expect(File('pubspec.yaml').readAsStringSync(), contains('version: $versionApp+'));
   });
@@ -100,6 +164,15 @@ void main() {
     expect(medirInferencia(recursos), lessThan(5));
   });
 }
+
+const _clave = 'clave-de-prueba-de-la-ips-2026';
+const _clases = ['Bajo Riesgo', 'Riesgo Medio', 'Alto Riesgo'];
+
+Future<CargaMasiva> _cargaEjemplo() => procesarCarga(
+    nombre: 'ips_ficticio_3280.csv',
+    bytes: File('../data/ejemplos/ips_ficticio_3280.csv').readAsBytesSync(),
+    recursos: recursos,
+    sal: _clave);
 
 const _rutina = {
   'edad': 27, 'area_residencia': 'Cabecera', 'semanas_gestacion': 28, 'n_controles_prenatales': 5,

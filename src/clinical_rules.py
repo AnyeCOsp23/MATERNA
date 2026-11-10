@@ -80,7 +80,19 @@ def evaluar_riesgo_hibrido(registro, modelo):
     modelo:   pipeline entrenado con predict_proba (SVM calibrado o Regresión Logística).
     """
     fila = pd.DataFrame([{k: (np.nan if v is None else v) for k, v in registro.items()}])
-    proba = modelo.predict_proba(fila)[0]
+    return _combinar(registro, modelo.predict_proba(fila)[0])
+
+
+def evaluar_riesgo_hibrido_lote(registros, modelo):
+    """Igual que evaluar_riesgo_hibrido para muchas gestantes, con una sola llamada al modelo (carga masiva)."""
+    if not registros:
+        return []
+    filas = pd.DataFrame([{k: (np.nan if v is None else v) for k, v in r.items()} for r in registros])
+    return [_combinar(r, p) for r, p in zip(registros, modelo.predict_proba(filas))]
+
+
+def _combinar(registro, proba):
+    """Decisión final a partir de las probabilidades del modelo: regla crítica > signo de alarma > modelo."""
     clase_modelo = int(np.argmax(proba))
     probabilidades = {NOMBRES_CLASES[i]: float(p) for i, p in enumerate(proba)}
     alertas = evaluar_reglas(registro)

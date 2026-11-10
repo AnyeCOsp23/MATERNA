@@ -1,0 +1,5352 @@
+{
+ "sal_prueba": "sal-solo-para-pruebas-0123456789",
+ "archivo": "data/ejemplos/ips_ficticio_3280.csv",
+ "tolerancia": 1e-06,
+ "reporte": {
+  "formato": "latin-1",
+  "separador": "|",
+  "filas_leidas": 307,
+  "columnas_por_decision": {
+   "modelo": [
+    "edad",
+    "semanas_gestacion",
+    "n_controles_prenatales",
+    "pas_mmhg",
+    "pad_mmhg",
+    "fcf_bpm",
+    "glucosa_mgdl",
+    "proteinuria",
+    "convulsiones",
+    "area_residencia",
+    "atendido_por"
+   ],
+   "capturar_alertar": [
+    "fecha_ultima_menstruacion",
+    "gestaciones",
+    "partos",
+    "cesareas",
+    "preeclampsia_previa",
+    "peso_kg",
+    "talla_cm",
+    "hemoglobina_gdl",
+    "sifilis_reactiva",
+    "vih_reactivo",
+    "calcio",
+    "vacuna_influenza",
+    "cefalea",
+    "vision_borrosa",
+    "sangrado_genital",
+    "disminucion_movimientos_fetales"
+   ],
+   "auditoria": [
+    "pertenencia_etnica",
+    "departamento",
+    "municipio"
+   ]
+  },
+  "columnas_eliminadas": [
+   "primer_nombre",
+   "primer_apellido",
+   "telefono",
+   "codigo_ips",
+   "consecutivo"
+  ],
+  "columnas_desconocidas": [
+   "observaciones"
+  ],
+  "centinelas": {
+   "glucosa_mgdl": 5,
+   "fecha_ultima_menstruacion": 2
+  },
+  "fuera_de_rango": {
+   "pas_mmhg": 2
+  },
+  "filas_duplicadas_eliminadas": 4,
+  "gestantes_unicas": 298,
+  "gestantes_con_varias_atenciones": 3,
+  "sin_documento": 2,
+  "aptas_modelo": 300,
+  "faltantes_que_impiden_modelo": {
+   "edad": 1,
+   "pas_mmhg": 2
+  }
+ },
+ "resultados": [
+  {
+   "fila": 75,
+   "id_seudonimo": "d668bd8bdf04e9d89970cdab6206b538cf5602808c23231b62c0b3552f89bb58",
+   "clase": 2,
+   "clase_modelo": 2,
+   "origen": "signo_alarma_3280",
+   "probabilidades": [
+    0.0,
+    0.0,
+    1.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [
+    "vision_borrosa"
+   ],
+   "alertas": [
+    "vision_borrosa"
+   ]
+  },
+  {
+   "fila": 129,
+   "id_seudonimo": "e22ec3d86128c87bbe18774e3132def04a6f7290830b309463a781c0ac87a661",
+   "clase": 2,
+   "clase_modelo": 2,
+   "origen": "regla_clinica",
+   "probabilidades": [
+    0.0,
+    0.0,
+    1.0
+   ],
+   "n_signos_criticos": 1,
+   "signos_alarma": [
+    "cefalea",
+    "sangrado_genital"
+   ],
+   "alertas": [
+    "cefalea",
+    "sangrado_genital",
+    "calcio"
+   ]
+  },
+  {
+   "fila": 148,
+   "id_seudonimo": "95e88166357d37b0f756ea10949fcd1f56d7a155827c569c3dfcb51e56d4fe5a",
+   "clase": 2,
+   "clase_modelo": 2,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.0,
+    0.0,
+    1.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 150,
+   "id_seudonimo": "e9302544fd54a44f7f50cea69c0da41a5cc93425ab4b8676a548b1d47c0d6df1",
+   "clase": 2,
+   "clase_modelo": 2,
+   "origen": "regla_clinica",
+   "probabilidades": [
+    0.0,
+    0.0,
+    1.0
+   ],
+   "n_signos_criticos": 1,
+   "signos_alarma": [
+    "vision_borrosa"
+   ],
+   "alertas": [
+    "vision_borrosa"
+   ]
+  },
+  {
+   "fila": 162,
+   "id_seudonimo": "49d1a1a0d80ef2a8ea665840e9c800cbfbef709992335d75f9c7e2a6ac96267a",
+   "clase": 2,
+   "clase_modelo": 2,
+   "origen": "regla_clinica",
+   "probabilidades": [
+    0.0,
+    0.0,
+    1.0
+   ],
+   "n_signos_criticos": 1,
+   "signos_alarma": [
+    "cefalea"
+   ],
+   "alertas": [
+    "cefalea"
+   ]
+  },
+  {
+   "fila": 180,
+   "id_seudonimo": "698b56ca6636b7b461092b5f1c9e0b186ca38939822886f4f70fa323647b9b9b",
+   "clase": 2,
+   "clase_modelo": 2,
+   "origen": "regla_clinica",
+   "probabilidades": [
+    0.0,
+    0.0,
+    1.0
+   ],
+   "n_signos_criticos": 1,
+   "signos_alarma": [
+    "vision_borrosa"
+   ],
+   "alertas": [
+    "vision_borrosa",
+    "hemoglobina_gdl"
+   ]
+  },
+  {
+   "fila": 217,
+   "id_seudonimo": "170342b3dcf747f8e6139e75a056c597b7063085e3c48fc623d916d6cdc6c9d1",
+   "clase": 2,
+   "clase_modelo": 2,
+   "origen": "regla_clinica",
+   "probabilidades": [
+    0.0,
+    0.0,
+    1.0
+   ],
+   "n_signos_criticos": 1,
+   "signos_alarma": [],
+   "alertas": [
+    "hemoglobina_gdl",
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 268,
+   "id_seudonimo": "9540fc2bf85617618c4e265abdeac0776e42d54b55908a561dab4132ea65b27c",
+   "clase": 2,
+   "clase_modelo": 2,
+   "origen": "regla_clinica",
+   "probabilidades": [
+    0.0,
+    0.0,
+    1.0
+   ],
+   "n_signos_criticos": 2,
+   "signos_alarma": [],
+   "alertas": []
+  },
+  {
+   "fila": 14,
+   "id_seudonimo": "731d8629213a47277d0c07ed511bb898c737c64812764c91f345052491dff415",
+   "clase": 2,
+   "clase_modelo": 2,
+   "origen": "regla_clinica",
+   "probabilidades": [
+    0.0,
+    0.0033333333333333335,
+    0.9966666666666667
+   ],
+   "n_signos_criticos": 1,
+   "signos_alarma": [],
+   "alertas": [
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 92,
+   "id_seudonimo": "e54da0f516f0f7c6e31d68d1fe561eb5200704c2c5faa398a81e6d074c9370e9",
+   "clase": 2,
+   "clase_modelo": 2,
+   "origen": "regla_clinica",
+   "probabilidades": [
+    0.0,
+    0.0033333333333333335,
+    0.9966666666666667
+   ],
+   "n_signos_criticos": 1,
+   "signos_alarma": [],
+   "alertas": []
+  },
+  {
+   "fila": 53,
+   "id_seudonimo": "b8d6b1cc2efb5215bb26b7f44e1b72f53dc01cc4ccb7786d0858305e3efb7057",
+   "clase": 2,
+   "clase_modelo": 2,
+   "origen": "regla_clinica",
+   "probabilidades": [
+    0.0,
+    0.006666666666666667,
+    0.9933333333333333
+   ],
+   "n_signos_criticos": 1,
+   "signos_alarma": [
+    "disminucion_movimientos_fetales"
+   ],
+   "alertas": [
+    "disminucion_movimientos_fetales",
+    "hemoglobina_gdl"
+   ]
+  },
+  {
+   "fila": 224,
+   "id_seudonimo": "d68b4e355590e8b98e4a42ace6b4a41b85321a2e0b7b5089b5536b22f140b8ea",
+   "clase": 2,
+   "clase_modelo": 2,
+   "origen": "regla_clinica",
+   "probabilidades": [
+    0.0,
+    0.006666666666666667,
+    0.9933333333333333
+   ],
+   "n_signos_criticos": 1,
+   "signos_alarma": [
+    "cefalea"
+   ],
+   "alertas": [
+    "cefalea",
+    "calcio"
+   ]
+  },
+  {
+   "fila": 28,
+   "id_seudonimo": "90d55df8760ce1a815b61f2066e2bf55639f2b81ca56dd08636fb865aa3dad07",
+   "clase": 2,
+   "clase_modelo": 2,
+   "origen": "signo_alarma_3280",
+   "probabilidades": [
+    0.0,
+    0.01,
+    0.99
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [
+    "cefalea"
+   ],
+   "alertas": [
+    "cefalea",
+    "calcio",
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 194,
+   "id_seudonimo": "d7591130a5dfc4ff2b2f6c5dfef82ecf49cb001387d672d83992457726c89755",
+   "clase": 2,
+   "clase_modelo": 2,
+   "origen": "regla_clinica",
+   "probabilidades": [
+    0.0,
+    0.013333333333333334,
+    0.9866666666666667
+   ],
+   "n_signos_criticos": 1,
+   "signos_alarma": [
+    "cefalea"
+   ],
+   "alertas": [
+    "cefalea",
+    "hemoglobina_gdl"
+   ]
+  },
+  {
+   "fila": 17,
+   "id_seudonimo": "379f0ae9d3338f9cd6cfee400e57f3b39c21dc86a0baf5524d1ef17b565b5ad7",
+   "clase": 2,
+   "clase_modelo": 2,
+   "origen": "signo_alarma_3280",
+   "probabilidades": [
+    0.0,
+    0.02,
+    0.98
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [
+    "vision_borrosa"
+   ],
+   "alertas": [
+    "vision_borrosa",
+    "hemoglobina_gdl"
+   ]
+  },
+  {
+   "fila": 73,
+   "id_seudonimo": "3801d201fee19f2fbd740c6cdf06b3a45287a9fbb31746aee6d0a34b3885c805",
+   "clase": 2,
+   "clase_modelo": 2,
+   "origen": "regla_clinica",
+   "probabilidades": [
+    0.0,
+    0.02,
+    0.98
+   ],
+   "n_signos_criticos": 1,
+   "signos_alarma": [
+    "disminucion_movimientos_fetales"
+   ],
+   "alertas": [
+    "disminucion_movimientos_fetales"
+   ]
+  },
+  {
+   "fila": 49,
+   "id_seudonimo": "ff37422bc6efd615a8e6c5d83814cf295b9f307894bced176b9dc96db6bd1283",
+   "clase": 2,
+   "clase_modelo": 2,
+   "origen": "regla_clinica",
+   "probabilidades": [
+    0.0,
+    0.03333333333333333,
+    0.9666666666666667
+   ],
+   "n_signos_criticos": 1,
+   "signos_alarma": [],
+   "alertas": [
+    "preeclampsia_previa"
+   ]
+  },
+  {
+   "fila": 78,
+   "id_seudonimo": "b1359b8ebd8f11882e05209e788de457cddfef7f85d4216cef855eb4d1b73fed",
+   "clase": 2,
+   "clase_modelo": 2,
+   "origen": "regla_clinica",
+   "probabilidades": [
+    0.0,
+    0.03666666666666667,
+    0.9633333333333334
+   ],
+   "n_signos_criticos": 2,
+   "signos_alarma": [
+    "cefalea",
+    "sangrado_genital"
+   ],
+   "alertas": [
+    "cefalea",
+    "sangrado_genital",
+    "preeclampsia_previa",
+    "hemoglobina_gdl",
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 156,
+   "id_seudonimo": "970198ab9b3c9180ced13946c00f320b9af81b2048b18cddd468988a5d849220",
+   "clase": 2,
+   "clase_modelo": 2,
+   "origen": "regla_clinica",
+   "probabilidades": [
+    0.0,
+    0.04,
+    0.96
+   ],
+   "n_signos_criticos": 1,
+   "signos_alarma": [
+    "vision_borrosa"
+   ],
+   "alertas": [
+    "vision_borrosa",
+    "preeclampsia_previa",
+    "calcio",
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 141,
+   "id_seudonimo": "879ed95b3c68e424ac8edc4543d0b59d5c79ec0b44e68de6d3e9370fdce47a9a",
+   "clase": 2,
+   "clase_modelo": 2,
+   "origen": "regla_clinica",
+   "probabilidades": [
+    0.0,
+    0.043333333333333335,
+    0.9566666666666667
+   ],
+   "n_signos_criticos": 1,
+   "signos_alarma": [],
+   "alertas": [
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 270,
+   "id_seudonimo": "972610b6e97222db72d30dcc364a762e2c64f29e8cd7e247a4701e4849fe49f7",
+   "clase": 2,
+   "clase_modelo": 2,
+   "origen": "regla_clinica",
+   "probabilidades": [
+    0.0,
+    0.043333333333333335,
+    0.9566666666666667
+   ],
+   "n_signos_criticos": 1,
+   "signos_alarma": [
+    "vision_borrosa",
+    "sangrado_genital",
+    "disminucion_movimientos_fetales"
+   ],
+   "alertas": [
+    "vision_borrosa",
+    "sangrado_genital",
+    "disminucion_movimientos_fetales"
+   ]
+  },
+  {
+   "fila": 135,
+   "id_seudonimo": "02706eb814d3350dd09283d7fd9913ee7f505306e25173ed7fb23ae5417c5776",
+   "clase": 2,
+   "clase_modelo": 2,
+   "origen": "regla_clinica",
+   "probabilidades": [
+    0.0,
+    0.07666666666666666,
+    0.9233333333333333
+   ],
+   "n_signos_criticos": 1,
+   "signos_alarma": [
+    "vision_borrosa"
+   ],
+   "alertas": [
+    "vision_borrosa",
+    "preeclampsia_previa"
+   ]
+  },
+  {
+   "fila": 93,
+   "id_seudonimo": "7b2a84b0ce4c380fa36a1f2151966f9be2fabcbf359df21035f71ba36456705b",
+   "clase": 2,
+   "clase_modelo": 2,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.0033333333333333335,
+    0.09333333333333334,
+    0.9033333333333333
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 136,
+   "id_seudonimo": "ab3712341c28ea09b2f8954cde63f7b104b10645262bc7e4bfa100bc78c9ee15",
+   "clase": 2,
+   "clase_modelo": 2,
+   "origen": "signo_alarma_3280",
+   "probabilidades": [
+    0.0,
+    0.10666666666666667,
+    0.8933333333333333
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [
+    "vision_borrosa"
+   ],
+   "alertas": [
+    "vision_borrosa"
+   ]
+  },
+  {
+   "fila": 176,
+   "id_seudonimo": "a09405dd6494c2fad6ce1ae3c678b64197148819f9956d8c68180913e5f2d35c",
+   "clase": 2,
+   "clase_modelo": 2,
+   "origen": "signo_alarma_3280",
+   "probabilidades": [
+    0.0,
+    0.11666666666666667,
+    0.8833333333333333
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [
+    "cefalea",
+    "vision_borrosa"
+   ],
+   "alertas": [
+    "cefalea",
+    "vision_borrosa",
+    "preeclampsia_previa"
+   ]
+  },
+  {
+   "fila": 227,
+   "id_seudonimo": "b9bfe537aeeec683b2e049de60e4fadca53f1dceb19aa7f73592e64aec8c58df",
+   "clase": 2,
+   "clase_modelo": 2,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.016666666666666666,
+    0.10666666666666667,
+    0.8766666666666667
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "hemoglobina_gdl",
+    "calcio"
+   ]
+  },
+  {
+   "fila": 143,
+   "id_seudonimo": "6b12a3b781cff36f889a5f525c8b9063bde7d1afdbde8f95339161faa7142669",
+   "clase": 2,
+   "clase_modelo": 2,
+   "origen": "regla_clinica",
+   "probabilidades": [
+    0.0,
+    0.18,
+    0.82
+   ],
+   "n_signos_criticos": 1,
+   "signos_alarma": [],
+   "alertas": [
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 168,
+   "id_seudonimo": "0d7bd23256239753dc1c65f29aa798b311cc2d49176dd8edd936fc1acd964bf8",
+   "clase": 2,
+   "clase_modelo": 2,
+   "origen": "signo_alarma_3280",
+   "probabilidades": [
+    0.01,
+    0.17,
+    0.82
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [
+    "cefalea"
+   ],
+   "alertas": [
+    "cefalea",
+    "hemoglobina_gdl"
+   ]
+  },
+  {
+   "fila": 113,
+   "id_seudonimo": "25ccd6dcaf2f118f067d205ae071786a9a88adcd10aa31517a0369dc1bf974a6",
+   "clase": 2,
+   "clase_modelo": 2,
+   "origen": "regla_clinica",
+   "probabilidades": [
+    0.0,
+    0.24333333333333335,
+    0.7566666666666667
+   ],
+   "n_signos_criticos": 1,
+   "signos_alarma": [],
+   "alertas": [
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 19,
+   "id_seudonimo": "09a13b740145cda6fd9fd26545521157759f5174f2feb52c586f4b1c403c12b6",
+   "clase": 2,
+   "clase_modelo": 2,
+   "origen": "signo_alarma_3280",
+   "probabilidades": [
+    0.0,
+    0.26,
+    0.74
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [
+    "cefalea",
+    "vision_borrosa"
+   ],
+   "alertas": [
+    "cefalea",
+    "vision_borrosa",
+    "hemoglobina_gdl"
+   ]
+  },
+  {
+   "fila": 99,
+   "id_seudonimo": "15e277d4bdad48c76c960ca9d9985f71c47d330d3a591d122d1d708ca86ded61",
+   "clase": 2,
+   "clase_modelo": 2,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.02,
+    0.24666666666666667,
+    0.7333333333333333
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "calcio",
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 230,
+   "id_seudonimo": "b64d34d5217d23e14da29b338ec8fc0c545420ff1d0daf52608ea8a034784024",
+   "clase": 2,
+   "clase_modelo": 2,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.0,
+    0.36666666666666664,
+    0.6333333333333333
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "calcio"
+   ]
+  },
+  {
+   "fila": 142,
+   "id_seudonimo": "c1466c429f331d8c80135e743e3c0b5fc55685125bbb209afdc5c84ea8831c12",
+   "clase": 2,
+   "clase_modelo": 2,
+   "origen": "signo_alarma_3280",
+   "probabilidades": [
+    0.0,
+    0.37333333333333335,
+    0.6266666666666667
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [
+    "vision_borrosa"
+   ],
+   "alertas": [
+    "vision_borrosa",
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 151,
+   "id_seudonimo": "0909344b5d735b84e9318a1f725f2b135800c35fc39daaee77c9b09db767c0c2",
+   "clase": 2,
+   "clase_modelo": 2,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.016666666666666666,
+    0.36666666666666664,
+    0.6166666666666667
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "calcio"
+   ]
+  },
+  {
+   "fila": 304,
+   "id_seudonimo": "c1466c429f331d8c80135e743e3c0b5fc55685125bbb209afdc5c84ea8831c12",
+   "clase": 2,
+   "clase_modelo": 1,
+   "origen": "signo_alarma_3280",
+   "probabilidades": [
+    0.0,
+    0.77,
+    0.23
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [
+    "vision_borrosa"
+   ],
+   "alertas": [
+    "vision_borrosa",
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 243,
+   "id_seudonimo": "4f035d1bc0bb09192742f8084cebd8ae816da9cf32b7eb2066ba61c7e17b74ac",
+   "clase": 2,
+   "clase_modelo": 1,
+   "origen": "signo_alarma_3280",
+   "probabilidades": [
+    0.023333333333333334,
+    0.8833333333333333,
+    0.09333333333333334
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [
+    "vision_borrosa"
+   ],
+   "alertas": [
+    "vision_borrosa",
+    "hemoglobina_gdl",
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 95,
+   "id_seudonimo": "c48a65ff711e174817c7fbb4f5412996d43cfee92564ce4ba17f11db23f4988b",
+   "clase": 2,
+   "clase_modelo": 0,
+   "origen": "signo_alarma_3280",
+   "probabilidades": [
+    0.8633333333333333,
+    0.11,
+    0.02666666666666667
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [
+    "vision_borrosa"
+   ],
+   "alertas": [
+    "vision_borrosa",
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 107,
+   "id_seudonimo": "a53d4f1233f84ae3bba5d319d3bfe9375e23cf985c33ae94147dd14726961c85",
+   "clase": 2,
+   "clase_modelo": 1,
+   "origen": "signo_alarma_3280",
+   "probabilidades": [
+    0.0033333333333333335,
+    0.9833333333333333,
+    0.013333333333333334
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [
+    "cefalea"
+   ],
+   "alertas": [
+    "cefalea",
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 265,
+   "id_seudonimo": "ad9d2f9c3177ba8c414fe6c860a8a34a0694e291a306b680058ce757429dad40",
+   "clase": 2,
+   "clase_modelo": 1,
+   "origen": "signo_alarma_3280",
+   "probabilidades": [
+    0.0033333333333333335,
+    0.9933333333333333,
+    0.0033333333333333335
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [
+    "vision_borrosa"
+   ],
+   "alertas": [
+    "vision_borrosa"
+   ]
+  },
+  {
+   "fila": 29,
+   "id_seudonimo": "df70158840e65d17c99c1c43915e89d1bb1ee01d27747d08cc55fbc9b9f791aa",
+   "clase": 2,
+   "clase_modelo": 0,
+   "origen": "signo_alarma_3280",
+   "probabilidades": [
+    1.0,
+    0.0,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [
+    "cefalea"
+   ],
+   "alertas": [
+    "cefalea"
+   ]
+  },
+  {
+   "fila": 31,
+   "id_seudonimo": "1639f8179cf7c85b92e6459c3e5e6ebf3cec28acb277bea405cf1b2d700be3a2",
+   "clase": 2,
+   "clase_modelo": 1,
+   "origen": "signo_alarma_3280",
+   "probabilidades": [
+    0.04666666666666667,
+    0.9533333333333334,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [
+    "sangrado_genital"
+   ],
+   "alertas": [
+    "sangrado_genital",
+    "hemoglobina_gdl",
+    "calcio"
+   ]
+  },
+  {
+   "fila": 46,
+   "id_seudonimo": "d78bc9947665038ef8685e59152fb99bda4b29504c7a5a1bc8dff1986f7d935d",
+   "clase": 2,
+   "clase_modelo": 0,
+   "origen": "signo_alarma_3280",
+   "probabilidades": [
+    1.0,
+    0.0,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [
+    "sangrado_genital"
+   ],
+   "alertas": [
+    "sangrado_genital",
+    "hemoglobina_gdl"
+   ]
+  },
+  {
+   "fila": 47,
+   "id_seudonimo": "7b3e1a606c46abcb4485142e59102299c45d32ae9388005773dafe4f86e510b7",
+   "clase": 2,
+   "clase_modelo": 0,
+   "origen": "signo_alarma_3280",
+   "probabilidades": [
+    0.99,
+    0.01,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [
+    "sangrado_genital"
+   ],
+   "alertas": [
+    "sangrado_genital"
+   ]
+  },
+  {
+   "fila": 84,
+   "id_seudonimo": "a6398f39e92eafe45160e5d928a6cc7b51a2da179dd51e8723730034d2d8e0eb",
+   "clase": 2,
+   "clase_modelo": 0,
+   "origen": "signo_alarma_3280",
+   "probabilidades": [
+    0.9966666666666667,
+    0.0033333333333333335,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [
+    "vision_borrosa"
+   ],
+   "alertas": [
+    "vision_borrosa",
+    "hemoglobina_gdl",
+    "calcio",
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 101,
+   "id_seudonimo": "2907406bd5fa64574b10f03163d669f1a7fab822f616f2af6093440888ca41e2",
+   "clase": 2,
+   "clase_modelo": 0,
+   "origen": "signo_alarma_3280",
+   "probabilidades": [
+    0.9766666666666667,
+    0.023333333333333334,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [
+    "disminucion_movimientos_fetales"
+   ],
+   "alertas": [
+    "disminucion_movimientos_fetales",
+    "hemoglobina_gdl",
+    "calcio"
+   ]
+  },
+  {
+   "fila": 103,
+   "id_seudonimo": "8082e84d26f7df4d508e7b5258ab3bce1056c6f20d0a53b2f0c28a08770b3dbc",
+   "clase": 2,
+   "clase_modelo": 0,
+   "origen": "signo_alarma_3280",
+   "probabilidades": [
+    0.9666666666666667,
+    0.03333333333333333,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [
+    "disminucion_movimientos_fetales"
+   ],
+   "alertas": [
+    "disminucion_movimientos_fetales",
+    "calcio"
+   ]
+  },
+  {
+   "fila": 105,
+   "id_seudonimo": "b2045eaba91947900b2ae68b4ac995eee8f348a2cb32ac651e280f801777d9f8",
+   "clase": 2,
+   "clase_modelo": 1,
+   "origen": "signo_alarma_3280",
+   "probabilidades": [
+    0.02,
+    0.98,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [
+    "cefalea"
+   ],
+   "alertas": [
+    "cefalea",
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 120,
+   "id_seudonimo": "f853f3cfa38a37b39cae393236afbd4e08fe717bba1836eea13e5e9fae36e975",
+   "clase": 2,
+   "clase_modelo": 0,
+   "origen": "signo_alarma_3280",
+   "probabilidades": [
+    0.9933333333333333,
+    0.006666666666666667,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [
+    "disminucion_movimientos_fetales"
+   ],
+   "alertas": [
+    "disminucion_movimientos_fetales"
+   ]
+  },
+  {
+   "fila": 144,
+   "id_seudonimo": "b39a63779c113838fabe62901f8f3bb90c204f12ff96f833b3efa9f17a703edc",
+   "clase": 2,
+   "clase_modelo": 0,
+   "origen": "signo_alarma_3280",
+   "probabilidades": [
+    1.0,
+    0.0,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [
+    "disminucion_movimientos_fetales"
+   ],
+   "alertas": [
+    "disminucion_movimientos_fetales",
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 166,
+   "id_seudonimo": "fd428c24ed7ab74eb498e1baee611102b8cff383acf6892acfbaaf5e79fe914e",
+   "clase": 2,
+   "clase_modelo": 0,
+   "origen": "signo_alarma_3280",
+   "probabilidades": [
+    0.9833333333333333,
+    0.016666666666666666,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [
+    "disminucion_movimientos_fetales"
+   ],
+   "alertas": [
+    "disminucion_movimientos_fetales",
+    "vih_reactivo"
+   ]
+  },
+  {
+   "fila": 181,
+   "id_seudonimo": "7859a867fc61f2df1927a2e51bf491d29abd00336463f7749f63d96f6efe93bb",
+   "clase": 2,
+   "clase_modelo": 1,
+   "origen": "signo_alarma_3280",
+   "probabilidades": [
+    0.02,
+    0.98,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [
+    "sangrado_genital"
+   ],
+   "alertas": [
+    "sangrado_genital",
+    "hemoglobina_gdl"
+   ]
+  },
+  {
+   "fila": 209,
+   "id_seudonimo": "826edcf2ee93d79a156dae06991f9baf3ab162f9bb74d10a705612cfbc73167d",
+   "clase": 2,
+   "clase_modelo": 0,
+   "origen": "signo_alarma_3280",
+   "probabilidades": [
+    0.9666666666666667,
+    0.03333333333333333,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [
+    "vision_borrosa"
+   ],
+   "alertas": [
+    "vision_borrosa",
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 233,
+   "id_seudonimo": "4da1f2f5951b49ab402d053ab9c10cc054cc2656cc7f1bbeecd76a329490692f",
+   "clase": 2,
+   "clase_modelo": 0,
+   "origen": "signo_alarma_3280",
+   "probabilidades": [
+    1.0,
+    0.0,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [
+    "vision_borrosa"
+   ],
+   "alertas": [
+    "vision_borrosa",
+    "calcio"
+   ]
+  },
+  {
+   "fila": 294,
+   "id_seudonimo": "1a4b9efb18d0033d6d95bc989ec66228cbbc8c776c52584669ed649a4bed55f9",
+   "clase": 2,
+   "clase_modelo": 1,
+   "origen": "signo_alarma_3280",
+   "probabilidades": [
+    0.0,
+    1.0,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [
+    "disminucion_movimientos_fetales"
+   ],
+   "alertas": [
+    "disminucion_movimientos_fetales",
+    "hemoglobina_gdl",
+    "calcio",
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 299,
+   "id_seudonimo": "219061c3c6f8aa6ccea615a791574cd214931a2b3a9efff328f3dfa118200f40",
+   "clase": 1,
+   "clase_modelo": 1,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.01,
+    0.5466666666666666,
+    0.44333333333333336
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 36,
+   "id_seudonimo": "8f226d23b87cbac8ba451bf91a6f2e9e3336fa120151b060a16d9509667bcbfa",
+   "clase": 1,
+   "clase_modelo": 1,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.0033333333333333335,
+    0.7166666666666667,
+    0.28
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 289,
+   "id_seudonimo": "32abe9ee568704628369634113bd6c94e7fd9e7f082b4a8851116a731689acc9",
+   "clase": 1,
+   "clase_modelo": 1,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.006666666666666667,
+    0.7833333333333333,
+    0.21
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 126,
+   "id_seudonimo": "66b7edd126da3e0c84bf9e9474bb24bc195a1e76b25993e2f9742c2248eeb6b6",
+   "clase": 1,
+   "clase_modelo": 1,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.06666666666666667,
+    0.7366666666666667,
+    0.19666666666666666
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 89,
+   "id_seudonimo": "2463c2f482934c9d49ac7048715fae052ce902c01c358a4216338e70f797962e",
+   "clase": 1,
+   "clase_modelo": 1,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.0,
+    0.81,
+    0.19
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 110,
+   "id_seudonimo": "86f1729f91a55c1f8e6c7c87222da59bab5e197da16f3f3c54b533bafbbc592c",
+   "clase": 1,
+   "clase_modelo": 1,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.016666666666666666,
+    0.7933333333333333,
+    0.19
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 161,
+   "id_seudonimo": "ed36bebe97bb630c5fd99921895e336514ea23f0436c364644bdbf52bf6db7de",
+   "clase": 1,
+   "clase_modelo": 1,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.0,
+    0.8166666666666667,
+    0.18333333333333332
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": []
+  },
+  {
+   "fila": 273,
+   "id_seudonimo": "2843b52c61d31df9e7392960342ffca826f6147e233ae6c7d74e6626c9aae707",
+   "clase": 1,
+   "clase_modelo": 1,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.006666666666666667,
+    0.84,
+    0.15333333333333332
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "calcio"
+   ]
+  },
+  {
+   "fila": 257,
+   "id_seudonimo": "32042655ec598106a2bba1b2c071ea044e23b630674801f315043d98e5398cfd",
+   "clase": 1,
+   "clase_modelo": 1,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.006666666666666667,
+    0.8433333333333334,
+    0.15
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "calcio",
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 23,
+   "id_seudonimo": "434d6ab25dcd94c4c43f88d913c86795433e8a9736a4f1abc518967b9bb22307",
+   "clase": 1,
+   "clase_modelo": 1,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.043333333333333335,
+    0.83,
+    0.12666666666666668
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "hemoglobina_gdl"
+   ]
+  },
+  {
+   "fila": 290,
+   "id_seudonimo": "acb122e4294b5fda2ae109fba9fbc7931becd06b8758ffa31b0cc190e73c3abf",
+   "clase": 1,
+   "clase_modelo": 1,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.0033333333333333335,
+    0.87,
+    0.12666666666666668
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "calcio"
+   ]
+  },
+  {
+   "fila": 137,
+   "id_seudonimo": "11b2a5571a86585c61c0537cea48357791476652fb1dbceefce579279f1c83b2",
+   "clase": 1,
+   "clase_modelo": 1,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.03333333333333333,
+    0.8666666666666667,
+    0.1
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": []
+  },
+  {
+   "fila": 274,
+   "id_seudonimo": "0e1dfd5d396272ff16cb505847e2a94a75cae6cbc5c49efb40ceb79a4cd7b282",
+   "clase": 1,
+   "clase_modelo": 1,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.0033333333333333335,
+    0.9066666666666666,
+    0.09
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 216,
+   "id_seudonimo": "287d52d264acba3abfc0f14603e1c69308ab7a43dd3e687e319ffbf078f88433",
+   "clase": 1,
+   "clase_modelo": 1,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.0,
+    0.93,
+    0.07
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "calcio",
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 9,
+   "id_seudonimo": "e1c808c50e7f1daaa552ee70898ed9e927bd082dcc254e0c06436a831e24656a",
+   "clase": 1,
+   "clase_modelo": 1,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.0,
+    0.9333333333333333,
+    0.06666666666666667
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "hemoglobina_gdl",
+    "calcio"
+   ]
+  },
+  {
+   "fila": 44,
+   "id_seudonimo": "59e15a0c0a85774b632c53b91fe16d0d74a88a3fa80c1746a29c21a942c7a3aa",
+   "clase": 1,
+   "clase_modelo": 1,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.04,
+    0.9,
+    0.06
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "calcio",
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 61,
+   "id_seudonimo": "07f3db22175b36bffc71103301023f227482baa4d688596eace87e9a7233fb7d",
+   "clase": 1,
+   "clase_modelo": 1,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.0,
+    0.94,
+    0.06
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "hemoglobina_gdl"
+   ]
+  },
+  {
+   "fila": 74,
+   "id_seudonimo": "efb38f73a215a254e844de159364b2925ccff3299dccb91ce346f6ca61846235",
+   "clase": 1,
+   "clase_modelo": 1,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.08666666666666667,
+    0.8533333333333334,
+    0.06
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "hemoglobina_gdl",
+    "calcio"
+   ]
+  },
+  {
+   "fila": 112,
+   "id_seudonimo": "df3e48c189ed821507f8bb1ab6998781141e7ee4b99b9e952b5decc5c0a37e4f",
+   "clase": 1,
+   "clase_modelo": 1,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.056666666666666664,
+    0.8833333333333333,
+    0.06
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 201,
+   "id_seudonimo": "dd1a4cb485811bd906841342d4151878998f6465d0fd4307ec8ea20f7f4ab7a9",
+   "clase": 1,
+   "clase_modelo": 1,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.0033333333333333335,
+    0.9366666666666666,
+    0.06
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "hemoglobina_gdl",
+    "calcio"
+   ]
+  },
+  {
+   "fila": 34,
+   "id_seudonimo": "aae522df457459a3183f3c863931eaa2cacb18bdc129a40948888215bc6b9f2b",
+   "clase": 1,
+   "clase_modelo": 1,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.016666666666666666,
+    0.9266666666666666,
+    0.056666666666666664
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "preeclampsia_previa"
+   ]
+  },
+  {
+   "fila": 127,
+   "id_seudonimo": "25241ca5b7637182ff374147522162345c72d1beefa54930334b4c011ea975e2",
+   "clase": 1,
+   "clase_modelo": 1,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.02,
+    0.9233333333333333,
+    0.056666666666666664
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "hemoglobina_gdl",
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 140,
+   "id_seudonimo": "79374df9dcde4cd8548fd005b751067bdfe63a30ac8c5010fc305698e7c843a3",
+   "clase": 1,
+   "clase_modelo": 1,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.0,
+    0.9433333333333334,
+    0.056666666666666664
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "hemoglobina_gdl",
+    "calcio"
+   ]
+  },
+  {
+   "fila": 118,
+   "id_seudonimo": "c746b329873e1c111f09facc70836e3aebd0879576ecb278f85d9cddb7f11928",
+   "clase": 1,
+   "clase_modelo": 1,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.04666666666666667,
+    0.9066666666666666,
+    0.04666666666666667
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": []
+  },
+  {
+   "fila": 238,
+   "id_seudonimo": "ee6ab195901da5faf69227c625c50b720922de007e638eb11c0b07b924e44c77",
+   "clase": 1,
+   "clase_modelo": 1,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.0,
+    0.9533333333333334,
+    0.04666666666666667
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 121,
+   "id_seudonimo": "cf66f42e436510bda006701b3af352dec73b4dce5b85b40bb09d61653e93a4e0",
+   "clase": 1,
+   "clase_modelo": 1,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.0,
+    0.96,
+    0.04
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "calcio",
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 128,
+   "id_seudonimo": "96dd7168f84971d8c34ce76fc6514838309bd8ed10a8e5b16d3fee9aaaa2ccc3",
+   "clase": 1,
+   "clase_modelo": 1,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.03,
+    0.9333333333333333,
+    0.03666666666666667
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": []
+  },
+  {
+   "fila": 157,
+   "id_seudonimo": "5652271a97f0db9a17ec1a05e27868b8661334d83677408a5745442312db6cdf",
+   "clase": 1,
+   "clase_modelo": 1,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.14333333333333334,
+    0.82,
+    0.03666666666666667
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 203,
+   "id_seudonimo": "91701a93d636c9d8592a8d94198a43e2c0fa4f797997712db105e0e44bf11adc",
+   "clase": 1,
+   "clase_modelo": 1,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.0,
+    0.9666666666666667,
+    0.03333333333333333
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 71,
+   "id_seudonimo": "e750fcb08cbd866909ea8366f4acc7873291f04633f83f2b35b0fd187a01f4d6",
+   "clase": 1,
+   "clase_modelo": 1,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.03666666666666667,
+    0.9333333333333333,
+    0.03
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "calcio",
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 147,
+   "id_seudonimo": "4dbbbbbe0756caf89ede2347380958d4fdc384ee5605f057aac6358b3d332b2b",
+   "clase": 1,
+   "clase_modelo": 1,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.04666666666666667,
+    0.9233333333333333,
+    0.03
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "hemoglobina_gdl",
+    "sifilis_reactiva"
+   ]
+  },
+  {
+   "fila": 244,
+   "id_seudonimo": "c75e6eb0bd799d008db7f8a07e7dab729239fdbf8be578ffc350e7439776e76d",
+   "clase": 1,
+   "clase_modelo": 1,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.0033333333333333335,
+    0.9666666666666667,
+    0.03
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "hemoglobina_gdl",
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 254,
+   "id_seudonimo": "e381a957f54705d1ad843c7249db55fc03142827d1ea8273ac7c6a8e3b3ad12b",
+   "clase": 1,
+   "clase_modelo": 1,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.06666666666666667,
+    0.9033333333333333,
+    0.03
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 54,
+   "id_seudonimo": "1e605b55c8a2efaa2d101b8775d1dbed1f22ce2f6f56e5a659c2f23383641853",
+   "clase": 1,
+   "clase_modelo": 1,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.01,
+    0.9633333333333334,
+    0.02666666666666667
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "calcio"
+   ]
+  },
+  {
+   "fila": 138,
+   "id_seudonimo": "5d9f8bbf76fb7fc1c93a848b334c9ce82e0fa3279bc97e628343ae2c2df71089",
+   "clase": 1,
+   "clase_modelo": 1,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.0,
+    0.9733333333333334,
+    0.02666666666666667
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": []
+  },
+  {
+   "fila": 253,
+   "id_seudonimo": "e986212fbc066ac33809cf13b711e3fcf2fab6fa608fffefb33d6d9dfcb5a2ad",
+   "clase": 1,
+   "clase_modelo": 1,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.0,
+    0.9766666666666667,
+    0.023333333333333334
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 7,
+   "id_seudonimo": "3223cba8015adeda3843a53c0350e53ee3f4acbe207e1e4bb5ea729a18b8d219",
+   "clase": 1,
+   "clase_modelo": 1,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.01,
+    0.97,
+    0.02
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 170,
+   "id_seudonimo": "edc60290c844c7e3f7fffef089e96b3cd0fed799911808902a7f2a2d12306b3a",
+   "clase": 1,
+   "clase_modelo": 1,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.023333333333333334,
+    0.9566666666666667,
+    0.02
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "hemoglobina_gdl",
+    "calcio"
+   ]
+  },
+  {
+   "fila": 205,
+   "id_seudonimo": "9bc1ea0e1354008580fd23f1192fc7965974b5c5a04f25126a9eee426abdfda8",
+   "clase": 1,
+   "clase_modelo": 1,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.0033333333333333335,
+    0.9766666666666667,
+    0.02
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "hemoglobina_gdl"
+   ]
+  },
+  {
+   "fila": 276,
+   "id_seudonimo": "e2b6ca82b2a2f5bc72cea3b8b8dd42517157493118d288fe1ac39b4befb1e9cd",
+   "clase": 1,
+   "clase_modelo": 1,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.0,
+    0.98,
+    0.02
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "hemoglobina_gdl",
+    "calcio",
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 302,
+   "id_seudonimo": "3223cba8015adeda3843a53c0350e53ee3f4acbe207e1e4bb5ea729a18b8d219",
+   "clase": 1,
+   "clase_modelo": 1,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.01,
+    0.97,
+    0.02
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 131,
+   "id_seudonimo": "03d293c5471aec77c450d4f477239442fd14e415642ba099810ed41d4851123f",
+   "clase": 1,
+   "clase_modelo": 1,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.0,
+    0.9833333333333333,
+    0.016666666666666666
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": []
+  },
+  {
+   "fila": 200,
+   "id_seudonimo": "3a96084b184ef27d130d0bcf2ee3641d934435247668c7c6b8d1367541461416",
+   "clase": 1,
+   "clase_modelo": 1,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.0,
+    0.9833333333333333,
+    0.016666666666666666
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 8,
+   "id_seudonimo": "ac8a3ddfc66bcf3791144eca93bd0ce60e82f131bb13e780d91fbc3cc3e88558",
+   "clase": 1,
+   "clase_modelo": 1,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.02,
+    0.9666666666666667,
+    0.013333333333333334
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "preeclampsia_previa",
+    "vih_reactivo"
+   ]
+  },
+  {
+   "fila": 30,
+   "id_seudonimo": "6b5880b942fd035e7844272ab50227c0a2f70fb52235292d008b14e7364278b3",
+   "clase": 1,
+   "clase_modelo": 1,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.023333333333333334,
+    0.9633333333333334,
+    0.013333333333333334
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "hemoglobina_gdl",
+    "calcio"
+   ]
+  },
+  {
+   "fila": 172,
+   "id_seudonimo": "c3885b233cb6e8b2ae7b234105c726d8aef5fab369301077e6864368b03471e8",
+   "clase": 1,
+   "clase_modelo": 1,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.023333333333333334,
+    0.9633333333333334,
+    0.013333333333333334
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": []
+  },
+  {
+   "fila": 178,
+   "id_seudonimo": "86f62b8526a17e80c2a9690d4315a2a5ece5d09fcdffdfb6156f1da4dea93695",
+   "clase": 1,
+   "clase_modelo": 1,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.006666666666666667,
+    0.98,
+    0.013333333333333334
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 189,
+   "id_seudonimo": "f209b84bba8f8269318c2ca0259370aaeda77cef68e99ee51a8475fdb1cd8919",
+   "clase": 1,
+   "clase_modelo": 1,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.0,
+    0.9866666666666667,
+    0.013333333333333334
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "hemoglobina_gdl"
+   ]
+  },
+  {
+   "fila": 214,
+   "id_seudonimo": "3937a05d4d0c2d2eb010b04540835689b9723a2551935fed3a97a943ef79185d",
+   "clase": 1,
+   "clase_modelo": 1,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.02,
+    0.9666666666666667,
+    0.013333333333333334
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "calcio"
+   ]
+  },
+  {
+   "fila": 240,
+   "id_seudonimo": "10e0c3dc7252f33732bb5a218f84a826e831ea7b5e869b7ee8abce8c93b6ca4b",
+   "clase": 1,
+   "clase_modelo": 1,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.0,
+    0.9866666666666667,
+    0.013333333333333334
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 281,
+   "id_seudonimo": "be20758c5e597d91ff5b90ecd308ce74a7016b812ac3ad7754bf8195f03d4ed6",
+   "clase": 1,
+   "clase_modelo": 1,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.0,
+    0.9866666666666667,
+    0.013333333333333334
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": []
+  },
+  {
+   "fila": 292,
+   "id_seudonimo": "956da21c5601b34cb804f196319ad536d2462076a1ea35b23e14438208c94597",
+   "clase": 1,
+   "clase_modelo": 1,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.0,
+    0.9866666666666667,
+    0.013333333333333334
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": []
+  },
+  {
+   "fila": 12,
+   "id_seudonimo": "5f7dc5c4e8c56f58ab662f49257676b1531f3e54fc58d4cae02052a206576c73",
+   "clase": 1,
+   "clase_modelo": 1,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.0033333333333333335,
+    0.9866666666666667,
+    0.01
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": []
+  },
+  {
+   "fila": 212,
+   "id_seudonimo": null,
+   "clase": 1,
+   "clase_modelo": 1,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.013333333333333334,
+    0.9766666666666667,
+    0.01
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "preeclampsia_previa",
+    "hemoglobina_gdl",
+    "calcio"
+   ]
+  },
+  {
+   "fila": 231,
+   "id_seudonimo": "c5045558577c30d061c0e2b1b7c072d0ef5f5035a995181a4ea3ef5da85a99d9",
+   "clase": 1,
+   "clase_modelo": 1,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.0,
+    0.99,
+    0.01
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "hemoglobina_gdl"
+   ]
+  },
+  {
+   "fila": 259,
+   "id_seudonimo": "fd36476bb1d6b36b907f5cdac1c79bf7929ca100b7605de83ab0a6590a0168a6",
+   "clase": 1,
+   "clase_modelo": 1,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.04666666666666667,
+    0.9433333333333334,
+    0.01
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "hemoglobina_gdl",
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 40,
+   "id_seudonimo": "d019fc3a4c78146d8d106a28ecc085673859050f672ff0c7fe20a8ef451d31a8",
+   "clase": 1,
+   "clase_modelo": 1,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.0033333333333333335,
+    0.99,
+    0.006666666666666667
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "hemoglobina_gdl",
+    "calcio",
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 77,
+   "id_seudonimo": "df1d3d8c712c9587b91557031740e1ce5263c07bad8af1d6eabec477aa29322b",
+   "clase": 1,
+   "clase_modelo": 1,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.0,
+    0.9933333333333333,
+    0.006666666666666667
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "calcio"
+   ]
+  },
+  {
+   "fila": 160,
+   "id_seudonimo": "d2756adb387e0f90b25fce49146f9c5cbdddc4c39e6ee5c0cf213f35c80bc62e",
+   "clase": 1,
+   "clase_modelo": 1,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.0,
+    0.9933333333333333,
+    0.006666666666666667
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "hemoglobina_gdl",
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 167,
+   "id_seudonimo": "f64fc13af15cd94961c17cbce3faed8bd629a7bd6e51a10ff3bf546b2a41741f",
+   "clase": 1,
+   "clase_modelo": 1,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.0,
+    0.9933333333333333,
+    0.006666666666666667
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "hemoglobina_gdl",
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 171,
+   "id_seudonimo": "d48fcb5a536f2e0274ec3b8754b61f8c58b58489f86af45983bd9df39b9f2bd0",
+   "clase": 1,
+   "clase_modelo": 1,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.0,
+    0.9933333333333333,
+    0.006666666666666667
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "hemoglobina_gdl",
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 184,
+   "id_seudonimo": "c073ddc7ebd8bb51701847cf5cf0eb263190929bf7d477850eb1bfdc1d13933c",
+   "clase": 1,
+   "clase_modelo": 1,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.10666666666666667,
+    0.8866666666666667,
+    0.006666666666666667
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": []
+  },
+  {
+   "fila": 193,
+   "id_seudonimo": "bc2b84fa0a6f7b4a461ead54896d444778e57be2ef716c8297accdf9d08dad34",
+   "clase": 1,
+   "clase_modelo": 1,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.0033333333333333335,
+    0.99,
+    0.006666666666666667
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "hemoglobina_gdl"
+   ]
+  },
+  {
+   "fila": 199,
+   "id_seudonimo": "e9eab3e09de3d019c47607ea991a1f4481dd2a6afcc20322e3363056b71e1846",
+   "clase": 1,
+   "clase_modelo": 1,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.0,
+    0.9933333333333333,
+    0.006666666666666667
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "calcio"
+   ]
+  },
+  {
+   "fila": 222,
+   "id_seudonimo": "fe66ef6d17b51dc9f19959332fe045bad3832549b730b1f8cb01c8a780d29b81",
+   "clase": 1,
+   "clase_modelo": 1,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.0,
+    0.9933333333333333,
+    0.006666666666666667
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": []
+  },
+  {
+   "fila": 263,
+   "id_seudonimo": "37a4347db9d0fe23716bb0c2032dbc629a006580c63bd2fdb58f785115610ce4",
+   "clase": 1,
+   "clase_modelo": 1,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.0,
+    0.9933333333333333,
+    0.006666666666666667
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": []
+  },
+  {
+   "fila": 278,
+   "id_seudonimo": "d9907864f67e72acf222c99c731dbc9b2c9059689efc2784c3343dc318332421",
+   "clase": 1,
+   "clase_modelo": 1,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.01,
+    0.9833333333333333,
+    0.006666666666666667
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "calcio"
+   ]
+  },
+  {
+   "fila": 293,
+   "id_seudonimo": "23ec5ad0db217a18214c0bd529b1fcfe9fd5762b4f1645ff9377f791c2efce0d",
+   "clase": 1,
+   "clase_modelo": 1,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.0,
+    0.9933333333333333,
+    0.006666666666666667
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "calcio"
+   ]
+  },
+  {
+   "fila": 33,
+   "id_seudonimo": "2ae477db0989b1c2eda8693d7dba94cf6fd2d6edbc1b60cf60afc4d7822f09f9",
+   "clase": 1,
+   "clase_modelo": 1,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.0,
+    0.9966666666666667,
+    0.0033333333333333335
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "calcio",
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 39,
+   "id_seudonimo": "f3de440b9e97f95e91a5b7108755b05b67f535d051e28eb2fe6a8db93a495be4",
+   "clase": 1,
+   "clase_modelo": 1,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.013333333333333334,
+    0.9833333333333333,
+    0.0033333333333333335
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 41,
+   "id_seudonimo": "d6f73bb6ea46141bdb810bb4dd1d26adcd1f7be45ce38245bd3767eb640590f2",
+   "clase": 1,
+   "clase_modelo": 1,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.0,
+    0.9966666666666667,
+    0.0033333333333333335
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 59,
+   "id_seudonimo": "684f164969606d564e3dd947f32c46aa41a5b16d6b0caf60b4b3fd452929c569",
+   "clase": 1,
+   "clase_modelo": 1,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.013333333333333334,
+    0.9833333333333333,
+    0.0033333333333333335
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": []
+  },
+  {
+   "fila": 83,
+   "id_seudonimo": "4106419dff064e965785273051e2be835e7fb270e2b1e4b7da3a8c3b5c23e2f4",
+   "clase": 1,
+   "clase_modelo": 1,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.01,
+    0.9866666666666667,
+    0.0033333333333333335
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": []
+  },
+  {
+   "fila": 179,
+   "id_seudonimo": "ee1ec23c10c80fcffd5abe756ec5c2a28220a88b3b5053bb2018d350d22830e1",
+   "clase": 1,
+   "clase_modelo": 1,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.0,
+    0.9966666666666667,
+    0.0033333333333333335
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "hemoglobina_gdl"
+   ]
+  },
+  {
+   "fila": 198,
+   "id_seudonimo": "0b028c84c03840f67bfe58e0d2274f6adf363dbf5929a5df6eb4b1853f07a485",
+   "clase": 1,
+   "clase_modelo": 1,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.0,
+    0.9966666666666667,
+    0.0033333333333333335
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "hemoglobina_gdl"
+   ]
+  },
+  {
+   "fila": 211,
+   "id_seudonimo": "022441cf7f357d86b7b3b9b4fefa62dff288f2cd2a063a13d21616bce1bc17da",
+   "clase": 1,
+   "clase_modelo": 1,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.0,
+    0.9966666666666667,
+    0.0033333333333333335
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "calcio"
+   ]
+  },
+  {
+   "fila": 246,
+   "id_seudonimo": "c5af4a3385a2ffb31f6e37cd474f2480da69f7b57dcaa497ae86fd8a82f0ff87",
+   "clase": 1,
+   "clase_modelo": 1,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.01,
+    0.9866666666666667,
+    0.0033333333333333335
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "hemoglobina_gdl",
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 247,
+   "id_seudonimo": "99a0a73e734d43a5a1f48e4d585612ee5f2fd20573a69d9bf7e43dd30556e209",
+   "clase": 1,
+   "clase_modelo": 1,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.0,
+    0.9966666666666667,
+    0.0033333333333333335
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 248,
+   "id_seudonimo": "93e3553a622b41123d37bbc205b1e0ec15bb686e01dc4a2239867efd87950648",
+   "clase": 1,
+   "clase_modelo": 1,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.0,
+    0.9966666666666667,
+    0.0033333333333333335
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "hemoglobina_gdl",
+    "calcio"
+   ]
+  },
+  {
+   "fila": 267,
+   "id_seudonimo": "8b855791e08bd70891bd077e2b454eecab7751e435642652ec8582b2c307b068",
+   "clase": 1,
+   "clase_modelo": 1,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.0033333333333333335,
+    0.9933333333333333,
+    0.0033333333333333335
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 2,
+   "id_seudonimo": "0d887acbbc890a5d4648a9ae937f44dbb7c6211946fff4cc0e0316bb786e76ca",
+   "clase": 1,
+   "clase_modelo": 1,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.0033333333333333335,
+    0.9966666666666667,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "calcio"
+   ]
+  },
+  {
+   "fila": 10,
+   "id_seudonimo": "04799f51dc20bbc4fd8c27e6e620cac29a36d8c06056f92f66eedee9e47dd12f",
+   "clase": 1,
+   "clase_modelo": 1,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.006666666666666667,
+    0.9933333333333333,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 15,
+   "id_seudonimo": "a10703498f91b717ef0675f00807625f897a0445c9e2eea756842f34967b65e9",
+   "clase": 1,
+   "clase_modelo": 1,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.0,
+    1.0,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "calcio",
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 18,
+   "id_seudonimo": "7e01907e53aadc6924c220cf606fa4e1465b8fb3a386debf2c46d16495f2cad7",
+   "clase": 1,
+   "clase_modelo": 1,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.0,
+    1.0,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": []
+  },
+  {
+   "fila": 24,
+   "id_seudonimo": "7ae3932633b070322e70f021247a295c94a3b86700eff2bb5ddd136c8c8c88c1",
+   "clase": 1,
+   "clase_modelo": 1,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.0,
+    1.0,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "hemoglobina_gdl",
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 26,
+   "id_seudonimo": "2dd097554f634468119b6fd9b8cee4411a8e3ae4fc0ad21ce9e81624cc4c9230",
+   "clase": 1,
+   "clase_modelo": 1,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.07,
+    0.93,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "preeclampsia_previa",
+    "hemoglobina_gdl",
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 51,
+   "id_seudonimo": "13cdd9750872c438c74dd0557889af223af8bd28faa5439dce0481d3405b0c21",
+   "clase": 1,
+   "clase_modelo": 1,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.0,
+    1.0,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "calcio"
+   ]
+  },
+  {
+   "fila": 62,
+   "id_seudonimo": "49acaccc38e870a0fccd5cbe82f1bdbe512b10486f4114b420e1497ecbc30d20",
+   "clase": 1,
+   "clase_modelo": 1,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.023333333333333334,
+    0.9766666666666667,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": []
+  },
+  {
+   "fila": 76,
+   "id_seudonimo": "a57f98e9c4e10a7c417f48f73200e9b022e927b02f5d88dd848df708a5f7773f",
+   "clase": 1,
+   "clase_modelo": 1,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.0,
+    1.0,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "calcio",
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 82,
+   "id_seudonimo": "f6b801914be1969cf69c276fdf1cd3e84a0049a8bb369389168ba7c69ba74954",
+   "clase": 1,
+   "clase_modelo": 1,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.0,
+    1.0,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "hemoglobina_gdl"
+   ]
+  },
+  {
+   "fila": 86,
+   "id_seudonimo": "22b75fda7237b15a48a573ffcd2acc9d050bc2321ce83be62840ff11e764da35",
+   "clase": 1,
+   "clase_modelo": 1,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.02,
+    0.98,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "preeclampsia_previa",
+    "hemoglobina_gdl",
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 87,
+   "id_seudonimo": "451363fff18cf093b667b10cb12be3ada480d3f820d29867d9f7ffbfe56dcfc3",
+   "clase": 1,
+   "clase_modelo": 1,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.016666666666666666,
+    0.9833333333333333,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "hemoglobina_gdl",
+    "calcio",
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 91,
+   "id_seudonimo": "82121b63b3aefa73a8af072acb50347b3652844fa47f4ce2aab81b6709e15da6",
+   "clase": 1,
+   "clase_modelo": 1,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.01,
+    0.99,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 94,
+   "id_seudonimo": "52de3fdb6b0c58fbfd2e84b94458b76223c236be7f1ff817165650562e2379d0",
+   "clase": 1,
+   "clase_modelo": 1,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.0,
+    1.0,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 96,
+   "id_seudonimo": "2fad057927037ccbd8ce5554cfe9cda1c14347fa1f55df383c2b3c909769e097",
+   "clase": 1,
+   "clase_modelo": 1,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.0033333333333333335,
+    0.9966666666666667,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "calcio"
+   ]
+  },
+  {
+   "fila": 100,
+   "id_seudonimo": "a7ce72db24863f619ab0329537ac7650b3eb3cfe96d6b270b526befec83b9cdb",
+   "clase": 1,
+   "clase_modelo": 1,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.0,
+    1.0,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "calcio"
+   ]
+  },
+  {
+   "fila": 111,
+   "id_seudonimo": "1a13e7430f55ee4aa5568e747609ab1f6c3c792dba9ab7696a3b6d224242e225",
+   "clase": 1,
+   "clase_modelo": 1,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.01,
+    0.99,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "hemoglobina_gdl"
+   ]
+  },
+  {
+   "fila": 114,
+   "id_seudonimo": "0199222c3209b197d3535c1c48624acdd30a7d64c2534914360b784d6e2cc849",
+   "clase": 1,
+   "clase_modelo": 1,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.0,
+    1.0,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "calcio",
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 116,
+   "id_seudonimo": "16b3f25658c3e7b5a4e55cb2d29d596b40d4c4bb77589e43e99b3d51ecdf7f8e",
+   "clase": 1,
+   "clase_modelo": 1,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.02,
+    0.98,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "hemoglobina_gdl"
+   ]
+  },
+  {
+   "fila": 134,
+   "id_seudonimo": "d236fa428aa62cb21829d66239d94cb3337ba047f01bb7b611f1eeae346a308a",
+   "clase": 1,
+   "clase_modelo": 1,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.0,
+    1.0,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": []
+  },
+  {
+   "fila": 175,
+   "id_seudonimo": "b76ae2d670dd0368883c9982228d62ad80b0051f5922f1e7511f2d4759525342",
+   "clase": 1,
+   "clase_modelo": 1,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.0,
+    1.0,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "hemoglobina_gdl"
+   ]
+  },
+  {
+   "fila": 177,
+   "id_seudonimo": "217e38e21b4d3c0c3162bc01232f42ca7ca63995596db5d7fd21903292613c0b",
+   "clase": 1,
+   "clase_modelo": 1,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.01,
+    0.99,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "hemoglobina_gdl"
+   ]
+  },
+  {
+   "fila": 188,
+   "id_seudonimo": "5ef14e2277ea8f15b344e320a9a006675109419d19b9c579a6939e3517cb715d",
+   "clase": 1,
+   "clase_modelo": 1,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.0,
+    1.0,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "hemoglobina_gdl",
+    "calcio"
+   ]
+  },
+  {
+   "fila": 191,
+   "id_seudonimo": "c8325c46b47975854393e5d01c868a72508518280a92de9752d9e593182f3622",
+   "clase": 1,
+   "clase_modelo": 1,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.01,
+    0.99,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 210,
+   "id_seudonimo": "a44fc554f195982b6891f16361d06da40d8ed73021dcc4fb8a061cc104bd8b3c",
+   "clase": 1,
+   "clase_modelo": 1,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.0033333333333333335,
+    0.9966666666666667,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "calcio"
+   ]
+  },
+  {
+   "fila": 226,
+   "id_seudonimo": "40da64f2193e7f99a724131655bdc91ee035dc5b35068d211bada0a3bbe51351",
+   "clase": 1,
+   "clase_modelo": 1,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.01,
+    0.99,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": []
+  },
+  {
+   "fila": 229,
+   "id_seudonimo": "115275f1eb283343bff015dec0412197e267e290b05922fd46647af887f15005",
+   "clase": 1,
+   "clase_modelo": 1,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.023333333333333334,
+    0.9766666666666667,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 241,
+   "id_seudonimo": "6afbc170dac0c8f4f88057d011d164a9312a91c6266c34100540df63fe7cfd9d",
+   "clase": 1,
+   "clase_modelo": 1,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.0033333333333333335,
+    0.9966666666666667,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 252,
+   "id_seudonimo": "c2943fb61a3cdee49f16d6a76c353d8240465d121321f3251af0445710e403f5",
+   "clase": 1,
+   "clase_modelo": 1,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.02,
+    0.98,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": []
+  },
+  {
+   "fila": 256,
+   "id_seudonimo": "40384e875792956d5f78be7052c7eadd2e7590694554099bdb0996f27ad81592",
+   "clase": 1,
+   "clase_modelo": 1,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.0,
+    1.0,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "calcio"
+   ]
+  },
+  {
+   "fila": 266,
+   "id_seudonimo": "f3afb2fbb574a25a9bd40408244aec9802a54984e76489a03a71511db6330cff",
+   "clase": 1,
+   "clase_modelo": 1,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.016666666666666666,
+    0.9833333333333333,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "hemoglobina_gdl",
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 279,
+   "id_seudonimo": "d91898dbe1f20df017aedba9142af5ab88af1c08a8473eb61b37519f4e72b891",
+   "clase": 1,
+   "clase_modelo": 1,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.0033333333333333335,
+    0.9966666666666667,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "vih_reactivo",
+    "calcio"
+   ]
+  },
+  {
+   "fila": 280,
+   "id_seudonimo": "e48024304f5880249a5f46ec74d4676f791ce72500a0e9473873df03d05070a7",
+   "clase": 1,
+   "clase_modelo": 1,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.0,
+    1.0,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "calcio"
+   ]
+  },
+  {
+   "fila": 284,
+   "id_seudonimo": "a85a42745616f63599cbcf74ba6fedba4d7b6d5bac8f58a9aaeb95ea371ac2a2",
+   "clase": 1,
+   "clase_modelo": 1,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.006666666666666667,
+    0.9933333333333333,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": []
+  },
+  {
+   "fila": 251,
+   "id_seudonimo": "007999bc7283817713281de1e11a26c00009bbd85f782eb4887c9542d8572655",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.6633333333333333,
+    0.3,
+    0.03666666666666667
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "hemoglobina_gdl",
+    "calcio",
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 108,
+   "id_seudonimo": "ec7e555df7a389016d924ae58f7c3ee547c9cf1d50125280a629d6edc256ccc2",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.8933333333333333,
+    0.07666666666666666,
+    0.03
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": []
+  },
+  {
+   "fila": 69,
+   "id_seudonimo": "9ad3fb20925cbe6d0c6249e94cfe5f4d373ebb9f3999b56b21df7b7837441cc4",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.9233333333333333,
+    0.05,
+    0.02666666666666667
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "calcio",
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 152,
+   "id_seudonimo": "11325050c45ccf14c6585f73ff303f9238b6c851e5e525d03026125e0c19785e",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.9833333333333333,
+    0.0,
+    0.016666666666666666
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "hemoglobina_gdl",
+    "calcio",
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 43,
+   "id_seudonimo": "02372bc90909cd99968e0ecc032222c9bcc308f80a0a708541ba7d4d7ced5ac0",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.9833333333333333,
+    0.0033333333333333335,
+    0.013333333333333334
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 219,
+   "id_seudonimo": "2b6449f352ac2f13527ba67d71cb0b14111bf80165554a580fd1bc7dd23709bf",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.6233333333333333,
+    0.36333333333333334,
+    0.013333333333333334
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": []
+  },
+  {
+   "fila": 296,
+   "id_seudonimo": "7c37cbe0c1545d373e537e71dfdc41f64c6557f8661269dac4c0bf7b8fe15396",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.7466666666666667,
+    0.24,
+    0.013333333333333334
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": []
+  },
+  {
+   "fila": 174,
+   "id_seudonimo": "a03b275ff4c34669654a1bf2a2b6452c6cac4a822aad6ad0a4d19ea851904ec7",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.8966666666666666,
+    0.09333333333333334,
+    0.01
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 190,
+   "id_seudonimo": "f6edbb34cf2ae0c3ce233f7bc92604ec11d9824a80f1b063a4b1be75b75cc448",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.99,
+    0.0,
+    0.01
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "hemoglobina_gdl",
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 68,
+   "id_seudonimo": "40898714f1e51dcc6d4aeec0491a70d08acbf2d1d6e0d489253e63a9b9a46142",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.9066666666666666,
+    0.08666666666666667,
+    0.006666666666666667
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": []
+  },
+  {
+   "fila": 81,
+   "id_seudonimo": "aeb7e7d591361f32038fb558c11190248091cf1bd7ef74c562af80942056b442",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.9333333333333333,
+    0.06,
+    0.006666666666666667
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": []
+  },
+  {
+   "fila": 237,
+   "id_seudonimo": "90230a710861753777e85cf86f14b0f4cffc4ff5bb987f216fb092e06b125740",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.9933333333333333,
+    0.0033333333333333335,
+    0.0033333333333333335
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": []
+  },
+  {
+   "fila": 271,
+   "id_seudonimo": "a0460892dec33afc50e3e145ab5d609195c8e7c8897bb3dfc1369c112b64f9c1",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.9766666666666667,
+    0.02,
+    0.0033333333333333335
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 275,
+   "id_seudonimo": "7352e9d5412461a5bf4ba7841a9a9e8d444bc93b81c562d2b9b192aa69d118a5",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.9933333333333333,
+    0.0033333333333333335,
+    0.0033333333333333335
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": []
+  },
+  {
+   "fila": 3,
+   "id_seudonimo": "2c907c84689500f4fc9ba0152ddf2eea010f6efc7e8ced05d1806ecac7c04152",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.94,
+    0.06,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": []
+  },
+  {
+   "fila": 4,
+   "id_seudonimo": "e27a2306f09e3644a7fe4ae32a7e779b192274124e5ffd7ea240da7ca5bce691",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.9933333333333333,
+    0.006666666666666667,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "hemoglobina_gdl"
+   ]
+  },
+  {
+   "fila": 5,
+   "id_seudonimo": "fac60afd3c3da8a3b5f9152b8e98b186f5b44698cc5620e8b07f91abbb7f2fc2",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.9966666666666667,
+    0.0033333333333333335,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": []
+  },
+  {
+   "fila": 6,
+   "id_seudonimo": "c79356b0d9912909c28eee486d40c914324dcedd6447f2e25caff99a2fdbd540",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.9966666666666667,
+    0.0033333333333333335,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 11,
+   "id_seudonimo": "583e35184985ec9f7b751c7e89046cb37d4af7e8a6f3e9a7d6acc4dbb1d89d3d",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    1.0,
+    0.0,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 13,
+   "id_seudonimo": "2368b3839919dfbbb21936620258290a69b90a6a2a208cc52a4dcbdb5d56de3e",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.9966666666666667,
+    0.0033333333333333335,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "sifilis_reactiva",
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 16,
+   "id_seudonimo": "28fff756c56800fbe8a102a83f1f4cbe9a5c3aa45c85c59b0240eabb6792b360",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.99,
+    0.01,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "hemoglobina_gdl",
+    "calcio",
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 20,
+   "id_seudonimo": "877389b462a403536361a2041a6b39c603b940568f64550b9d542a65188b3083",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.9866666666666667,
+    0.013333333333333334,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "hemoglobina_gdl"
+   ]
+  },
+  {
+   "fila": 21,
+   "id_seudonimo": "fecb340d8c774d1a5b5ab3d8cdfd6023a702775c83ec6a2731ebe6f4cb6b8634",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.99,
+    0.01,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "calcio",
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 22,
+   "id_seudonimo": "ff6a7a2a9ce7a38d140a600f385f25375c11dab7e9b6a708f92b8202583c9a04",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.9966666666666667,
+    0.0033333333333333335,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "calcio",
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 25,
+   "id_seudonimo": "07b3c2b384b0024bf11f1cf13a85aad0570708ae39a4df8dbdc9c6cf672adddc",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.99,
+    0.01,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "calcio",
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 32,
+   "id_seudonimo": "c15f605790c6f2b1e4acd422bee16a16f304e0f689a5fe18cce1e09962307003",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    1.0,
+    0.0,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 35,
+   "id_seudonimo": null,
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.9966666666666667,
+    0.0033333333333333335,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "hemoglobina_gdl"
+   ]
+  },
+  {
+   "fila": 37,
+   "id_seudonimo": "5bed29e31e5714cc806faed357332083f812198617f473c580986fde9816d2b0",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    1.0,
+    0.0,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 38,
+   "id_seudonimo": "7128d6634645eaaa742fb342e9b83d92ace62d1e2c428782a4988087e4e80bfe",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.99,
+    0.01,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "hemoglobina_gdl"
+   ]
+  },
+  {
+   "fila": 42,
+   "id_seudonimo": "8e26715d7b3054e672ab96ecda4fcf70cecab6ca58a725964917dae174225d1d",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.86,
+    0.14,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "calcio",
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 45,
+   "id_seudonimo": "e856c829e367cf7e7f3ea0d782f2b164b889865cc43b7e5a35fbd5242e944e22",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.9933333333333333,
+    0.006666666666666667,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "hemoglobina_gdl",
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 48,
+   "id_seudonimo": "3789d07467af0519a67c6891d9f113a5b0785b162e099826b03c783e55aee178",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.8966666666666666,
+    0.10333333333333333,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 50,
+   "id_seudonimo": "a5c89c1343deca6bfbf3a7974f316afd99dba76f1721855466c2555fdc90010d",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.9966666666666667,
+    0.0033333333333333335,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "calcio",
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 52,
+   "id_seudonimo": "29033ae82003716cc20a1ea7d238fddeeada2133f67d518eb3ff31122fb0e246",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.9966666666666667,
+    0.0033333333333333335,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "calcio"
+   ]
+  },
+  {
+   "fila": 55,
+   "id_seudonimo": "4635489aee913ce08f141fb8d9e03b725108d84798ced54e624e643bf2624d0a",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    1.0,
+    0.0,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "calcio"
+   ]
+  },
+  {
+   "fila": 56,
+   "id_seudonimo": "ee6628f353e9967825dd098227acfd5bcfc72f29773b0d1f05c3fe8412e35864",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.9966666666666667,
+    0.0033333333333333335,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "hemoglobina_gdl"
+   ]
+  },
+  {
+   "fila": 57,
+   "id_seudonimo": "c2dfe87af0cefa40d68b5b37f5d5a2032dc89ba5b529137912ead58e417028b3",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.9933333333333333,
+    0.006666666666666667,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "calcio",
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 58,
+   "id_seudonimo": "639ea5a71bd06815bfb73bc841b0e516a7e0b960ae4c3fd5be24bad733d48ca3",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.9966666666666667,
+    0.0033333333333333335,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": []
+  },
+  {
+   "fila": 60,
+   "id_seudonimo": "29d3e93d7387ccd4be76990a76626f9c705b2430267f3ed0c5f42e6e7e3bfb90",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.9966666666666667,
+    0.0033333333333333335,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "hemoglobina_gdl"
+   ]
+  },
+  {
+   "fila": 63,
+   "id_seudonimo": "237a15209d40043abe4c91d15f30d8332f9226f95fd69148ac9684291776d695",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.9633333333333334,
+    0.03666666666666667,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "hemoglobina_gdl",
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 64,
+   "id_seudonimo": "104f3dbff5669bc03cc39feb012fb71d4c8005977e818a86e3c78644f8ae0b3b",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.9966666666666667,
+    0.0033333333333333335,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "hemoglobina_gdl",
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 65,
+   "id_seudonimo": "07fb43d4d5dd9bc2953c1a8dfb0a7aa248dd369e4719c0b04cfd427323164b5c",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.9933333333333333,
+    0.006666666666666667,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "calcio"
+   ]
+  },
+  {
+   "fila": 66,
+   "id_seudonimo": "ae27a7a1f918e86d33560b4e27a3b9b843141f34c0efd92f84710c386910e0f0",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.9966666666666667,
+    0.0033333333333333335,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": []
+  },
+  {
+   "fila": 67,
+   "id_seudonimo": "7fc7c9c93d9f1fd1041fbe9c1025a4583022bfe5427f9b69b7869080375f62ce",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.9666666666666667,
+    0.03333333333333333,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": []
+  },
+  {
+   "fila": 70,
+   "id_seudonimo": "538950fbbfb981610471496114fe264908cd1177002f99c67991098a4a36e2a4",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.9966666666666667,
+    0.0033333333333333335,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "calcio"
+   ]
+  },
+  {
+   "fila": 72,
+   "id_seudonimo": "f99378fd5aa26284699214af9bd6e16bae77ac53abda034c987482621a89446e",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    1.0,
+    0.0,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": []
+  },
+  {
+   "fila": 79,
+   "id_seudonimo": "a7edc1364643d1e737a148f45099a3b314495ec97b5c47ed19fc7bf6a18ce421",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.9966666666666667,
+    0.0033333333333333335,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "calcio",
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 80,
+   "id_seudonimo": "2dd13bb7f7ac848e11f5ea45272b912d14854f7e0dd3097db1976bbd73ff7a7d",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.9966666666666667,
+    0.0033333333333333335,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": []
+  },
+  {
+   "fila": 85,
+   "id_seudonimo": "bd755ff60bdd953d7fc8389ab6f58e0b523cb2a5ab8345ec04556b8b30decdda",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.9966666666666667,
+    0.0033333333333333335,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": []
+  },
+  {
+   "fila": 88,
+   "id_seudonimo": "0f3806da311fafc4bb258dab249df0d4bf079a0f63491e2d621d6001306ee152",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.99,
+    0.01,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "hemoglobina_gdl"
+   ]
+  },
+  {
+   "fila": 90,
+   "id_seudonimo": "6a8ab97a2bffbb08e2219ab574bc25eb68e670ca964031eb8ede4fb446845fb9",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.9366666666666666,
+    0.06333333333333334,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": []
+  },
+  {
+   "fila": 97,
+   "id_seudonimo": "1fb1b4bb8c5587a9c88d2cab6e8e412a4d183d86114e9da0d30de330fbe1a8cb",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    1.0,
+    0.0,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "calcio",
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 98,
+   "id_seudonimo": "227afceee20b931111bae3653194e02e9c8bfc296457185c2f5ec19cfe2c7c6e",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    1.0,
+    0.0,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": []
+  },
+  {
+   "fila": 102,
+   "id_seudonimo": "e96b49003f650f30768809ddb42ff81fa5afa380557890d1596ce36e5663ebb9",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.9766666666666667,
+    0.023333333333333334,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "calcio"
+   ]
+  },
+  {
+   "fila": 104,
+   "id_seudonimo": "fe80caf29bc0851eca58236e7624f60fde46cc0631da1559158781e5c81a7df4",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.9833333333333333,
+    0.016666666666666666,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "calcio"
+   ]
+  },
+  {
+   "fila": 106,
+   "id_seudonimo": "df63afdf3f05b149b79a8f319497e02a0646d652982d4ea51f92b0e34dc9e9ae",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.9866666666666667,
+    0.013333333333333334,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": []
+  },
+  {
+   "fila": 109,
+   "id_seudonimo": "1431900480fa478dbbc01a7bfe81867a6b1101688f84446233b839463ba82921",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.9466666666666667,
+    0.05333333333333334,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "hemoglobina_gdl",
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 115,
+   "id_seudonimo": "f209b3ef230c16bbb536f54b09f34c4727f459ebf97bcff836139f0e3b08a090",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.9966666666666667,
+    0.0033333333333333335,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "hemoglobina_gdl"
+   ]
+  },
+  {
+   "fila": 117,
+   "id_seudonimo": "7ebae3ab724c290507d44d06b89017f34e8771bc9ce8b88f565c72cc7ee1aac7",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.9766666666666667,
+    0.023333333333333334,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 119,
+   "id_seudonimo": "15bd3a41ed394bbcf80d4da1e197c30621b54c28f1f9b7df1024af95fce85633",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    1.0,
+    0.0,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "hemoglobina_gdl",
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 123,
+   "id_seudonimo": "6bda8b531f40f04846abb19a1890cfa22ed51199a16f6b7e2476a7e420603f49",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    1.0,
+    0.0,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": []
+  },
+  {
+   "fila": 124,
+   "id_seudonimo": "20d7067b5b5e18b047d1560ec30bc4802d526127e0752a63b149b9158fc8066c",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    1.0,
+    0.0,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "calcio",
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 125,
+   "id_seudonimo": "5a35efa184a58c7c04f5fb9d4af8130bcb91efbe6e16c4c2db4044553dc1755b",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    1.0,
+    0.0,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "calcio",
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 130,
+   "id_seudonimo": "2b14ca6656cec44257102a6964c862f3aede8daf4a387ae5a54702a9d0679e54",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    1.0,
+    0.0,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "hemoglobina_gdl"
+   ]
+  },
+  {
+   "fila": 132,
+   "id_seudonimo": "cda1e1675933dd235ba480f25e2baddbd46ded2a69d58f94a053cd9d58c8518b",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.9933333333333333,
+    0.006666666666666667,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "calcio"
+   ]
+  },
+  {
+   "fila": 133,
+   "id_seudonimo": "82c8c148fad227b35bae4a10731882fb5ab0019766159b1fc6fab0e39aa11ff3",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    1.0,
+    0.0,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 139,
+   "id_seudonimo": "f1875b1d4abb964b75164137143bb338910c3f2ef852d0668ad38c94504834cb",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.9633333333333334,
+    0.03666666666666667,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "hemoglobina_gdl",
+    "calcio",
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 145,
+   "id_seudonimo": "493fbc4287e694d30e9fe5b50b086d66a725ff07cc4b0bbb3833db1b819ffc23",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    1.0,
+    0.0,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": []
+  },
+  {
+   "fila": 146,
+   "id_seudonimo": "ce6739d4b6e07bc063ca803ec48c9ff7cbacc200bb1687c12f6922f32ec3197b",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.9966666666666667,
+    0.0033333333333333335,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "hemoglobina_gdl"
+   ]
+  },
+  {
+   "fila": 149,
+   "id_seudonimo": "a788b73cb303d71b8794d77bb6ab22b3da48923017688f8404e2e23269a40673",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    1.0,
+    0.0,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 153,
+   "id_seudonimo": "af5e67d4b3cf87641c49b671effb24f9a139261ebc965b74a912fbaa470c018b",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.9733333333333334,
+    0.02666666666666667,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "hemoglobina_gdl",
+    "calcio",
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 154,
+   "id_seudonimo": "c337e9fc3eaa9be705c95bd6548afc1fe250e617f3d476b1b998a10d71e1a53e",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.9533333333333334,
+    0.04666666666666667,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "calcio"
+   ]
+  },
+  {
+   "fila": 155,
+   "id_seudonimo": "b1dcfd3fcb8b353d2ee50469d0215bb4afef0490a3f01ea6e63af0412c129bf0",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.9766666666666667,
+    0.023333333333333334,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "hemoglobina_gdl",
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 158,
+   "id_seudonimo": "15f4748a78f36e30aa63315ca756c584571cfcba4a1b44872e7df9d452c07295",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.9933333333333333,
+    0.006666666666666667,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": []
+  },
+  {
+   "fila": 159,
+   "id_seudonimo": "88fa05d98dc91c8b8e993b315a5add38af41dec701d3c4486127f1f36a3283ea",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    1.0,
+    0.0,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "hemoglobina_gdl",
+    "sifilis_reactiva",
+    "calcio"
+   ]
+  },
+  {
+   "fila": 163,
+   "id_seudonimo": "10e00910f9d8b232db298d857e599c058536d9df57eda32edb6648eab7abc111",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.9966666666666667,
+    0.0033333333333333335,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": []
+  },
+  {
+   "fila": 164,
+   "id_seudonimo": "793bb60dc5188d7e0d146cdaf1f5e2bcaf725cd329c327ee91354231ea52507f",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.9966666666666667,
+    0.0033333333333333335,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": []
+  },
+  {
+   "fila": 165,
+   "id_seudonimo": "fb6bf1eb77b66e1872875ef47adee34e0da0391660955e842dba2cb14d11fd44",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.9933333333333333,
+    0.006666666666666667,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "hemoglobina_gdl",
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 169,
+   "id_seudonimo": "4459a6e44b4b0bb9fb33f1d6cc7c5f3b9815f207a85633651004d173e61cff12",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.9933333333333333,
+    0.006666666666666667,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": []
+  },
+  {
+   "fila": 173,
+   "id_seudonimo": "679d70fed33f7c29abcc9e06ba0ff796ec4703b3c6d3f08fbfc8d933c4ad0d81",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.9966666666666667,
+    0.0033333333333333335,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": []
+  },
+  {
+   "fila": 182,
+   "id_seudonimo": "329973785ca5738467f873d456adc8e66c31efab1dd5b169a764b8396c5dc0a8",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    1.0,
+    0.0,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": []
+  },
+  {
+   "fila": 183,
+   "id_seudonimo": "bae56b9611c8a18471fb8614d661c713ec2a3201eaa5f020d5dd4db1f9c23230",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    1.0,
+    0.0,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "hemoglobina_gdl"
+   ]
+  },
+  {
+   "fila": 185,
+   "id_seudonimo": "cdaa11177cde081da0c48c61e08663c56f5438bdde51ed39eeb4069bfad19c52",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    1.0,
+    0.0,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "hemoglobina_gdl",
+    "calcio"
+   ]
+  },
+  {
+   "fila": 186,
+   "id_seudonimo": "5b2b5e942a25de86f0b722d423ac1cb03e9290099cbb8d8928765539aadb3f21",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.9933333333333333,
+    0.006666666666666667,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": []
+  },
+  {
+   "fila": 187,
+   "id_seudonimo": "439c7be85cd7de91aabea71637d525a39ac979b92ece780045b0fc5de6cb7df3",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.9866666666666667,
+    0.013333333333333334,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "calcio",
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 192,
+   "id_seudonimo": "6682a027742dfa13e158bd84902ace19cc6ab0f8de344f72a26976f5b02d22df",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.9833333333333333,
+    0.016666666666666666,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "hemoglobina_gdl",
+    "calcio",
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 195,
+   "id_seudonimo": "cfa7f9e2fc82b6c0bf177600ed1bae972edc915436b01002b9b2caf52cca58b3",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.9966666666666667,
+    0.0033333333333333335,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "hemoglobina_gdl"
+   ]
+  },
+  {
+   "fila": 196,
+   "id_seudonimo": "2e58561d335fccb04fbec6fb23d5035639731cf9b197f60001c4846d2363b72d",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    1.0,
+    0.0,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "calcio"
+   ]
+  },
+  {
+   "fila": 197,
+   "id_seudonimo": "2b12de7f1d4960887e8443c625cb43c92bd8085d06c464fa5885d6ffa88818eb",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    1.0,
+    0.0,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "hemoglobina_gdl"
+   ]
+  },
+  {
+   "fila": 204,
+   "id_seudonimo": "cca9e14bf69d6ecc896ac8baf070a3c2b75b8ced059fcbd35e325e7eba81c48b",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.95,
+    0.05,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "hemoglobina_gdl",
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 206,
+   "id_seudonimo": "ad9cdc4166a4773e32bd1465252d87396ceb0809366e17c206e79d25bec17616",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.9933333333333333,
+    0.006666666666666667,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "hemoglobina_gdl",
+    "calcio"
+   ]
+  },
+  {
+   "fila": 207,
+   "id_seudonimo": "d15b7eb78991df5f6cc3049f7d008b7c20769643ce3ab4446da3c6fc725d2ddc",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.99,
+    0.01,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": []
+  },
+  {
+   "fila": 208,
+   "id_seudonimo": "ee4571cb52d4284c9845f53188376dcf7489b3fa1efdeffb23297467c0042294",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    1.0,
+    0.0,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "calcio"
+   ]
+  },
+  {
+   "fila": 213,
+   "id_seudonimo": "51f89afaa1191c3a82aabadf646396dd3cc6dcbe4b175ca406c08b14802b8bc5",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    1.0,
+    0.0,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": []
+  },
+  {
+   "fila": 215,
+   "id_seudonimo": "b5ad235118ff4020393c9a9c689b96541eb9448c98a2ddd9b0934ea02425cbe6",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    1.0,
+    0.0,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "hemoglobina_gdl"
+   ]
+  },
+  {
+   "fila": 218,
+   "id_seudonimo": "6488af8b150bea3fdaaa4bb87e1eefbda5925e11d61c55815bc756228107fd10",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.99,
+    0.01,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": []
+  },
+  {
+   "fila": 220,
+   "id_seudonimo": "ded30b9e29705c242a2f74a4c6496c43be6e70538344cd2851543fb4e26ee84f",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.9566666666666667,
+    0.043333333333333335,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "hemoglobina_gdl"
+   ]
+  },
+  {
+   "fila": 221,
+   "id_seudonimo": "758c9c05d6889f5ad5a7103fa38716b0d7e77711f69ab5e0b6863af125feb435",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    1.0,
+    0.0,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "hemoglobina_gdl",
+    "calcio"
+   ]
+  },
+  {
+   "fila": 223,
+   "id_seudonimo": "b0faa6ef308b78fac32d7a349eb339a7425b7e188b521764dbc180a602041a8f",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.9766666666666667,
+    0.023333333333333334,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "calcio",
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 225,
+   "id_seudonimo": "3c345c10f847379d205b06c4e20a1e30842931082459ae4b3bef3da1bb67e96d",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.9866666666666667,
+    0.013333333333333334,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": []
+  },
+  {
+   "fila": 228,
+   "id_seudonimo": "3e19c469af570646a2bec9a76c84b1e224144d0737a9754d1fe7a988c8c49ce4",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.9933333333333333,
+    0.006666666666666667,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "calcio"
+   ]
+  },
+  {
+   "fila": 232,
+   "id_seudonimo": "04ad8fd9b0203dddf2eddb3cd05d4ea29d9a869f69a6e5246d6144faed9c87ce",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.99,
+    0.01,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "calcio",
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 234,
+   "id_seudonimo": "0380364cc9754be390d4ff49ee82e57d490fd98c674adf0a5d98f656a9caa09e",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.9966666666666667,
+    0.0033333333333333335,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "calcio"
+   ]
+  },
+  {
+   "fila": 235,
+   "id_seudonimo": "64976a764ba9ff2daeb194ab3cfc5cd4a45feb8d7c2eae67cc0d62400c4ab11b",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.9833333333333333,
+    0.016666666666666666,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": []
+  },
+  {
+   "fila": 236,
+   "id_seudonimo": "8107565188ed9c34177f065334fa2e5b00d15c30f9ac93ce79b0fc8d35a7076c",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.9933333333333333,
+    0.006666666666666667,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 239,
+   "id_seudonimo": "9bc6ff4ef01cf4f1f26cee00a1be92ced095f212ea6b5a98c4942289570a6023",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    1.0,
+    0.0,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 242,
+   "id_seudonimo": "ca80d5f58bb3f1f28f77ae09573bc4165b63db53a6fa36a0a0a55eb6863489ce",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    1.0,
+    0.0,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "hemoglobina_gdl",
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 245,
+   "id_seudonimo": "5f41ffd0b581bae1d2ba0c6fa498e0c37c25ff86bb06908007b3fec2b7a81752",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.9966666666666667,
+    0.0033333333333333335,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "hemoglobina_gdl",
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 249,
+   "id_seudonimo": "31c89dd331a1d27c7ac590da48f6adfc2c9a1b83301b3015c9793966897eb524",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    1.0,
+    0.0,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "hemoglobina_gdl",
+    "calcio",
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 250,
+   "id_seudonimo": "d87735f11797ca0ddbe19bca82f0d066df33c3c629b8dbddf27a01c19e548a25",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.9966666666666667,
+    0.0033333333333333335,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": []
+  },
+  {
+   "fila": 255,
+   "id_seudonimo": "5b0bc450fbe9bdd403abdd0e1147168537f90b518330eb8148ad27e3ad79e245",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.9866666666666667,
+    0.013333333333333334,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "hemoglobina_gdl",
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 258,
+   "id_seudonimo": "3221d13c97437eb320ea30981c82f65d324d2df4ead33153f226f4cee626a9c4",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.9966666666666667,
+    0.0033333333333333335,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "calcio",
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 260,
+   "id_seudonimo": "231d90e7773a639dc38886abcb37311c73d6d4e2738b0bfe852bb5deac9f8a85",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.9933333333333333,
+    0.006666666666666667,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 261,
+   "id_seudonimo": "5a12b7bea74e69e444b9d6161e6d4b693944f76e95f854c2e9f19fbba2329014",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.9933333333333333,
+    0.006666666666666667,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "preeclampsia_previa",
+    "hemoglobina_gdl",
+    "calcio"
+   ]
+  },
+  {
+   "fila": 262,
+   "id_seudonimo": "55efd1b8ddbac092dd887cf4d21d0402b502ae5d5445778f788430fe58e36e30",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.9966666666666667,
+    0.0033333333333333335,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": []
+  },
+  {
+   "fila": 264,
+   "id_seudonimo": "a6f7f14cc131ba7b0772d8e63b1bd481dca04a13f0edd6b2a807035c1adb2f86",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    1.0,
+    0.0,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "preeclampsia_previa",
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 269,
+   "id_seudonimo": "1e5ed61e177d251a99f1592cd4cde45764ca865cab7334a73505b37b9718b22c",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    1.0,
+    0.0,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": []
+  },
+  {
+   "fila": 272,
+   "id_seudonimo": "cbbb29b30fbf1422d4b6df515bcf53a5b2befcad618f6bd3f9f44ae608acebfc",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    1.0,
+    0.0,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": []
+  },
+  {
+   "fila": 277,
+   "id_seudonimo": "2c2508ced3afcab993b157aa6bf8a78bf6488f5f915dcfb91138ddcdcc24298d",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.9833333333333333,
+    0.016666666666666666,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": []
+  },
+  {
+   "fila": 282,
+   "id_seudonimo": "b837c3a3cb0ca962d889629d723e253aaa3f7f19352836b285de5af0490268b6",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.9966666666666667,
+    0.0033333333333333335,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "hemoglobina_gdl",
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 283,
+   "id_seudonimo": "af535b8867f2f628cd6a11b9424ae2e6c9649165238eec29867fb17fcea5e88c",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    1.0,
+    0.0,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "hemoglobina_gdl",
+    "calcio"
+   ]
+  },
+  {
+   "fila": 285,
+   "id_seudonimo": "0a266558b3e199f1049e8266e43110592d3d42412f3a0d3d5680a1d23c53d615",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    1.0,
+    0.0,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "calcio"
+   ]
+  },
+  {
+   "fila": 286,
+   "id_seudonimo": "bdc8b4a65179000cc405781bdb4a4b5c868f316c1356d13761817b0362470eae",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.9733333333333334,
+    0.02666666666666667,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "calcio"
+   ]
+  },
+  {
+   "fila": 287,
+   "id_seudonimo": "2202753806ebc13fff67af3c3303f41c8e87a10fe7d24a087cc04263123c03a2",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.9966666666666667,
+    0.0033333333333333335,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 288,
+   "id_seudonimo": "a62d41bd71c893f3c26e39cb4ddd43fe025e665e8c2a52e80894271569f2da6c",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.9866666666666667,
+    0.013333333333333334,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": []
+  },
+  {
+   "fila": 291,
+   "id_seudonimo": "2fcf8d340201e1b11a90b6a3bc9402b275f6420bb1254d7b0849ae04618134e8",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    1.0,
+    0.0,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": []
+  },
+  {
+   "fila": 295,
+   "id_seudonimo": "a838485111d5ead1e65714a25172c570405af7edde679835ce7a5c11649be89c",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.9933333333333333,
+    0.006666666666666667,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": []
+  },
+  {
+   "fila": 297,
+   "id_seudonimo": "fde7ada7525d10e15ca988718a8eee013bfa05cd755a6411d5309789c2373b35",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    1.0,
+    0.0,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 298,
+   "id_seudonimo": "d55d6b3c928d061356ac37d64d5dd7d29a10783274467fd81028afc7884f2001",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.98,
+    0.02,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "calcio",
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 300,
+   "id_seudonimo": "19385531c3f04a3192be8eb7d8f9494c21f5491377fa480e3d2bd0da47220b57",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.9966666666666667,
+    0.0033333333333333335,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "hemoglobina_gdl",
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 301,
+   "id_seudonimo": "82d29652f7fe9274b37012bc226e03177e3a97eb5da6b87cfa1aa3815efc52ee",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.9933333333333333,
+    0.006666666666666667,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": [
+    "vacuna_influenza"
+   ]
+  },
+  {
+   "fila": 303,
+   "id_seudonimo": "f99378fd5aa26284699214af9bd6e16bae77ac53abda034c987482621a89446e",
+   "clase": 0,
+   "clase_modelo": 0,
+   "origen": "modelo_ml",
+   "probabilidades": [
+    0.99,
+    0.01,
+    0.0
+   ],
+   "n_signos_criticos": 0,
+   "signos_alarma": [],
+   "alertas": []
+  }
+ ],
+ "rechazadas": [
+  {
+   "fila": 27,
+   "faltan": [
+    "pas_mmhg"
+   ]
+  },
+  {
+   "fila": 122,
+   "faltan": [
+    "edad"
+   ]
+  },
+  {
+   "fila": 202,
+   "faltan": [
+    "pas_mmhg"
+   ]
+  }
+ ],
+ "seudonimos": [
+  {
+   "tipo": "CC",
+   "numero": "1065432",
+   "id_seudonimo": "07fe35e70f321633c33c60a9dfc82a1cb0298e5036b31cdbaa2879f91a9cd82a"
+  },
+  {
+   "tipo": " cc ",
+   "numero": "1.065.432",
+   "id_seudonimo": "07fe35e70f321633c33c60a9dfc82a1cb0298e5036b31cdbaa2879f91a9cd82a"
+  },
+  {
+   "tipo": "CC",
+   "numero": "1065-432 ",
+   "id_seudonimo": "07fe35e70f321633c33c60a9dfc82a1cb0298e5036b31cdbaa2879f91a9cd82a"
+  },
+  {
+   "tipo": "TI",
+   "numero": "1065432",
+   "id_seudonimo": "1610037a20e5a1a799dfee87ff62eb59dcca576f5f32139a32c17d0601c6e3dc"
+  },
+  {
+   "tipo": "",
+   "numero": "1065432",
+   "id_seudonimo": "bedb6e92018165be289eb8201ab323c285b80526bcfb19e6ae644d9cc4a87475"
+  },
+  {
+   "tipo": "CE",
+   "numero": "ab-12.34",
+   "id_seudonimo": "2bda5951003338342663432cffaab6bc99c554fef234c2aec4176d0a07f38023"
+  },
+  {
+   "tipo": "RC",
+   "numero": "  99 88 77",
+   "id_seudonimo": "a655ae2ed759af4cd784db6dd5b5940940476c2a8dec6ce7a5467a0c5a56458e"
+  },
+  {
+   "tipo": "CC",
+   "numero": "1999999999",
+   "id_seudonimo": "00560044f24846d11953aeacd0f42a9058f934dbb566a33048db13e25bb96432"
+  },
+  {
+   "tipo": "pa",
+   "numero": "x9",
+   "id_seudonimo": "e9b51ab5746795b246f0f19509b0800d4150b8414b0abf7ab6cb46596e3aa23d"
+  },
+  {
+   "tipo": "CC",
+   "numero": "ñandú 1",
+   "id_seudonimo": "6c795c6338d66ac4dbeb94e320369509ff3a51d3c186406de9792b9f0dd199e5"
+  }
+ ]
+}
