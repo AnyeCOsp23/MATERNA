@@ -159,7 +159,7 @@ def _sumar(destino, origen):
         destino[k] = destino.get(k, 0) + v
 
 
-def inspeccionar(ruta, sal, tam_lote=TAM_LOTE, con_fila=False):
+def inspeccionar(ruta, sal, tam_lote=TAM_LOTE, con_fila=False, al_avanzar=lambda filas_leidas: None):
     """Procesa el archivo completo y devuelve (datos seudonimizados y filtrados, reporte).
 
     Con con_fila=True agrega la columna 'fila' para informar en qué fila está cada registro; no cambia
@@ -172,6 +172,7 @@ def inspeccionar(ruta, sal, tam_lote=TAM_LOTE, con_fila=False):
         primera_fila = reporte.filas_leidas + 2
         reporte.lotes += 1
         reporte.filas_leidas += len(lote)
+        al_avanzar(reporte.filas_leidas)
         lote, centinelas = reemplazar_centinelas(lote)
         _sumar(reporte.centinelas, centinelas)
         resultado = aplicar_filtro(lote, sal)

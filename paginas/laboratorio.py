@@ -22,11 +22,12 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 
-from src import experimentos, graficos, ui_theme as ui
+from src import conjunto_trabajo, experimentos, graficos, ui_datos, ui_theme as ui
 from src.autenticacion import ROLES, puede
 from src.clinical_rules import evaluar_reglas, mascara_reglas
 from src.config import CLASE_ALTO, DIR_METRICAS, DIR_MODELOS, NOMBRES_CLASES, SEMILLA, VARS_CON_NULOS
 from src.consolidado_ips import datos_consolidados, guardar_carga, resumen_consolidado
+from src.depuracion import contar_filas, depurar
 from src.data_preprocessing import (
     PARTICION_OFICIAL, RANGOS_PLAUSIBLES, MedianaEstratificadaImputer, cargar_dataset, marcar_fuera_de_rango,
     particionar, pasos_preprocesamiento, separar_xy,
@@ -43,6 +44,8 @@ from src.train_models import GRID_C_LR, con_estrategias_balanceo, grid_random_fo
 usuario = st.session_state.get("usuario")
 # Con menos casos de Alto Riesgo que estos en un conjunto, un solo error mueve su recall más de 10 puntos
 MIN_ALTO = 10
+AVISO_SVM = (f"El costo de la SVM crece aproximadamente con el cuadrado del número de registros: con más de "
+             f"{ui_datos.miles(experimentos.MAX_SVM)} de entrenamiento se ajusta con una muestra estratificada de ese tamaño.")
 ETIQUETAS = {"edad": "Edad (años)", "semanas_gestacion": "Semanas de gestación", "n_controles_prenatales": "Controles prenatales",
              "pas_mmhg": "PAS (mmHg)", "pad_mmhg": "PAD (mmHg)", "fcf_bpm": "FCF (lpm)", "glucosa_mgdl": "Glucosa (mg/dL)"}
 
@@ -72,8 +75,15 @@ def metricas(nombre):
 
 
 @st.cache_data
-def particiones_resumen(proporciones=PARTICION_OFICIAL, semilla=SEMILLA):
-    X, y = separar_xy(marcar_fuera_de_rango(dataset()))
+def cargar_trabajo(huella):
+    """El conjunto de trabajo activo; la huella es la clave de la caché (cambia si cambia el conjunto)."""
+    return conjunto_trabajo.datos()
+
+
+@st.cache_data
+def particiones_resumen(proporciones=PARTICION_OFICIAL, semilla=SEMILLA, huella=None):
+    datos = cargar_trabajo(huella).drop(columns="origen", errors="ignore") if huella else dataset()
+    X, y = separar_xy(marcar_fuera_de_rango(datos))
     X_train, X_val, X_test, y_train, y_val, y_test = particionar(X, y, semilla, proporciones)
     filas = []
     for nombre, yp in [("Entrenamiento", y_train), ("Validación", y_val), ("Prueba", y_test)]:
@@ -138,15 +148,27 @@ def seccion_ingesta():
     nombre, contenido = st.session_state["archivo_ips"]
     # Con el ejemplo ficticio basta una sal temporal si no hay una configurada: no se guarda nada
     sal_uso = sal or secrets.token_hex(16)
-    with st.spinner("Ingiriendo…"), tempfile.TemporaryDirectory() as carpeta:
-        # El archivo solo existe en una carpeta temporal mientras se procesa; luego se borra
-        ruta = Path(carpeta) / Path(nombre).name
-        ruta.write_bytes(contenido)
-        try:
-            datos, reporte = inspeccionar(ruta, sal_uso)
-        except ValueError as error:
-            st.error(str(error))
-            return
+    # Caché por archivo: no se vuelve a ingerir en cada interacción (importa con 30.000 filas)
+    huella = hashlib.sha256(contenido + (sal or "").encode()).hexdigest()
+    guardado = st.session_state.get("ingesta_ips")
+    if guardado and guardado[0] == huella and sal:
+        datos, reporte = guardado[1], guardado[2]
+    else:
+        barra = st.progress(0.0, text="Ingiriendo por lotes…")
+        with tempfile.TemporaryDirectory() as carpeta:
+            # El archivo solo existe en una carpeta temporal mientras se procesa; luego se borra
+            ruta = Path(carpeta) / Path(nombre).name
+            ruta.write_bytes(contenido)
+            total = contar_filas(ruta)
+            try:
+                datos, reporte = inspeccionar(ruta, sal_uso, al_avanzar=lambda leidas: barra.progress(
+                    min(leidas / total, 1.0) if total else 0.5, text=f"{ui_datos.miles(leidas)} filas leídas…"))
+            except ValueError as error:
+                barra.empty()
+                st.error(str(error))
+                return
+        barra.empty()
+        st.session_state["ingesta_ips"] = (huella, datos, reporte)
 
     st.markdown(f"**Reporte de calidad · {reporte.archivo}** ({reporte.formato}, separador "
                 f"{reporte.separador!r}, {reporte.lotes} lote(s))")
@@ -199,8 +221,9 @@ def entrenar_con_avance(algoritmo, hiperparametros, proporciones, semilla):
             progreso.progress(7 / 8 if detalle["conjunto"] == "validación" else 1.0, text=f"Evaluación en {detalle['conjunto']}…")
 
     try:
-        resultado = experimentos.entrenar(algoritmo, hiperparametros, proporciones, semilla, usuario["usuario"],
-                                          al_avanzar=al_avanzar)
+        resultado = experimentos.entrenar(
+            algoritmo, hiperparametros, proporciones, semilla, usuario["usuario"], datos=datos_trabajo,
+            nombre_datos=nombre_datos, huella_datos=trabajo["huella"] if trabajo else None, al_avanzar=al_avanzar)
         resultado.pop("modelo")  # ya quedó guardado como versión; no hace falta en la sesión
     except ValueError as error:
         st.error(f"No se pudo entrenar: {error}")
@@ -219,15 +242,17 @@ def mostrar_entrenamiento(resultado, clave):
                                 "Accuracy": m["accuracy"], "ROC-AUC": m.get("roc_auc_ovr_macro"),
                                 "Costo clínico": m["costo_clinico_total"]}
                                for c, m in resultado["metricas"].items()]).round(4), hide_index=True, width="stretch")
+    if r.get("nota"):
+        st.warning(r["nota"] + ".", icon=":material/info:")
     if resultado["identico_al_modelo_en_uso"]:
         st.info("**Reproducible:** con la misma partición, semilla e hiperparámetros, el modelo entrenado da probabilidades "
                 "idénticas al modelo en uso.")
-    st.caption("Métricas del sistema híbrido (modelo + reglas clínicas). La versión quedó en el conjunto de trabajo; "
-               "el modelo en uso no cambió.")
+    st.caption(f"Datos: {r['datos']}. Métricas del sistema híbrido (modelo + reglas clínicas). La versión quedó guardada "
+               "aparte; el modelo en uso no cambió.")
 
 
 COLUMNAS_REGISTRO = {
-    "version": "Versión", "fecha": "Fecha", "usuario": "Usuario", "algoritmo": "Algoritmo", "balanceo": "Balanceo",
+    "version": "Versión", "fecha": "Fecha", "usuario": "Usuario", "datos": "Datos", "algoritmo": "Algoritmo", "balanceo": "Balanceo",
     "hiperparametros": "Hiperparámetros", "particion": "Partición", "semilla": "Semilla", "n_entrenamiento": "n entrenamiento",
     "cv_f1_macro": "F1-macro CV", "val_f1_macro": "F1-macro validación", "val_recall_alto": "Recall Alto validación",
     "val_costo_clinico_total": "Costo validación", "prueba_f1_macro": "F1-macro prueba", "prueba_recall_alto": "Recall Alto prueba",
@@ -321,6 +346,10 @@ pestanas = st.tabs(["01 Problema", "02 Recolección e ingesta", "03 EDA", "04 Li
                     "12 Entrega al Módulo 2", "13 Ética y limitaciones", "Lista de chequeo"])
 df = dataset()
 permitido = puede(usuario, "entrenar")
+# Datos con que se entrena: el conjunto de trabajo activo (generado o subido y depurado) o, si no hay, el dataset base
+trabajo = conjunto_trabajo.meta()
+datos_trabajo = cargar_trabajo(trabajo["huella"]) if trabajo else None
+nombre_datos = conjunto_trabajo.descripcion(trabajo)
 test = metricas("metricas_test.csv").set_index("sistema")
 principal = test.loc["Híbrido (Random Forest + reglas)"]
 
@@ -357,6 +386,7 @@ with pestanas[1]:
     st.caption("Los archivos de la Resolución 4505 recibidos correspondían a recién nacidos, sin variables maternas: "
                "no son aptos para el modelo y, por tener datos personales reales, no se cargan en el laboratorio.")
     seccion_ingesta()
+    ui_datos.seccion_conjunto(usuario, permitido, trabajo)
 
 # ---------------------------------------------------------------- 03
 with pestanas[2]:
@@ -390,6 +420,7 @@ with pestanas[2]:
     if fuente.startswith("Ejemplo"):
         st.caption("El ejemplo ficticio se construyó a partir del dataset sintético: por eso las distribuciones casi coinciden. "
                    "Con un archivo real de una IPS, esta comparación mostraría cuánto se parece el sintético a la realidad.")
+    ui_datos.seccion_eda(df, datos_trabajo, trabajo, ETIQUETAS)
 
 # ---------------------------------------------------------------- 04
 with pestanas[3]:
@@ -418,7 +449,8 @@ with pestanas[3]:
             filas.append({"Variable": ETIQUETAS[col], "Área": area, "Trimestre": tri, "Mediana": valor})
         filas.append({"Variable": ETIQUETAS[col], "Área": "Global (respaldo)", "Trimestre": "—", "Mediana": imp.mediana_global_[col]})
     st.dataframe(pd.DataFrame(filas), hide_index=True, width="stretch")
-    codigo(marcar_fuera_de_rango, reemplazar_centinelas, MedianaEstratificadaImputer.transform)
+    ui_datos.seccion_depuracion(usuario, permitido)
+    codigo(depurar, marcar_fuera_de_rango, reemplazar_centinelas, MedianaEstratificadaImputer.transform)
 
 # ---------------------------------------------------------------- 05
 with pestanas[4]:
@@ -448,6 +480,7 @@ with pestanas[5]:
     html(ui.titulo_seccion("06", "División de los datos"))
     st.markdown("Elija los porcentajes y la semilla de la partición del **conjunto de trabajo**. La usan los entrenamientos de las "
                 "pestañas 08 y 09. Las cifras oficiales de la Fase 2 se calcularon con 70/15/15 y semilla 42, y no cambian.")
+    st.caption(f"Datos: {nombre_datos}.")
     c = st.columns(4)
     proporciones = (c[0].number_input("Entrenamiento (%)", 1, 98, PARTICION_OFICIAL[0], key="part_entrenamiento"),
                     c[1].number_input("Validación (%)", 1, 98, PARTICION_OFICIAL[1], key="part_validacion"),
@@ -455,13 +488,13 @@ with pestanas[5]:
     semilla_trabajo = c[3].number_input("Semilla", 0, 2**31 - 1, SEMILLA, key="part_semilla")
     particion_valida = True
     try:
-        tabla, disjuntos = particiones_resumen(proporciones, semilla_trabajo)
+        tabla, disjuntos = particiones_resumen(proporciones, semilla_trabajo, trabajo["huella"] if trabajo else None)
     except ValueError as error:
         particion_valida = False
         st.error(f"{error} Corríjalos para poder entrenar; abajo se muestra la partición oficial.")
         tabla, disjuntos = particiones_resumen()
     texto_particion = "/".join(str(p) for p in proporciones)
-    es_oficial = proporciones == PARTICION_OFICIAL and semilla_trabajo == SEMILLA
+    es_oficial = proporciones == PARTICION_OFICIAL and semilla_trabajo == SEMILLA and not trabajo
     st.dataframe(tabla, hide_index=True, width="stretch")
     if particion_valida:
         pocos = tabla[tabla["Alto Riesgo"] < MIN_ALTO]
@@ -506,8 +539,11 @@ with pestanas[7]:
     st.markdown(f"Entrena el algoritmo elegido con los **mejores hiperparámetros** de la búsqueda de la Fase 2, sobre la partición "
                 f"**{texto_particion}** con semilla {semilla_trabajo} (pestaña 06). Muestra cada partición de la validación cruzada al "
                 "terminar y guarda el resultado como una **versión nueva**. **No reemplaza el modelo en uso.**")
+    st.caption(f"Datos: {nombre_datos}.")
     algoritmo = st.selectbox("Algoritmo", experimentos.ALGORITMOS, key="entrenar_algoritmo")
     st.json(experimentos.hiperparametros_base(algoritmo), expanded=True)
+    if algoritmo == "SVM":
+        st.caption(AVISO_SVM)
     if st.button("Entrenar en vivo", type="primary", icon=":material/play_arrow:", disabled=not (permitido and particion_valida)):
         st.session_state["entrenamiento"] = entrenar_con_avance(algoritmo, None, proporciones, semilla_trabajo)
     if not permitido:
@@ -535,8 +571,11 @@ with pestanas[8]:
     st.markdown(f"Cambie los hiperparámetros y entrene: se guarda como una **versión nueva** del conjunto de trabajo, con la "
                 f"partición {texto_particion} y la semilla {semilla_trabajo} elegidas en la pestaña 06. Los controles parten de la "
                 "mejor configuración de la búsqueda.")
+    st.caption(f"Datos: {nombre_datos}.")
     algoritmo_hp = st.selectbox("Algoritmo", experimentos.ALGORITMOS, key="hp_algoritmo")
     hiperparametros = formulario_hiperparametros(algoritmo_hp)
+    if algoritmo_hp == "SVM":
+        st.caption(AVISO_SVM)
     if st.button("Entrenar esta configuración", type="primary", icon=":material/tune:",
                  disabled=not (permitido and particion_valida)):
         st.session_state["experimento_hp"] = entrenar_con_avance(algoritmo_hp, hiperparametros, proporciones, semilla_trabajo)
@@ -566,7 +605,8 @@ with pestanas[9]:
     st.markdown("**Sin signos críticos** (lo que el modelo resuelve solo, sin las reglas)")
     st.dataframe(metricas("metricas_test_sin_signos_criticos.csv")[["sistema", "n", "f1_macro", "recall_alto", "costo_clinico_total"]],
                  hide_index=True, width="stretch")
-    codigo(calcular_metricas, intervalo_bootstrap)
+    ui_datos.seccion_lote(trabajo)
+    codigo(calcular_metricas, intervalo_bootstrap, conjunto_trabajo.establecer)
 
 # ---------------------------------------------------------------- 11
 with pestanas[10]:
@@ -589,7 +629,7 @@ with pestanas[10]:
                "Son las curvas oficiales de la Fase 2.")
 
     st.markdown("#### Curva de una versión del conjunto de trabajo")
-    versiones = {r["version"]: r for r in experimentos.leer_registro() if r["datos"] == experimentos.DATOS_BASE}
+    versiones = {r["version"]: r for r in experimentos.leer_registro()}
     if not versiones:
         st.caption("Aún no hay versiones. Entrene un modelo en la pestaña 08 y vuelva para calcular su curva.")
     else:
@@ -598,7 +638,10 @@ with pestanas[10]:
             format_func=lambda v: f"{v} · {versiones[v]['algoritmo']} · partición {versiones[v]['particion']} · semilla {versiones[v]['semilla']}")
         if st.button("Calcular la curva de aprendizaje", icon=":material/show_chart:", disabled=not permitido):
             with st.spinner("Entrenando con 7 tamaños × 5 particiones…"):
-                st.session_state.setdefault("curvas_exp", {})[elegida] = experimentos.curva_aprendizaje(elegida)
+                try:
+                    st.session_state.setdefault("curvas_exp", {})[elegida] = experimentos.curva_aprendizaje(elegida)
+                except ValueError as error:
+                    st.error(str(error))
         if not permitido:
             st.caption("Solo el administrador puede calcular curvas nuevas.")
         curva = st.session_state.get("curvas_exp", {}).get(elegida)

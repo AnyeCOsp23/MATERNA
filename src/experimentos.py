@@ -17,6 +17,10 @@ Cada entrenamiento:
 Con Random Forest, los hiperparámetros de la búsqueda, la partición 70/15/15 y la semilla 42, el resultado
 es idéntico al modelo en uso: es la prueba de que el laboratorio reproduce la Fase 2.
 
+Los datos son el dataset base o el conjunto de trabajo activo (src/conjunto_trabajo.py): generados o subidos
+y depurados. La SVM cuesta aproximadamente el cuadrado del número de registros: con más de 10.000 de
+entrenamiento se ajusta sobre una muestra estratificada de 10.000, y queda anotado en el registro.
+
 Criterio de selección entre versiones: mayor F1-macro en validación; si hay empate, mayor recall de
 Alto Riesgo en validación. El conjunto de prueba se informa, pero no se usa para elegir.
 """
@@ -36,7 +40,7 @@ from sklearn.calibration import CalibratedClassifierCV
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import f1_score, recall_score
-from sklearn.model_selection import StratifiedKFold, learning_curve
+from sklearn.model_selection import StratifiedKFold, learning_curve, train_test_split
 from sklearn.svm import SVC
 
 from src.clinical_rules import predecir_hibrido
@@ -52,6 +56,7 @@ ALGORITMOS = ("Random Forest", "Regresión Logística", "SVM")
 BALANCEOS = ("SMOTE", "class_weight")
 DATOS_BASE = "Dataset base (1.200 gestantes sintéticas)"
 N_PARTICIONES_CV = 5
+MAX_SVM = 10_000  # registros de entrenamiento: el costo de la SVM crece con el cuadrado de N
 TAMANOS_CURVA = np.linspace(0.15, 1.0, 7)
 METRICAS_REGISTRO = ("f1_macro", "recall_alto", "accuracy", "roc_auc_ovr_macro", "costo_clinico_total")
 
@@ -110,7 +115,7 @@ def construir(algoritmo, hiperparametros, semilla=SEMILLA):
     params = dict(hiperparametros)
     balanceo = params.pop("balanceo")
     if algoritmo == "Random Forest":
-        modelo = RandomForestClassifier(random_state=semilla, **params)
+        modelo = RandomForestClassifier(random_state=semilla, n_jobs=-1, **params)  # n_jobs no cambia el resultado
     elif algoritmo == "Regresión Logística":
         modelo = LogisticRegression(solver="lbfgs", max_iter=5000, **params)
     else:
@@ -129,9 +134,17 @@ def _validacion_cruzada(semilla):
 
 
 def _particiones(datos, proporciones, semilla):
-    df = cargar_dataset() if datos is None else datos
+    df = cargar_dataset() if datos is None else datos.drop(columns="origen", errors="ignore")
     X, y = separar_xy(marcar_fuera_de_rango(df))
     return particionar(X, y, semilla, proporciones)
+
+
+def limitar_svm(algoritmo, X_train, y_train, semilla=SEMILLA):
+    """Con SVM y más de MAX_SVM registros, una muestra estratificada. Devuelve (X, y, nota o None)."""
+    if algoritmo != "SVM" or len(X_train) <= MAX_SVM:
+        return X_train, y_train, None
+    X, _, y, _ = train_test_split(X_train, y_train, train_size=MAX_SVM, stratify=y_train, random_state=semilla)
+    return X, y, f"SVM ajustada con una muestra estratificada de {MAX_SVM} de {len(X_train)} registros de entrenamiento"
 
 
 def _sha256(ruta):
@@ -145,7 +158,7 @@ def _siguiente_version(carpeta):
 
 
 def entrenar(algoritmo, hiperparametros=None, proporciones=PARTICION_OFICIAL, semilla=SEMILLA, usuario="terminal",
-             datos=None, nombre_datos=DATOS_BASE, al_avanzar=lambda etapa, detalle: None):
+             datos=None, nombre_datos=DATOS_BASE, huella_datos=None, al_avanzar=lambda etapa, detalle: None):
     """Entrena, evalúa y guarda una versión nueva. al_avanzar(etapa, detalle) informa cada paso a la interfaz.
 
     Devuelve {'registro': fila del registro, 'modelo': modelo ajustado, 'cv_f1_por_particion': [...],
@@ -155,6 +168,7 @@ def entrenar(algoritmo, hiperparametros=None, proporciones=PARTICION_OFICIAL, se
     hiperparametros = dict(hiperparametros_base(algoritmo) if hiperparametros is None else hiperparametros)
     base = construir(algoritmo, hiperparametros, semilla)
     X_train, X_val, X_test, y_train, y_val, y_test = _particiones(datos, proporciones, semilla)
+    X_train, y_train, nota = limitar_svm(algoritmo, X_train, y_train, semilla)
     cv = _validacion_cruzada(semilla)
 
     f1_cv, recall_cv = [], []
@@ -185,6 +199,7 @@ def entrenar(algoritmo, hiperparametros=None, proporciones=PARTICION_OFICIAL, se
         "version": None, "fecha": datetime.now().isoformat(timespec="seconds"), "usuario": usuario,
         "algoritmo": algoritmo, "hiperparametros": hiperparametros,
         "particion": "/".join(str(p) for p in proporciones), "semilla": int(semilla), "datos": nombre_datos,
+        "datos_huella": huella_datos, "nota": nota,
         "n_entrenamiento": len(X_train), "n_validacion": len(X_val), "n_prueba": len(X_test),
         "cv_f1_macro": float(np.mean(f1_cv)), "cv_f1_macro_std": float(np.std(f1_cv)),
         "cv_recall_alto": float(np.mean(recall_cv)),
@@ -246,16 +261,25 @@ def cargar_modelo(version):
 def curva_aprendizaje(version):
     """Curva de aprendizaje de una versión, con su misma partición, semilla e hiperparámetros.
 
-    Mismas columnas que reports/metrics/curvas_aprendizaje.csv. Solo para versiones entrenadas con el dataset base.
+    Mismas columnas que reports/metrics/curvas_aprendizaje.csv. Necesita los mismos datos con que se entrenó:
+    el dataset base, o el conjunto de trabajo si sigue siendo el mismo (se comprueba por su huella).
     """
     registro = next((r for r in leer_registro() if r["version"] == version), None)
     if registro is None:
         raise ValueError(f"No existe la versión {version}.")
-    if registro["datos"] != DATOS_BASE:
-        raise ValueError("La curva solo se calcula para versiones entrenadas con el dataset base.")
+    datos = None
+    if registro.get("datos_huella"):
+        from src import conjunto_trabajo  # aquí, para no importar en círculo
+
+        activo = conjunto_trabajo.meta()
+        if not activo or activo["huella"] != registro["datos_huella"]:
+            raise ValueError(f"La versión {version} se entrenó con «{registro['datos']}», que ya no es el conjunto de "
+                             "trabajo activo: no se puede recalcular su curva.")
+        datos = conjunto_trabajo.datos()
     semilla = registro["semilla"]
     proporciones = tuple(int(p) for p in registro["particion"].split("/"))
-    X_train, _, _, y_train, _, _ = _particiones(None, proporciones, semilla)
+    X_train, _, _, y_train, _, _ = _particiones(datos, proporciones, semilla)
+    X_train, y_train, _ = limitar_svm(registro["algoritmo"], X_train, y_train, semilla)
     tamanos, entrenamiento, validacion = learning_curve(
         construir(registro["algoritmo"], registro["hiperparametros"], semilla), X_train, y_train,
         cv=_validacion_cruzada(semilla), scoring="f1_macro", train_sizes=TAMANOS_CURVA, n_jobs=-1, shuffle=True,

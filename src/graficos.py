@@ -102,6 +102,20 @@ def curva_aprendizaje(df, modelo, dominio_x=(50, 720)):
     return _tema(alt.layer(banda, linea, puntos), 300)
 
 
+def escalabilidad(df):
+    """Segundos de carga, limpieza y entrenamiento según el número de registros."""
+    etapas = {"carga_s": "Carga", "limpieza_s": "Limpieza", "entrenamiento_s": "Entrenamiento"}
+    largo = df.melt("registros", list(etapas), "etapa", "segundos").replace({"etapa": etapas})
+    escala = alt.Scale(domain=list(etapas.values()), range=["#E0A33A", SERIE_2, SERIE_1])
+    base = alt.Chart(largo).encode(
+        x=alt.X("registros:Q", title="Registros", axis=alt.Axis(values=sorted(df["registros"].unique().tolist()), format="~s")),
+        y=alt.Y("segundos:Q", title="Segundos"), color=alt.Color("etapa:N", title=None, scale=escala, sort=list(etapas.values())))
+    puntos = base.mark_point(size=70, filled=True, stroke="white", strokeWidth=2).encode(
+        tooltip=[alt.Tooltip("etapa:N", title="Etapa"), alt.Tooltip("registros:Q", title="Registros", format=","),
+                 alt.Tooltip("segundos:Q", title="Segundos", format=".2f")])
+    return _tema(alt.layer(base.mark_line(strokeWidth=2), puntos), 300)
+
+
 def f1_por_particion(valores):
     df = pd.DataFrame({"particion": [f"P{i}" for i in range(1, len(valores) + 1)], "f1": valores})
     barras = alt.Chart(df).mark_bar(color=SERIE_1, cornerRadiusEnd=4, size=30).encode(
