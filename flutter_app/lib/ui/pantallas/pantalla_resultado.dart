@@ -1,10 +1,12 @@
 /// Pantalla 2: resultado del triaje.
 ///
+/// La pantalla es para personal de salud, no para técnicos: no usa términos de aprendizaje automático.
 /// Orden deliberado: primero las alertas URGENTES de la ruta 3280 que no cambian el semáforo (p. ej. exposición
-/// a violencias, que tiene su propia ruta), luego la tarjeta del nivel con el motivo de la decisión (regla clínica,
-/// signo de alarma obstétrico o modelo), las probabilidades del modelo, los datos clave, las demás alertas y la
-/// conducta sugerida. Los signos de alarma obstétricos (sangrado, visión borrosa…) elevan el semáforo a ROJO: un
-/// verde o un ámbar nunca acompañan a una urgencia obstétrica.
+/// a violencias, que tiene su propia ruta), luego la tarjeta del nivel con el motivo en lenguaje claro (signo
+/// crítico, signo de alarma o combinación de factores), el aviso de que es una herramienta de apoyo, los datos
+/// clave, las demás alertas y la conducta sugerida. Los porcentajes y lo demás que sirve a quien audita van al
+/// final, en «Ver detalle», plegado. Los signos de alarma obstétricos (sangrado, visión borrosa…) elevan el
+/// semáforo a ROJO: un verde o un ámbar nunca acompañan a una urgencia obstétrica.
 library;
 
 import 'dart:math' as math;
@@ -17,6 +19,9 @@ import '../tema/tema_materna.dart';
 import '../widgets/encabezado.dart';
 
 String _pct(double p) => '${(p * 100).round()}%';
+
+/// Aviso visible en todo resultado.
+const avisoApoyo = 'Herramienta de apoyo: no reemplaza el juicio clínico.';
 
 class PantallaResultado extends StatelessWidget {
   const PantallaResultado({super.key, required this.recursos, required this.evaluacion, this.soloLectura = false, this.nota});
@@ -53,21 +58,28 @@ class PantallaResultado extends StatelessWidget {
                   const SizedBox(height: 12),
                 ],
                 if (urgentes.isNotEmpty) ...[
-                  _AlertasUrgentes(urgentes, contradiceAlModelo: categoria != 'Alto Riesgo'),
+                  _AlertasUrgentes(urgentes, nivelNoEsAlto: categoria != 'Alto Riesgo'),
                   const SizedBox(height: 14),
                 ],
                 _TarjetaNivel(estilo: estilo, evaluacion: evaluacion, recursos: recursos),
+                const SizedBox(height: 10),
+                const Row(key: Key('aviso-apoyo'), children: [
+                  Icon(Icons.info_outline_rounded, size: 18, color: ColoresMaterna.tintaSuave),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(avisoApoyo,
+                        style: TextStyle(color: ColoresMaterna.tintaSuave, fontWeight: FontWeight.w600, fontSize: 13)),
+                  ),
+                ]),
                 if (evaluacion.imputadas.isNotEmpty) ...[
                   const SizedBox(height: 10),
                   _Aviso(
                     estilo: estiloPorCategoria['Riesgo Medio']!,
                     icono: Icons.info_outline_rounded,
                     texto: 'Sin dato de ${evaluacion.imputadas.map((v) => v == 'fcf_bpm' ? 'FCF' : 'glucosa').join(' y ')}: '
-                        'el modelo lo completó con la mediana por área y trimestre. Interpretar con cautela.',
+                        'la evaluación se hizo sin esa medición. Tome el dato cuando sea posible y repita la evaluación.',
                   ),
                 ],
-                const SizedBox(height: 14),
-                _Probabilidades(evaluacion.triaje.probabilidades, recursos.clasificador.clases),
                 const SizedBox(height: 14),
                 _DatosClave(evaluacion.registro),
                 if (evaluacion.noUrgentes.isNotEmpty) ...[
@@ -75,7 +87,9 @@ class PantallaResultado extends StatelessWidget {
                   _OtrasAlertas(evaluacion.noUrgentes),
                 ],
                 const SizedBox(height: 14),
-                _Conducta(estilo: estilo, pasos: recursos.protocolo(categoria), aviso: recursos.aviso),
+                _Conducta(estilo: estilo, pasos: recursos.protocolo(categoria)),
+                const SizedBox(height: 14),
+                _Detalle(evaluacion: evaluacion, recursos: recursos),
                 if (!soloLectura) ...[
                   const SizedBox(height: 24),
                   FilledButton.icon(
@@ -102,12 +116,12 @@ class PantallaResultado extends StatelessWidget {
 }
 
 class _AlertasUrgentes extends StatelessWidget {
-  const _AlertasUrgentes(this.alertas, {required this.contradiceAlModelo});
+  const _AlertasUrgentes(this.alertas, {required this.nivelNoEsAlto});
 
   final List<Alerta3280> alertas;
 
-  /// El modelo no dio Alto Riesgo: hay que decir explícitamente que la alerta prevalece.
-  final bool contradiceAlModelo;
+  /// El semáforo no está en rojo: hay que decir explícitamente que la alerta se atiende igual.
+  final bool nivelNoEsAlto;
 
   @override
   Widget build(BuildContext context) => Container(
@@ -126,10 +140,10 @@ class _AlertasUrgentes extends StatelessWidget {
                   style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 16)),
             ),
           ]),
-          if (contradiceAlModelo)
+          if (nivelNoEsAlto)
             const Padding(
               padding: EdgeInsets.only(top: 6),
-              child: Text('Aunque el modelo no clasifica Alto Riesgo, estas alertas de la ruta prevalecen.',
+              child: Text('Aunque el nivel no es Alto Riesgo, estas alertas requieren atención inmediata.',
                   style: TextStyle(color: ColoresMaterna.ciruela100, fontSize: 13)),
             ),
           const SizedBox(height: 10),
@@ -145,7 +159,7 @@ class _AlertasUrgentes extends StatelessWidget {
       );
 }
 
-/// Tarjeta del nivel: degradado del color, anillo con la probabilidad del modelo y el motivo de la decisión.
+/// Tarjeta del nivel: degradado del color, ícono del nivel y el motivo en lenguaje claro.
 class _TarjetaNivel extends StatelessWidget {
   const _TarjetaNivel({required this.estilo, required this.evaluacion, required this.recursos});
 
@@ -155,15 +169,11 @@ class _TarjetaNivel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final triaje = evaluacion.triaje;
     final motivo = switch (evaluacion.origen) {
-      'regla_clinica' => 'Regla clínica: ${[for (final id in triaje.reglasActivadas) recursos.mensajeRegla(id)].join('; ')}',
-      'signo_alarma_3280' => 'Signo de alarma (Res. 3280): ${evaluacion.alertasQueEscalan.map((a) => a.etiqueta).join(', ')}',
-      _ => evaluacion.alertas.isEmpty ? 'Modelo de IA · sin signos críticos ni de alarma' : 'Modelo de IA · sin signos críticos',
+      'regla_clinica' => 'Signo crítico: ${recursos.motivo(evaluacion)}',
+      'signo_alarma_3280' => 'Signo de alarma: ${recursos.motivo(evaluacion)}',
+      _ => recursos.motivo(evaluacion),
     };
-    // El anillo muestra la probabilidad que el modelo da al nivel final; si una regla o un signo de alarma lo
-    // cambiaron, el modelo no lo respalda y el anillo muestra un ícono en lugar de un porcentaje engañoso.
-    final respaldado = triaje.claseModelo == evaluacion.clase;
     const blanco = Colors.white;
     final suave = Colors.white.withValues(alpha: .82);
     return Container(
@@ -176,16 +186,7 @@ class _TarjetaNivel extends StatelessWidget {
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
-          _Anillo(
-            valor: respaldado ? triaje.probabilidades[evaluacion.clase] : 1,
-            centro: respaldado
-                ? Text(_pct(triaje.probabilidades[evaluacion.clase]),
-                    style: const TextStyle(color: blanco, fontWeight: FontWeight.w800, fontSize: 19))
-                : Icon(estilo.icono, color: blanco, size: 30),
-            descripcion: respaldado
-                ? 'El modelo asigna ${_pct(triaje.probabilidades[evaluacion.clase])} a este nivel'
-                : 'Nivel decidido por la ruta, no por el modelo',
-          ),
+          _Anillo(Icon(estilo.icono, color: blanco, size: 30)),
           const SizedBox(width: 16),
           Expanded(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -208,12 +209,6 @@ class _TarjetaNivel extends StatelessWidget {
             child: Text('Además, signos de alarma: ${evaluacion.alertasQueEscalan.map((a) => a.etiqueta.toLowerCase()).join(', ')}',
                 style: TextStyle(color: suave, fontSize: 13)),
           ),
-        if (evaluacion.origen != 'modelo_ml' && triaje.claseModelo != evaluacion.clase)
-          Padding(
-            padding: const EdgeInsets.only(top: 10),
-            child: Text('El modelo por sí solo habría dicho ${recursos.clasificador.clases[triaje.claseModelo]}.',
-                style: TextStyle(color: suave, fontSize: 13)),
-          ),
         Padding(
           padding: const EdgeInsets.only(top: 10),
           child: Text(estilo.subtitulo, style: const TextStyle(color: blanco, fontWeight: FontWeight.w700, fontSize: 13.5)),
@@ -223,57 +218,61 @@ class _TarjetaNivel extends StatelessWidget {
   }
 }
 
+/// Anillo decorativo con el ícono del nivel. El porcentaje ya no va aquí: está en «Ver detalle».
 class _Anillo extends StatelessWidget {
-  const _Anillo({required this.valor, required this.centro, required this.descripcion});
+  const _Anillo(this.centro);
 
-  final double valor;
   final Widget centro;
-  final String descripcion;
 
   @override
-  Widget build(BuildContext context) => Semantics(
-        label: descripcion,
-        child: SizedBox(
-          width: 78,
-          height: 78,
-          child: CustomPaint(painter: _PintorAnillo(valor), child: Center(child: centro)),
-        ),
+  Widget build(BuildContext context) => SizedBox(
+        width: 78,
+        height: 78,
+        child: CustomPaint(painter: _PintorAnillo(), child: Center(child: centro)),
       );
 }
 
 class _PintorAnillo extends CustomPainter {
-  _PintorAnillo(this.valor);
-
-  final double valor;
-
   @override
   void paint(Canvas canvas, Size size) {
     const grosor = 7.0;
-    final rect = (Offset.zero & size).deflate(grosor / 2);
     final pincel = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = grosor
-      ..strokeCap = StrokeCap.round;
-    canvas.drawArc(rect, 0, 2 * math.pi, false, pincel..color = Colors.white.withValues(alpha: .25));
-    canvas.drawArc(rect, -math.pi / 2, 2 * math.pi * valor.clamp(0, 1), false, pincel..color = Colors.white);
+      ..color = Colors.white;
+    canvas.drawArc((Offset.zero & size).deflate(grosor / 2), 0, 2 * math.pi, false, pincel);
   }
 
   @override
-  bool shouldRepaint(_PintorAnillo anterior) => anterior.valor != valor;
+  bool shouldRepaint(_PintorAnillo anterior) => false;
 }
 
-class _Probabilidades extends StatelessWidget {
-  const _Probabilidades(this.probabilidades, this.clases);
+/// «Ver detalle», plegado: lo que sirve a quien audita y no hace falta para atender a la gestante.
+class _Detalle extends StatelessWidget {
+  const _Detalle({required this.evaluacion, required this.recursos});
 
-  final List<double> probabilidades;
-  final List<String> clases;
+  final Evaluacion evaluacion;
+  final RecursosMaterna recursos;
 
   @override
-  Widget build(BuildContext context) => Card(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(18, 16, 18, 10),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            const Text('Probabilidad por clase', style: TextStyle(fontWeight: FontWeight.w800, color: ColoresMaterna.tinta)),
+  Widget build(BuildContext context) {
+    final probabilidades = evaluacion.triaje.probabilidades;
+    final clases = recursos.clasificador.clases;
+    final estimado = evaluacion.triaje.claseModelo;
+    const nota = TextStyle(color: ColoresMaterna.tintaSuave, fontSize: 12.5, height: 1.35);
+    return Card(
+      key: const Key('detalle'),
+      clipBehavior: Clip.antiAlias,
+      child: Theme(
+        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          title: const Text('Ver detalle', style: TextStyle(fontWeight: FontWeight.w800, color: ColoresMaterna.tinta)),
+          tilePadding: const EdgeInsets.symmetric(horizontal: 18),
+          childrenPadding: const EdgeInsets.fromLTRB(18, 0, 18, 14),
+          expandedCrossAxisAlignment: CrossAxisAlignment.start,
+          expandedAlignment: Alignment.centerLeft,
+          children: [
+            const Text('Estimación del sistema para cada nivel', style: nota),
             const SizedBox(height: 12),
             for (var k = 0; k < clases.length; k++) ...[
               Row(children: [
@@ -297,9 +296,20 @@ class _Probabilidades extends StatelessWidget {
               ]),
               const SizedBox(height: 10),
             ],
-          ]),
+            if (evaluacion.origen != 'modelo_ml' && estimado != evaluacion.clase)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 6),
+                child: Text(
+                    'El nivel lo decidió un signo crítico o de alarma. Sin ese signo, la estimación sería ${clases[estimado]}.',
+                    key: const Key('detalle-estimacion'),
+                    style: nota),
+              ),
+            Text('Versión del sistema: ${recursos.clasificador.version}', style: nota),
+          ],
         ),
-      );
+      ),
+    );
+  }
 }
 
 /// Los datos que más pesan, como píldoras: edad, semanas, presión y área.
@@ -339,7 +349,7 @@ class _OtrasAlertas extends StatelessWidget {
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             const Text('Alertas de la ruta 3280', style: TextStyle(fontWeight: FontWeight.w800, color: ColoresMaterna.tinta)),
             const SizedBox(height: 4),
-            const Text('No cambian la clasificación del modelo.', style: TextStyle(color: ColoresMaterna.tintaSuave, fontSize: 13)),
+            const Text('No cambian el nivel de riesgo.', style: TextStyle(color: ColoresMaterna.tintaSuave, fontSize: 13)),
             for (final a in alertas)
               Padding(
                 padding: const EdgeInsets.only(top: 10),
@@ -363,11 +373,10 @@ class _OtrasAlertas extends StatelessWidget {
 
 /// Conducta sugerida en el aviso del color del nivel.
 class _Conducta extends StatelessWidget {
-  const _Conducta({required this.estilo, required this.pasos, required this.aviso});
+  const _Conducta({required this.estilo, required this.pasos});
 
   final EstiloRiesgo estilo;
   final List<String> pasos;
-  final String aviso;
 
   @override
   Widget build(BuildContext context) => Container(
@@ -376,6 +385,9 @@ class _Conducta extends StatelessWidget {
         decoration: BoxDecoration(color: estilo.fondo, borderRadius: BorderRadius.circular(18)),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text('Conducta sugerida', style: TextStyle(fontWeight: FontWeight.w800, color: estilo.tinta)),
+          const SizedBox(height: 2),
+          Text('Criterio pendiente de validación clínica',
+              key: const Key('conducta-por-validar'), style: TextStyle(color: estilo.tinta.withValues(alpha: .8), fontSize: 12)),
           for (final (i, paso) in pasos.indexed)
             Padding(
               padding: const EdgeInsets.only(top: 10),
@@ -389,9 +401,6 @@ class _Conducta extends StatelessWidget {
                 Expanded(child: Text(paso, style: TextStyle(height: 1.4, color: estilo.tinta))),
               ]),
             ),
-          const SizedBox(height: 12),
-          Text(aviso,
-              style: TextStyle(color: estilo.tinta.withValues(alpha: .8), fontSize: 12)),
         ]),
       );
 }

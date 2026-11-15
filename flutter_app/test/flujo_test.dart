@@ -148,7 +148,9 @@ void main() {
     await terminarYEvaluar(tester);
     expect(find.text('Alto riesgo'), findsOneWidget);
     expect(find.text('NIVEL ALTO'), findsOneWidget);
-    expect(find.textContaining('Regla clínica: '), findsOneWidget);
+    expect(find.textContaining('Signo crítico: '), findsOneWidget);
+    expect(find.byKey(const Key('aviso-apoyo')), findsOneWidget);
+    expect(find.text('Criterio pendiente de validación clínica'), findsOneWidget);
     expect(find.textContaining('PAS ≥ 160 mmHg'), findsOneWidget);
     expect(find.textContaining('Sin dato de FCF'), findsOneWidget);
   });
@@ -159,7 +161,17 @@ void main() {
     await terminarYEvaluar(tester);
     expect(find.text('Bajo riesgo'), findsOneWidget);
     expect(find.text('NIVEL BAJO'), findsOneWidget);
-    expect(find.text('Modelo de IA · sin signos críticos ni de alarma'), findsOneWidget);
+    expect(find.text('Sin signos críticos ni de alarma'), findsOneWidget);
+    expect(find.text('Herramienta de apoyo: no reemplaza el juicio clínico.'), findsOneWidget);
+    // lenguaje para personal de salud: ni «modelo», ni «IA», ni «probabilidad»; los porcentajes, solo al abrir el detalle
+    for (final jerga in ['odelo', 'IA ', 'robabilidad', 'mediana']) {
+      expect(find.textContaining(jerga), findsNothing, reason: jerga);
+    }
+    expect(find.textContaining('%'), findsNothing);
+    await tocar(tester, find.text('Ver detalle'));
+    expect(find.text('Estimación del sistema para cada nivel'), findsOneWidget);
+    expect(find.textContaining('%'), findsNWidgets(3));
+    expect(find.byKey(const Key('detalle-estimacion')), findsNothing); // aquí no intervino ningún signo
     expect(find.byKey(const Key('alertas-urgentes')), findsNothing);
   });
 
@@ -170,9 +182,11 @@ void main() {
     await elegir(tester, 'vision_borrosa', 'Sí');
     await terminarYEvaluar(tester);
     expect(find.text('Alto riesgo'), findsOneWidget);
-    expect(find.textContaining('Signo de alarma (Res. 3280): '), findsOneWidget);
+    expect(find.textContaining('Signo de alarma: '), findsOneWidget);
     expect(find.textContaining('Sangrado genital'), findsOneWidget);
-    expect(find.text('El modelo por sí solo habría dicho Bajo Riesgo.'), findsOneWidget);
+    expect(find.textContaining('la estimación sería'), findsNothing); // plegado
+    await tocar(tester, find.text('Ver detalle'));
+    expect(find.textContaining('Sin ese signo, la estimación sería Bajo Riesgo.'), findsOneWidget);
     expect(find.textContaining('Remisión INMEDIATA'), findsOneWidget); // protocolo de Alto, no «próximos días»
   });
 
