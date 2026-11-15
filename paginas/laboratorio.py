@@ -1,10 +1,11 @@
-"""MATERNA — Módulo 1: Laboratorio de ML auditable (fases 01 a 11, entrega al Módulo 2 y ética).
+"""MATERNA — Módulo 1: Laboratorio de ML auditable (fases 01 a 11, entrega al Módulo 2, ética y lista de chequeo).
 
-Audiencia: docente y evaluadores. Cada pestaña muestra los datos y resultados reales del repositorio
+Audiencia: docente y equipo. Cada pestaña muestra los datos y resultados reales del repositorio
 (reports/, models/) y, en "Código que se ejecuta", la función exacta de src/ que los produce.
 La fase 02 incluye la ingesta auditable de archivos de la IPS. La pestaña 12 documenta lo que el
 Módulo 1 entrega al Módulo 2 (app Flutter, web y móvil): modelo, preprocesamiento y reglas en JSON.
-Solo el administrador sube archivos propios y reentrena; el evaluador audita en modo lectura.
+El administrador hace todo, incluido reentrenar; el médico auditor audita e ingiere archivos, pero no reentrena.
+La última pestaña es la lista de chequeo del ciclo de vida (src/lista_chequeo.py).
 """
 import hashlib
 import inspect
@@ -34,6 +35,7 @@ from src.exportar_a_dart import DIR_ASSETS, RUTA_MODELO
 from src.filtro_3280 import tabla_decisiones, variables_modelo
 from src.generar_ejemplo_ips import DIR_EJEMPLOS, DIR_PLANTILLAS
 from src.inspeccionar_ips import CENTINELAS, inspeccionar, reemplazar_centinelas
+from src.lista_chequeo import ACTIVIDADES, ESTADOS, resumen as resumen_chequeo, tabla as tabla_chequeo
 from src.seudonimizacion import LONGITUD_MINIMA_SAL, VARIABLE_SAL
 from src.train_models import con_estrategias_balanceo, grid_random_forest
 
@@ -124,8 +126,7 @@ def seccion_ingesta():
         if subido is not None:
             st.session_state["archivo_ips"] = (subido.name, subido.getvalue())
     else:
-        st.caption("Su rol audita la ingesta con el ejemplo ficticio. Subir y guardar archivos reales de la IPS es del "
-                   "administrador y del médico auditor.")
+        st.caption("Su rol solo puede ingerir el ejemplo ficticio.")
     if st.button("Ingerir el ejemplo ficticio (307 gestantes inventadas)", icon=":material/science:"):
         st.session_state["archivo_ips"] = ("ips_ficticio_3280.csv", (DIR_EJEMPLOS / "ips_ficticio_3280.csv").read_bytes())
     if "archivo_ips" not in st.session_state:
@@ -198,7 +199,7 @@ html(ui.cabecera("Módulo 1 · Laboratorio de aprendizaje automático auditable"
 
 pestanas = st.tabs(["01 Problema", "02 Recolección e ingesta", "03 EDA", "04 Limpieza", "05 Variables", "06 División",
                     "07 Algoritmo", "08 Entrenamiento", "09 Hiperparámetros", "10 Evaluación", "11 Generalización",
-                    "12 Entrega al Módulo 2", "13 Ética y limitaciones"])
+                    "12 Entrega al Módulo 2", "13 Ética y limitaciones", "Lista de chequeo"])
 df = dataset()
 test = metricas("metricas_test.csv").set_index("sistema")
 principal = test.loc["Híbrido (Random Forest + reglas)"]
@@ -380,7 +381,7 @@ with pestanas[7]:
         progreso.empty()
         zona.empty()  # el resultado final se dibuja abajo
     if not permitido:
-        st.caption("Solo el rol administrador puede reentrenar. Este laboratorio está en modo lectura para su rol.")
+        st.caption("Solo el administrador puede reentrenar.")
     resultado = st.session_state.get("entrenamiento")
     if resultado:
         st.success(f"Listo en {resultado['segundos']:.1f} s · F1-macro en validación cruzada {resultado['cv_f1_media']:.4f}")
@@ -509,3 +510,24 @@ with pestanas[12]:
         "herramienta de **tamizaje y canalización comunitaria**, no reemplaza el control prenatal.\n"
         "- **Responsabilidad:** prototipo académico. No usar para decisiones clínicas reales."
     )
+
+# ---------------------------------------------------------------- Lista de chequeo
+with pestanas[13]:
+    html(ui.titulo_seccion("✓", "Lista de chequeo del ciclo de vida"))
+    chequeo = tabla_chequeo()
+    conteo = chequeo["Estado"].value_counts().reindex(list(ESTADOS), fill_value=0)
+    st.markdown(
+        f"Auditoría del repositorio contra las **12 fases** del ciclo de aprendizaje automático: **{len(ACTIVIDADES)} actividades**. "
+        "**Hecho** quiere decir que hoy se puede ver o ejecutar en el aplicativo; **Parcial**, que existe una parte; "
+        "**Falta**, que aún no existe y en qué etapa del plan se construye. La columna *Evidencia* dice en qué pestaña verlo."
+    )
+    c = st.columns(3)
+    for col, estado in zip(c, ESTADOS):
+        col.metric(estado, int(conteo[estado]))
+    st.markdown("**Resumen por fase**")
+    st.dataframe(resumen_chequeo(), hide_index=True, width="stretch")
+    filtro = st.segmented_control("Mostrar", ["Todas", *ESTADOS], default="Todas", key="chequeo_estado")
+    visibles = chequeo if filtro in (None, "Todas") else chequeo[chequeo["Estado"] == filtro]
+    st.dataframe(visibles, hide_index=True, width="stretch", height=560)
+    st.download_button("Descargar la lista de chequeo (CSV)", chequeo.to_csv(index=False).encode("utf-8-sig"),
+                       "materna_lista_de_chequeo.csv", "text/csv", icon=":material/download:")

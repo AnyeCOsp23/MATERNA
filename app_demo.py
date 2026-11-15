@@ -1,12 +1,12 @@
 """MATERNA — Módulo 1: Laboratorio de ML (Fase 3). Bienvenida, inicio de sesión y menú por rol.
 
 Arquitectura de dos módulos independientes pero integrados:
-  Módulo 1 (esta app, Streamlit)  fases 01 a 11 con la ingesta auditable; audiencia: docente y evaluadores.
+  Módulo 1 (esta app, Streamlit)  fases 01 a 11 con la ingesta auditable; audiencia: docente y equipo.
   Módulo 2 (flutter_app/, web y móvil)  despliegue para el personal de salud: captura manual, carga masiva
                                    y semáforo. Consume los JSON que entrega el Módulo 1 (pestaña 12).
 
 Páginas (carpeta paginas/):
-  Laboratorio ML  fases 01 a 11, entrega al Módulo 2 y ética (inicio)
+  Laboratorio ML  fases 01 a 11, entrega al Módulo 2, ética y lista de chequeo (inicio)
   Variables 3280  tabla de decisiones del filtro de la Resolución 3280
   Triaje (Fase 2) demo anterior del triaje; provisional hasta que el Módulo 2 esté listo
 
@@ -98,7 +98,7 @@ def formulario_login():
                     st.session_state["bloqueo_hasta"] = time.time() + SEGUNDOS_BLOQUEO
                     st.session_state["intentos"] = 0
                 st.error("Usuario o contraseña incorrectos.")
-            st.caption("Para revisar el sistema: administrador, médico auditor y evaluador académico. El personal de salud que "
+            st.caption("Para revisar el sistema: administrador y médico auditor. El personal de salud que "
                        "atiende a las gestantes usa el Módulo 2, la app MATERNA web y móvil. Las contraseñas se guardan solo como hash scrypt.")
     return None
 
