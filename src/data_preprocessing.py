@@ -20,6 +20,9 @@ from src.config import (
     VARS_CON_NULOS, VARS_CONTINUAS, VARS_DEMOGRAFICAS, VARS_DISCRETAS,
 )
 
+# Partición oficial de la Fase 2: % de entrenamiento, validación y prueba
+PARTICION_OFICIAL = (70, 15, 15)
+
 # Rangos fisiológicamente plausibles para detectar errores de captura (no outliers clínicos).
 # Un valor fuera de estos rangos se considera error y se marca como nulo.
 RANGOS_PLAUSIBLES = {
@@ -163,10 +166,22 @@ def separar_xy(df):
     return X, y
 
 
-def particionar(X, y, semilla=SEMILLA):
-    """Partición estratificada 70 % entrenamiento / 15 % validación / 15 % prueba."""
-    X_train, X_tmp, y_train, y_tmp = train_test_split(X, y, test_size=0.30, stratify=y, random_state=semilla)
-    X_val, X_test, y_val, y_test = train_test_split(X_tmp, y_tmp, test_size=0.50, stratify=y_tmp, random_state=semilla)
+def validar_proporciones(proporciones):
+    """Tres porcentajes enteros (entrenamiento, validación, prueba), todos mayores que cero, que sumen 100."""
+    if len(proporciones) != 3 or any(int(p) != p or p <= 0 for p in proporciones):
+        raise ValueError("La partición necesita tres porcentajes enteros mayores que cero: entrenamiento, validación y prueba.")
+    if sum(proporciones) != 100:
+        raise ValueError(f"Los porcentajes deben sumar 100 y suman {sum(proporciones)}.")
+
+
+def particionar(X, y, semilla=SEMILLA, proporciones=PARTICION_OFICIAL):
+    """Partición estratificada entrenamiento / validación / prueba (por defecto 70 / 15 / 15, la oficial)."""
+    validar_proporciones(proporciones)
+    _, validacion, prueba = proporciones
+    X_train, X_tmp, y_train, y_tmp = train_test_split(
+        X, y, test_size=(validacion + prueba) / 100, stratify=y, random_state=semilla)
+    X_val, X_test, y_val, y_test = train_test_split(
+        X_tmp, y_tmp, test_size=prueba / (validacion + prueba), stratify=y_tmp, random_state=semilla)
     return X_train, X_val, X_test, y_train, y_val, y_test
 
 

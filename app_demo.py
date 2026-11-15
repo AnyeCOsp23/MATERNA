@@ -27,7 +27,7 @@ SEGUNDOS_BLOQUEO = 60
 # Módulos que importa el laboratorio. La primera vez tardan unos 4,5 s (scikit-learn, pandas, matplotlib,
 # imbalanced-learn, Altair); se precargan mientras se ven la bienvenida y el login.
 MODULOS_LABORATORIO = (
-    "src.graficos", "src.clinical_rules", "src.consolidado_ips", "src.data_preprocessing", "src.entrenamiento_vivo",
+    "src.graficos", "src.clinical_rules", "src.consolidado_ips", "src.data_preprocessing", "src.experimentos",
     "src.evaluate", "src.exportar_a_dart", "src.filtro_3280", "src.generar_ejemplo_ips", "src.inspeccionar_ips",
     "src.train_models",
 )
@@ -136,6 +136,6 @@ with st.sidebar:
     st.divider()
     html(ui.tarjeta_usuario(usuario["nombre"], ROLES[usuario["rol"]]))
     if st.button("Cerrar sesión", icon=":material/logout:", width="stretch"):
-        for clave in ("usuario", "entrenamiento", "archivo_ips"):
+        for clave in ("usuario", "entrenamiento", "experimento_hp", "curvas_exp", "archivo_ips"):
             st.session_state.pop(clave, None)
         st.rerun()

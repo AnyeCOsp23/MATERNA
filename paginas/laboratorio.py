@@ -5,6 +5,8 @@ Audiencia: docente y equipo. Cada pestaña muestra los datos y resultados reales
 La fase 02 incluye la ingesta auditable de archivos de la IPS. La pestaña 12 documenta lo que el
 Módulo 1 entrega al Módulo 2 (app Flutter, web y móvil): modelo, preprocesamiento y reglas en JSON.
 El administrador hace todo, incluido reentrenar; el médico auditor audita e ingiere archivos, pero no reentrena.
+Lo que se entrena aquí va al conjunto de trabajo (src/experimentos.py): cada entrenamiento es una versión nueva
+y el modelo en uso y las cifras oficiales de la Fase 2 no cambian.
 La última pestaña es la lista de chequeo del ciclo de vida (src/lista_chequeo.py).
 """
 import hashlib
@@ -20,16 +22,15 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 
-from src import graficos, ui_theme as ui
+from src import experimentos, graficos, ui_theme as ui
 from src.autenticacion import ROLES, puede
 from src.clinical_rules import evaluar_reglas, mascara_reglas
-from src.config import CLASE_ALTO, DIR_METRICAS, DIR_MODELOS, NOMBRES_CLASES, VARS_CON_NULOS
+from src.config import CLASE_ALTO, DIR_METRICAS, DIR_MODELOS, NOMBRES_CLASES, SEMILLA, VARS_CON_NULOS
 from src.consolidado_ips import datos_consolidados, guardar_carga, resumen_consolidado
 from src.data_preprocessing import (
-    RANGOS_PLAUSIBLES, MedianaEstratificadaImputer, cargar_dataset, marcar_fuera_de_rango,
+    PARTICION_OFICIAL, RANGOS_PLAUSIBLES, MedianaEstratificadaImputer, cargar_dataset, marcar_fuera_de_rango,
     particionar, pasos_preprocesamiento, separar_xy,
 )
-from src.entrenamiento_vivo import entrenar, mejores_hiperparametros
 from src.evaluate import MATRIZ_COSTO, calcular_metricas, intervalo_bootstrap
 from src.exportar_a_dart import DIR_ASSETS, RUTA_MODELO
 from src.filtro_3280 import tabla_decisiones, variables_modelo
@@ -37,9 +38,11 @@ from src.generar_ejemplo_ips import DIR_EJEMPLOS, DIR_PLANTILLAS
 from src.inspeccionar_ips import CENTINELAS, inspeccionar, reemplazar_centinelas
 from src.lista_chequeo import ACTIVIDADES, ESTADOS, resumen as resumen_chequeo, tabla as tabla_chequeo
 from src.seudonimizacion import LONGITUD_MINIMA_SAL, VARIABLE_SAL
-from src.train_models import con_estrategias_balanceo, grid_random_forest
+from src.train_models import GRID_C_LR, con_estrategias_balanceo, grid_random_forest
 
 usuario = st.session_state.get("usuario")
+# Con menos casos de Alto Riesgo que estos en un conjunto, un solo error mueve su recall más de 10 puntos
+MIN_ALTO = 10
 ETIQUETAS = {"edad": "Edad (años)", "semanas_gestacion": "Semanas de gestación", "n_controles_prenatales": "Controles prenatales",
              "pas_mmhg": "PAS (mmHg)", "pad_mmhg": "PAD (mmHg)", "fcf_bpm": "FCF (lpm)", "glucosa_mgdl": "Glucosa (mg/dL)"}
 
@@ -69,9 +72,9 @@ def metricas(nombre):
 
 
 @st.cache_data
-def particiones_resumen():
+def particiones_resumen(proporciones=PARTICION_OFICIAL, semilla=SEMILLA):
     X, y = separar_xy(marcar_fuera_de_rango(dataset()))
-    X_train, X_val, X_test, y_train, y_val, y_test = particionar(X, y)
+    X_train, X_val, X_test, y_train, y_val, y_test = particionar(X, y, semilla, proporciones)
     filas = []
     for nombre, yp in [("Entrenamiento", y_train), ("Validación", y_val), ("Prueba", y_test)]:
         conteo = yp.value_counts().reindex(range(3), fill_value=0)
@@ -179,6 +182,122 @@ def seccion_ingesta():
         st.dataframe(cargas, hide_index=True, width="stretch")
 
 
+def entrenar_con_avance(algoritmo, hiperparametros, proporciones, semilla):
+    """Entrena una versión nueva mostrando el avance. Devuelve el resultado, o None si la configuración falla."""
+    progreso = st.progress(0.0, text="Validación cruzada…")
+    zona = st.empty()
+    folds = []
+
+    def al_avanzar(etapa, detalle):
+        if etapa == "cv":
+            folds.append(detalle["f1_macro"])
+            progreso.progress(len(folds) / 8, text=f"Partición {detalle['particion']} de 5 · F1-macro {detalle['f1_macro']:.4f}")
+            zona.altair_chart(graficos.f1_por_particion(folds), width="stretch")
+        elif etapa == "ajuste":
+            progreso.progress(6 / 8, text=f"Ajuste final con {detalle['n']} gestantes…")
+        else:
+            progreso.progress(7 / 8 if detalle["conjunto"] == "validación" else 1.0, text=f"Evaluación en {detalle['conjunto']}…")
+
+    try:
+        resultado = experimentos.entrenar(algoritmo, hiperparametros, proporciones, semilla, usuario["usuario"],
+                                          al_avanzar=al_avanzar)
+        resultado.pop("modelo")  # ya quedó guardado como versión; no hace falta en la sesión
+    except ValueError as error:
+        st.error(f"No se pudo entrenar: {error}")
+        resultado = None
+    progreso.empty()
+    zona.empty()  # el resultado final se dibuja aparte
+    return resultado
+
+
+def mostrar_entrenamiento(resultado, clave):
+    r = resultado["registro"]
+    st.success(f"Versión **{r['version']}** creada en {r['tiempo_s']:.1f} s · {r['algoritmo']} · partición {r['particion']} · "
+               f"semilla {r['semilla']} · F1-macro en validación cruzada {r['cv_f1_macro']:.4f}")
+    st.altair_chart(graficos.f1_por_particion(resultado["cv_f1_por_particion"]), width="stretch", key=f"folds_{clave}")
+    st.dataframe(pd.DataFrame([{"Conjunto": c, "Gestantes": m["n"], "F1-macro": m["f1_macro"], "Recall Alto": m["recall_alto"],
+                                "Accuracy": m["accuracy"], "ROC-AUC": m.get("roc_auc_ovr_macro"),
+                                "Costo clínico": m["costo_clinico_total"]}
+                               for c, m in resultado["metricas"].items()]).round(4), hide_index=True, width="stretch")
+    if resultado["identico_al_modelo_en_uso"]:
+        st.info("**Reproducible:** con la misma partición, semilla e hiperparámetros, el modelo entrenado da probabilidades "
+                "idénticas al modelo en uso.")
+    st.caption("Métricas del sistema híbrido (modelo + reglas clínicas). La versión quedó en el conjunto de trabajo; "
+               "el modelo en uso no cambió.")
+
+
+COLUMNAS_REGISTRO = {
+    "version": "Versión", "fecha": "Fecha", "usuario": "Usuario", "algoritmo": "Algoritmo", "balanceo": "Balanceo",
+    "hiperparametros": "Hiperparámetros", "particion": "Partición", "semilla": "Semilla", "n_entrenamiento": "n entrenamiento",
+    "cv_f1_macro": "F1-macro CV", "val_f1_macro": "F1-macro validación", "val_recall_alto": "Recall Alto validación",
+    "val_costo_clinico_total": "Costo validación", "prueba_f1_macro": "F1-macro prueba", "prueba_recall_alto": "Recall Alto prueba",
+    "tiempo_s": "Tiempo (s)",
+}
+
+
+def tabla_versiones(registro):
+    st.dataframe(registro[list(COLUMNAS_REGISTRO)].rename(columns=COLUMNAS_REGISTRO).round(4), hide_index=True, width="stretch")
+
+
+def mostrar_registro():
+    """Tabla comparativa de las versiones del conjunto de trabajo y criterio de selección (pestaña 07)."""
+    st.markdown("#### Experimentos del conjunto de trabajo")
+    registro = experimentos.tabla_registro()
+    if registro.empty:
+        st.caption("Aún no hay experimentos. Entrene un modelo en la pestaña 08 o pruebe otra configuración en la 09.")
+        return
+    mejor = registro.set_index("version").loc[experimentos.mejor_version(registro)]
+    st.success(f"**Criterio de selección:** mayor F1-macro en validación y, en empate, mayor recall de Alto Riesgo en validación. "
+               f"Con ese criterio, la mejor de {len(registro)} versión(es) es **{mejor.name}**: {mejor['algoritmo']}, partición "
+               f"{mejor['particion']}, F1-macro {mejor['val_f1_macro']:.4f} y recall de Alto {mejor['val_recall_alto']:.4f}.")
+    tabla_versiones(registro)
+    st.download_button("Descargar el registro de experimentos (CSV)", registro.to_csv(index=False).encode("utf-8-sig"),
+                       "materna_registro_experimentos.csv", "text/csv", icon=":material/download:")
+    st.caption("Cada fila es una versión guardada (modelo y parámetros); ninguna reemplaza al modelo en uso. "
+               "El conjunto de prueba se informa, pero no se usa para elegir. Versiones con particiones o semillas distintas "
+               "se midieron sobre gestantes distintas: compárelas con cuidado.")
+
+
+def indice(opciones, valor):
+    return opciones.index(valor) if valor in opciones else 0
+
+
+def mas_cercano(opciones, valor):
+    return min(opciones, key=lambda o: abs(o - valor))
+
+
+def formulario_hiperparametros(algoritmo):
+    """Controles de los hiperparámetros del algoritmo; parten de los mejores de la búsqueda de la Fase 2."""
+    base = experimentos.hiperparametros_base(algoritmo)
+    c = st.columns(4)
+    if algoritmo == "Random Forest":
+        profundidades, variables = [None, 4, 8, 12, 16, 20], ["sqrt", "log2", 0.3, 0.5, 0.8, 1.0]
+        hp = {
+            "n_estimators": c[0].number_input("Árboles (n_estimators)", 10, 1000, base["n_estimators"], step=50, key="hp_rf_arboles"),
+            "max_depth": c[1].selectbox("Profundidad máxima (max_depth)", profundidades, indice(profundidades, base["max_depth"]),
+                                        format_func=lambda v: "Sin límite" if v is None else str(v), key="hp_rf_profundidad"),
+            "min_samples_leaf": c[2].number_input("Mínimo por hoja (min_samples_leaf)", 1, 50, base["min_samples_leaf"], key="hp_rf_hoja"),
+            "max_features": c[3].selectbox("Variables por división (max_features)", variables, indice(variables, base["max_features"]),
+                                           key="hp_rf_variables"),
+        }
+    elif algoritmo == "Regresión Logística":
+        valores = [float(f"{v:.4g}") for v in GRID_C_LR]
+        hp = {"C": c[0].select_slider("Regularización (C)", valores, mas_cercano(valores, base["C"]), key="hp_lr_c")}
+    else:
+        valores, gammas = [0.01, 0.1, 1.0, 10.0, 100.0, 1000.0], ["scale", 0.001, 0.01, 0.1, 1.0]
+        kernel = c[0].selectbox("Kernel", list(experimentos.KERNELS), indice(list(experimentos.KERNELS), base["kernel"]), key="hp_svm_kernel")
+        hp = {"kernel": kernel, "C": c[1].select_slider("Regularización (C)", valores, mas_cercano(valores, base["C"]), key="hp_svm_c")}
+        if kernel != "linear":
+            hp["gamma"] = c[2].selectbox("Gamma", gammas, indice(gammas, base["gamma"]), key="hp_svm_gamma")
+        if kernel == "poly":
+            hp["degree"] = c[3].selectbox("Grado del polinomio", [2, 3, 4, 5], key="hp_svm_grado")
+    balanceos = list(experimentos.BALANCEOS)
+    hp["balanceo"] = st.radio(
+        "Balanceo de clases", balanceos, indice(balanceos, base["balanceo"]), horizontal=True, key=f"hp_balanceo_{algoritmo}",
+        format_func={"SMOTE": "SMOTE (sobremuestreo dentro de cada partición)", "class_weight": "Pesos por clase"}.get)
+    return hp
+
+
 @st.cache_resource
 def modelo_en_uso():
     return joblib.load(RUTA_MODELO)
@@ -201,6 +320,7 @@ pestanas = st.tabs(["01 Problema", "02 Recolección e ingesta", "03 EDA", "04 Li
                     "07 Algoritmo", "08 Entrenamiento", "09 Hiperparámetros", "10 Evaluación", "11 Generalización",
                     "12 Entrega al Módulo 2", "13 Ética y limitaciones", "Lista de chequeo"])
 df = dataset()
+permitido = puede(usuario, "entrenar")
 test = metricas("metricas_test.csv").set_index("sistema")
 principal = test.loc["Híbrido (Random Forest + reglas)"]
 
@@ -326,14 +446,39 @@ with pestanas[4]:
 # ---------------------------------------------------------------- 06
 with pestanas[5]:
     html(ui.titulo_seccion("06", "División de los datos"))
-    tabla, disjuntos = particiones_resumen()
+    st.markdown("Elija los porcentajes y la semilla de la partición del **conjunto de trabajo**. La usan los entrenamientos de las "
+                "pestañas 08 y 09. Las cifras oficiales de la Fase 2 se calcularon con 70/15/15 y semilla 42, y no cambian.")
+    c = st.columns(4)
+    proporciones = (c[0].number_input("Entrenamiento (%)", 1, 98, PARTICION_OFICIAL[0], key="part_entrenamiento"),
+                    c[1].number_input("Validación (%)", 1, 98, PARTICION_OFICIAL[1], key="part_validacion"),
+                    c[2].number_input("Prueba (%)", 1, 98, PARTICION_OFICIAL[2], key="part_prueba"))
+    semilla_trabajo = c[3].number_input("Semilla", 0, 2**31 - 1, SEMILLA, key="part_semilla")
+    particion_valida = True
+    try:
+        tabla, disjuntos = particiones_resumen(proporciones, semilla_trabajo)
+    except ValueError as error:
+        particion_valida = False
+        st.error(f"{error} Corríjalos para poder entrenar; abajo se muestra la partición oficial.")
+        tabla, disjuntos = particiones_resumen()
+    texto_particion = "/".join(str(p) for p in proporciones)
+    es_oficial = proporciones == PARTICION_OFICIAL and semilla_trabajo == SEMILLA
     st.dataframe(tabla, hide_index=True, width="stretch")
+    if particion_valida:
+        pocos = tabla[tabla["Alto Riesgo"] < MIN_ALTO]
+        if not pocos.empty:
+            st.warning("Muy pocos casos de Alto Riesgo en " + " y ".join(f"{f['Conjunto']} ({f['Alto Riesgo']})" for _, f in pocos.iterrows())
+                       + f": con menos de {MIN_ALTO}, un solo error mueve el recall de Alto más de 10 puntos.")
+        if es_oficial:
+            st.caption("Es la partición oficial de la Fase 2.")
+        else:
+            st.info(f"Partición de trabajo **{texto_particion}** con semilla {semilla_trabajo}. Solo afecta a lo que se entrene "
+                    "desde aquí; las tablas oficiales de las pestañas 07, 09, 10 y 11 siguen siendo las de 70/15/15.")
     st.markdown(
-        f"- Partición **70/15/15 estratificada** por clase, con semilla 42: la proporción de Alto Riesgo es la misma en los tres conjuntos.\n"
+        f"- Partición **estratificada** por clase: la proporción de Alto Riesgo es la misma en los tres conjuntos.\n"
         f"- Conjuntos disjuntos (ninguna gestante se repite): **{'sí' if disjuntos else 'NO'}**.\n"
         "- **Sin fuga de datos:** imputador, escalador y One-Hot se ajustan solo con el entrenamiento, y SMOTE se aplica "
         "**dentro** de cada partición de la validación cruzada, nunca antes.\n"
-        "- El conjunto de **prueba se usó una sola vez**, al final: el modelo se eligió con validación."
+        "- El conjunto de **prueba** de la Fase 2 se usó una sola vez, al final: el modelo se eligió con validación."
     )
     codigo(particionar)
 
@@ -349,6 +494,7 @@ with pestanas[6]:
     st.markdown("**Selección del sistema híbrido en el conjunto de validación**")
     val = metricas("metricas_validacion.csv")
     st.dataframe(val[["sistema", "f1_macro", "recall_alto", "costo_clinico_total", "roc_auc_ovr_macro"]], hide_index=True, width="stretch")
+    zona_registro = st.container()  # se llena al final: así incluye lo que se entrene en esta misma ejecución
     st.info("**Por qué Random Forest y no la SVM de la Fase 1:** además de su mejor F1-macro, las pruebas de coherencia clínica "
             "cambian una sola variable de una gestante sana (presión 145/95, glucosa 145, FCF 165, edad 36 o cero controles). "
             "La SVM respondía Bajo Riesgo en esos casos; el Random Forest los clasifica al menos como Medio.")
@@ -357,41 +503,19 @@ with pestanas[6]:
 # ---------------------------------------------------------------- 08
 with pestanas[7]:
     html(ui.titulo_seccion("08", "Entrenamiento en vivo"))
-    st.markdown("Reentrena el Random Forest con los **mejores hiperparámetros** de la búsqueda, sin repetirla. "
-                "Muestra cada partición de la validación cruzada al terminar y compara con el modelo en uso. "
-                "**No reemplaza el modelo en uso.**")
-    st.json(mejores_hiperparametros(), expanded=True)
-    permitido = puede(usuario, "entrenar")
-    if st.button("Entrenar en vivo", type="primary", icon=":material/play_arrow:", disabled=not permitido):
-        progreso = st.progress(0.0, text="Validación cruzada…")
-        zona = st.empty()
-        folds = []
-
-        def al_avanzar(etapa, detalle):
-            if etapa == "cv":
-                folds.append(detalle["f1_macro"])
-                progreso.progress(len(folds) / 8, text=f"Partición {detalle['particion']} de 5 · F1-macro {detalle['f1_macro']:.4f}")
-                zona.altair_chart(graficos.f1_por_particion(folds), width="stretch")
-            elif etapa == "ajuste":
-                progreso.progress(6 / 8, text=f"Ajuste final con {detalle['n']} gestantes…")
-            else:
-                progreso.progress(7 / 8 if detalle["conjunto"] == "validación" else 1.0, text=f"Evaluación en {detalle['conjunto']}…")
-
-        st.session_state["entrenamiento"] = entrenar(al_avanzar)
-        progreso.empty()
-        zona.empty()  # el resultado final se dibuja abajo
+    st.markdown(f"Entrena el algoritmo elegido con los **mejores hiperparámetros** de la búsqueda de la Fase 2, sobre la partición "
+                f"**{texto_particion}** con semilla {semilla_trabajo} (pestaña 06). Muestra cada partición de la validación cruzada al "
+                "terminar y guarda el resultado como una **versión nueva**. **No reemplaza el modelo en uso.**")
+    algoritmo = st.selectbox("Algoritmo", experimentos.ALGORITMOS, key="entrenar_algoritmo")
+    st.json(experimentos.hiperparametros_base(algoritmo), expanded=True)
+    if st.button("Entrenar en vivo", type="primary", icon=":material/play_arrow:", disabled=not (permitido and particion_valida)):
+        st.session_state["entrenamiento"] = entrenar_con_avance(algoritmo, None, proporciones, semilla_trabajo)
     if not permitido:
         st.caption("Solo el administrador puede reentrenar.")
-    resultado = st.session_state.get("entrenamiento")
-    if resultado:
-        st.success(f"Listo en {resultado['segundos']:.1f} s · F1-macro en validación cruzada {resultado['cv_f1_media']:.4f}")
-        grafico(graficos.f1_por_particion(resultado["cv_f1_por_particion"]))
-        st.dataframe(pd.DataFrame([{"Conjunto": c, "Modelo": s, "F1-macro": m["f1_macro"], "Recall Alto": m["recall_alto"],
-                                    "ROC-AUC": m["roc_auc_ovr_macro"], "Costo clínico": m["costo_clinico_total"]}
-                                   for (c, s), m in resultado["metricas"].items()]).round(4), hide_index=True, width="stretch")
-        if resultado["identico_al_modelo_en_uso"]:
-            st.info("**Reproducible:** con la misma semilla, el modelo reentrenado da probabilidades idénticas al modelo en uso.")
-    codigo(entrenar)
+    if st.session_state.get("entrenamiento"):
+        mostrar_entrenamiento(st.session_state["entrenamiento"], "vivo")
+    st.caption("Para cambiar los hiperparámetros, use «Probar otra configuración» en la pestaña 09.")
+    codigo(experimentos.entrenar)
 
 # ---------------------------------------------------------------- 09
 with pestanas[8]:
@@ -406,7 +530,25 @@ with pestanas[8]:
     st.dataframe(exp[exp["modelo"] == modelo].sort_values("cv_f1_macro_media", ascending=False)
                  [["balanceo", "hiperparametros", "cv_f1_macro_media", "cv_f1_macro_std", "cv_recall_alto_media", "tiempo_ajuste_s"]].head(10),
                  hide_index=True, width="stretch")
-    codigo(grid_random_forest)
+
+    st.markdown("#### Probar otra configuración")
+    st.markdown(f"Cambie los hiperparámetros y entrene: se guarda como una **versión nueva** del conjunto de trabajo, con la "
+                f"partición {texto_particion} y la semilla {semilla_trabajo} elegidas en la pestaña 06. Los controles parten de la "
+                "mejor configuración de la búsqueda.")
+    algoritmo_hp = st.selectbox("Algoritmo", experimentos.ALGORITMOS, key="hp_algoritmo")
+    hiperparametros = formulario_hiperparametros(algoritmo_hp)
+    if st.button("Entrenar esta configuración", type="primary", icon=":material/tune:",
+                 disabled=not (permitido and particion_valida)):
+        st.session_state["experimento_hp"] = entrenar_con_avance(algoritmo_hp, hiperparametros, proporciones, semilla_trabajo)
+    if not permitido:
+        st.caption("Solo el administrador puede entrenar.")
+    if st.session_state.get("experimento_hp"):
+        mostrar_entrenamiento(st.session_state["experimento_hp"], "hp")
+    registro = experimentos.tabla_registro()
+    if not registro.empty and (registro["algoritmo"] == algoritmo_hp).any():
+        st.markdown(f"**Versiones de {algoritmo_hp}**, de mayor a menor F1-macro en validación")
+        tabla_versiones(registro[registro["algoritmo"] == algoritmo_hp].sort_values("val_f1_macro", ascending=False))
+    codigo(grid_random_forest, experimentos.construir)
 
 # ---------------------------------------------------------------- 10
 with pestanas[9]:
@@ -443,7 +585,34 @@ with pestanas[10]:
         "- **Random Forest: ajusta bien.** También llega a 1,000 en entrenamiento, algo normal en un bosque, pero valida en 0,932 "
         "y se sostiene en validación (0,944) y prueba (0,943). Más datos reales seguirían ayudando: la curva aún sube."
     )
-    st.caption("Calculado con `python -m src.curvas_aprendizaje` (validación cruzada de 5 particiones sobre 840 gestantes).")
+    st.caption("Calculado con `python -m src.curvas_aprendizaje` (validación cruzada de 5 particiones sobre 840 gestantes). "
+               "Son las curvas oficiales de la Fase 2.")
+
+    st.markdown("#### Curva de una versión del conjunto de trabajo")
+    versiones = {r["version"]: r for r in experimentos.leer_registro() if r["datos"] == experimentos.DATOS_BASE}
+    if not versiones:
+        st.caption("Aún no hay versiones. Entrene un modelo en la pestaña 08 y vuelva para calcular su curva.")
+    else:
+        elegida = st.selectbox(
+            "Versión", sorted(versiones, reverse=True), key="curva_version",
+            format_func=lambda v: f"{v} · {versiones[v]['algoritmo']} · partición {versiones[v]['particion']} · semilla {versiones[v]['semilla']}")
+        if st.button("Calcular la curva de aprendizaje", icon=":material/show_chart:", disabled=not permitido):
+            with st.spinner("Entrenando con 7 tamaños × 5 particiones…"):
+                st.session_state.setdefault("curvas_exp", {})[elegida] = experimentos.curva_aprendizaje(elegida)
+        if not permitido:
+            st.caption("Solo el administrador puede calcular curvas nuevas.")
+        curva = st.session_state.get("curvas_exp", {}).get(elegida)
+        if curva is not None:
+            grafico(graficos.curva_aprendizaje(curva, curva["modelo"].iloc[0], dominio_x=None))
+            ultimo = curva.iloc[-1]
+            brecha_v = ultimo["f1_entrenamiento"] - ultimo["f1_cv"]
+            st.markdown(f"Con {int(ultimo['n_entrenamiento'])} gestantes de entrenamiento: F1-macro **{ultimo['f1_entrenamiento']:.3f}** "
+                        f"en entrenamiento y **{ultimo['f1_cv']:.3f}** en validación cruzada (± {ultimo['f1_cv_std']:.3f}); "
+                        f"brecha de **{brecha_v:.3f}**.")
+            st.dataframe(curva.drop(columns="modelo").rename(columns={
+                "n_entrenamiento": "Gestantes", "f1_entrenamiento": "F1 entrenamiento", "f1_entrenamiento_std": "± desv. entr.",
+                "f1_cv": "F1 validación cruzada", "f1_cv_std": "± desv. CV"}), hide_index=True, width="stretch")
+    codigo(experimentos.curva_aprendizaje)
 
 # ---------------------------------------------------------------- 12
 with pestanas[11]:
@@ -531,3 +700,7 @@ with pestanas[13]:
     st.dataframe(visibles, hide_index=True, width="stretch", height=560)
     st.download_button("Descargar la lista de chequeo (CSV)", chequeo.to_csv(index=False).encode("utf-8-sig"),
                        "materna_lista_de_chequeo.csv", "text/csv", icon=":material/download:")
+
+# El registro de experimentos se dibuja al final, en el lugar reservado de la pestaña 07
+with zona_registro:
+    mostrar_registro()
