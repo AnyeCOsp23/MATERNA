@@ -12,6 +12,8 @@ import '../../datos/seudonimizacion.dart';
 import '../../motor/recursos.dart';
 import '../tema/tema_materna.dart';
 import '../widgets/barra_flotante.dart';
+import '../widgets/encabezado.dart';
+import '../widgets/iconos_trazo.dart';
 import 'pantalla_resultado.dart';
 import 'pantalla_triaje.dart' show atiende;
 
@@ -23,10 +25,13 @@ String fechaLegible(DateTime f) {
 }
 
 class PantallaHistorial extends StatefulWidget {
-  const PantallaHistorial({super.key, required this.recursos, required this.base, required this.cambios});
+  const PantallaHistorial({super.key, required this.recursos, required this.base, required this.cambios, this.idUsuario});
 
   final RecursosMaterna recursos;
   final BaseLocal base;
+
+  /// Cuenta que inició sesión: solo se muestran sus evaluaciones.
+  final int? idUsuario;
 
   /// Aumenta cada vez que se guarda una evaluación: el historial se recarga solo.
   final ValueNotifier<int> cambios;
@@ -79,8 +84,8 @@ class _EstadoHistorial extends State<PantallaHistorial> {
     final seudonimo = await _seudonimoBuscado();
     final lista = seudonimo == null && _porDocumento
         ? <RegistroEvaluacion>[]
-        : await widget.base.listar(clase: _clase, desde: desde, seudonimo: seudonimo);
-    return (lista, await widget.base.pendientesDeSincronizar());
+        : await widget.base.listar(idUsuario: widget.idUsuario, clase: _clase, desde: desde, seudonimo: seudonimo);
+    return (lista, await widget.base.pendientesDeSincronizar(idUsuario: widget.idUsuario));
   }
 
   // llaves: con «=>» el setState devolvería el Future de la asignación, y Flutter lo rechaza
@@ -89,7 +94,7 @@ class _EstadoHistorial extends State<PantallaHistorial> {
       });
 
   Future<void> _sincronizar() async {
-    final n = await widget.base.marcarSincronizadas();
+    final n = await widget.base.marcarSincronizadas(idUsuario: widget.idUsuario);
     if (!mounted) return;
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
@@ -176,20 +181,34 @@ class _EstadoHistorial extends State<PantallaHistorial> {
   Widget _fila(RegistroEvaluacion r) {
     final estilo = estiloPorCategoria[widget.recursos.clasificador.clases[r.clase]]!;
     return Card(
-      child: ListTile(
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
         key: Key('evaluacion-${r.id}'),
         onTap: () => _abrir(r),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-        leading: CircleAvatar(backgroundColor: estilo.fondo, child: Icon(estilo.icono, color: estilo.tinta)),
-        title: Text('${estilo.semaforo.toUpperCase()} · ${estilo.titulo}', style: const TextStyle(fontWeight: FontWeight.w700)),
-        subtitle: Text(
-          '${fechaLegible(r.fecha)} · ${atiende[r.atendidoPor] ?? r.atendidoPor} · ${origenLegible[r.origen] ?? r.origen}'
-          '${r.alertas.isEmpty ? '' : ' · ${r.alertas.length} alerta(s)'}'
-          '${r.idCarga == null ? '' : ' · carga IPS'}'
-          '${r.idSeudonimo == null ? '' : '\nSeudónimo ${r.idSeudonimo!.substring(0, 12)}…'}',
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Row(children: [
+            Expanded(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(r.idSeudonimo == null ? 'Triaje individual' : seudonimoCorto(r.idSeudonimo),
+                    style: const TextStyle(fontWeight: FontWeight.w800, color: ColoresMaterna.tinta, fontSize: 15)),
+                const SizedBox(height: 2),
+                Text(
+                  '${edadYSemanas(r.registro)} · ${fechaLegible(r.fecha)}\n'
+                  '${atiende[r.atendidoPor] ?? r.atendidoPor} · ${origenLegible[r.origen] ?? r.origen}'
+                  '${r.alertas.isEmpty ? '' : ' · ${r.alertas.length} alerta(s)'}'
+                  '${r.idCarga == null ? '' : ' · carga IPS'}',
+                  style: const TextStyle(color: ColoresMaterna.tintaSuave, fontSize: 12.5, height: 1.35),
+                ),
+              ]),
+            ),
+            const SizedBox(width: 8),
+            EtiquetaNivel(estilo, key: Key('nivel-${r.clase}')),
+            const SizedBox(width: 8),
+            Icon(r.sincronizado ? Icons.cloud_done_outlined : Icons.cloud_upload_outlined,
+                size: 20, color: ColoresMaterna.tintaSuave, semanticLabel: r.sincronizado ? 'Sincronizada' : 'Pendiente'),
+          ]),
         ),
-        trailing: Icon(r.sincronizado ? Icons.cloud_done_outlined : Icons.cloud_upload_outlined,
-            color: ColoresMaterna.tintaSuave, semanticLabel: r.sincronizado ? 'Sincronizada' : 'Pendiente'),
       ),
     );
   }
@@ -204,12 +223,21 @@ class _EstadoHistorial extends State<PantallaHistorial> {
               future: _datos,
               builder: (context, estado) {
                 final (lista, pendientes) = estado.data ?? (<RegistroEvaluacion>[], 0);
-                return ListView(padding: const EdgeInsets.fromLTRB(16, 16, 16, BarraFlotante.espacioInferior), children: [
+                return ListView(padding: const EdgeInsets.fromLTRB(16, 8, 16, BarraFlotante.espacioInferior), children: [
+                  const EncabezadoMaterna(etiqueta: 'Registro local'),
+                  const SizedBox(height: 14),
+                  const TituloConIcono(
+                    icono: IconoDeTrazo(IconoTrazo.baseDatos, color: ColoresMaterna.ciruela900, tamano: 26),
+                    titulo: 'Historial local',
+                    subtitulo: 'Sus evaluaciones guardadas en este dispositivo',
+                  ),
+                  const SizedBox(height: 12),
                   Row(children: [
-                    Expanded(
-                      child: Text('Historial local',
-                          style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800)),
+                    const Expanded(
+                      child: Text('La sincronización es una simulación: no se envía ningún dato.',
+                          style: TextStyle(color: ColoresMaterna.tintaSuave, fontSize: 12.5)),
                     ),
+                    const SizedBox(width: 8),
                     FilledButton.tonalIcon(
                       key: const Key('sincronizar'),
                       // el tema da a los botones todo el ancho; dentro de una fila ese ancho sería infinito
@@ -223,9 +251,6 @@ class _EstadoHistorial extends State<PantallaHistorial> {
                       label: Text('Sincronizar ($pendientes)'),
                     ),
                   ]),
-                  const SizedBox(height: 4),
-                  const Text('Evaluaciones guardadas en este dispositivo. La sincronización es una simulación.',
-                      style: TextStyle(color: ColoresMaterna.tintaSuave)),
                   const SizedBox(height: 14),
                   _filtros(),
                   const SizedBox(height: 14),

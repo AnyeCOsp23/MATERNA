@@ -146,8 +146,9 @@ void main() {
     await elegirEnLista(tester, 'atendido_por', 'Partera tradicional');
     await siguiente(tester);
     await terminarYEvaluar(tester);
-    expect(find.text('ROJO · Alto riesgo'), findsOneWidget);
-    expect(find.text('Decidido por regla clínica (GPC Minsalud 2013):'), findsOneWidget);
+    expect(find.text('Alto riesgo'), findsOneWidget);
+    expect(find.text('NIVEL ALTO'), findsOneWidget);
+    expect(find.textContaining('Regla clínica: '), findsOneWidget);
     expect(find.textContaining('PAS ≥ 160 mmHg'), findsOneWidget);
     expect(find.textContaining('Sin dato de FCF'), findsOneWidget);
   });
@@ -156,8 +157,9 @@ void main() {
     await abrir(tester);
     await llenarRutina(tester);
     await terminarYEvaluar(tester);
-    expect(find.text('VERDE · Bajo riesgo'), findsOneWidget);
-    expect(find.text('Decidido por el modelo (Random Forest).'), findsOneWidget);
+    expect(find.text('Bajo riesgo'), findsOneWidget);
+    expect(find.text('NIVEL BAJO'), findsOneWidget);
+    expect(find.text('Modelo de IA · sin signos críticos ni de alarma'), findsOneWidget);
     expect(find.byKey(const Key('alertas-urgentes')), findsNothing);
   });
 
@@ -167,9 +169,9 @@ void main() {
     await elegir(tester, 'sangrado_genital', 'Sí');
     await elegir(tester, 'vision_borrosa', 'Sí');
     await terminarYEvaluar(tester);
-    expect(find.text('ROJO · Alto riesgo'), findsOneWidget);
-    expect(find.text('Decidido por signos de alarma de la ruta (Res. 3280):'), findsOneWidget);
-    expect(find.text('•  Sangrado genital'), findsOneWidget);
+    expect(find.text('Alto riesgo'), findsOneWidget);
+    expect(find.textContaining('Signo de alarma (Res. 3280): '), findsOneWidget);
+    expect(find.textContaining('Sangrado genital'), findsOneWidget);
     expect(find.text('El modelo por sí solo habría dicho Bajo Riesgo.'), findsOneWidget);
     expect(find.textContaining('Remisión INMEDIATA'), findsOneWidget); // protocolo de Alto, no «próximos días»
   });
@@ -183,7 +185,7 @@ void main() {
     await siguiente(tester);
     await tocar(tester, find.byKey(const Key('evaluar')));
     final alerta = find.byKey(const Key('alertas-urgentes'));
-    expect(find.text('VERDE · Bajo riesgo'), findsOneWidget);
+    expect(find.text('Bajo riesgo'), findsOneWidget);
     expect(tester.getTopLeft(alerta).dy, lessThan(tester.getTopLeft(find.byKey(const Key('semaforo'))).dy));
     expect(find.textContaining('ruta de atención a víctimas'), findsOneWidget);
   });
@@ -239,13 +241,14 @@ void main() {
     await tocar(tester, find.byKey(const Key('nueva-evaluacion')));
     await tocar(tester, find.byKey(const Key('pestana-2')));
     expect(find.text('1 evaluación(es)'), findsOneWidget);
-    expect(find.text('VERDE · Bajo riesgo'), findsOneWidget);
+    expect(find.text('Triaje individual'), findsOneWidget);
+    expect(find.byKey(const Key('nivel-0')), findsOneWidget);
     await tocar(tester, find.descendant(of: find.byKey(const Key('filtro-riesgo')), matching: find.text('Rojo')));
     expect(find.byKey(const Key('historial-vacio')), findsOneWidget);
     await tocar(tester, find.descendant(of: find.byKey(const Key('filtro-riesgo')), matching: find.text('Todas')));
     await tocar(tester, find.byKey(const Key('sincronizar')));
     expect(find.textContaining('Simulación: no se envía ningún dato'), findsOneWidget);
-    await tocar(tester, find.textContaining('VERDE · Bajo riesgo'));
+    await tocar(tester, find.text('Triaje individual'));
     expect(find.text('Evaluación guardada'), findsOneWidget);
     expect(find.textContaining('Médico · ESE Valledupar'), findsOneWidget);
     expect(find.byKey(const Key('nueva-evaluacion')), findsNothing);

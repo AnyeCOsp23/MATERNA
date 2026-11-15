@@ -10,6 +10,7 @@ import 'package:flutter/material.dart';
 
 import '../../datos/base_local.dart';
 import '../../motor/recursos.dart';
+import '../tema/tema_materna.dart';
 import '../widgets/barra_flotante.dart';
 import '../widgets/iconos_trazo.dart';
 import 'pantalla_acerca_de.dart';
@@ -71,7 +72,9 @@ class _EstadoPrincipal extends State<PantallaPrincipal> {
   @override
   Widget build(BuildContext context) => Scaffold(
         extendBody: true, // el contenido pasa por detrás de la barra flotante
-        body: IndexedStack(index: _pestana, children: [
+        body: DecoratedBox(
+          decoration: fondoCrema,
+          child: IndexedStack(index: _pestana, children: [
           PantallaTriaje(recursos: widget.recursos, atendidoPor: widget.perfil.atendidoPor, alGuardar: _guardar),
           PantallaCarga(
             recursos: widget.recursos,
@@ -81,9 +84,10 @@ class _EstadoPrincipal extends State<PantallaPrincipal> {
             elegirArchivo: widget.elegirArchivo,
             guardarArchivo: widget.guardarArchivo,
           ),
-          PantallaHistorial(recursos: widget.recursos, base: widget.base, cambios: _cambios),
+          PantallaHistorial(recursos: widget.recursos, base: widget.base, cambios: _cambios, idUsuario: widget.perfil.id),
           PantallaAcercaDe(recursos: widget.recursos, perfil: widget.perfil, alCerrarSesion: widget.alCerrarSesion),
-        ]),
+          ]),
+        ),
         bottomNavigationBar: BarraFlotante(
           destinos: destinos,
           indice: _pestana,

@@ -15,6 +15,7 @@ import '../../motor/recursos.dart';
 import '../tema/tema_materna.dart';
 import '../widgets/barra_flotante.dart';
 import '../widgets/campos.dart';
+import '../widgets/encabezado.dart';
 import 'pantalla_resultado.dart';
 
 const _proteinuria = {0: 'Negativa', 1: '+', 2: '++ o más'};
@@ -382,6 +383,7 @@ class _EstadoTriaje extends State<PantallaTriaje> {
     final paso = _pasos[_paso];
     final ultimo = _paso == _pasos.length - 1;
     return Scaffold(
+      backgroundColor: Colors.transparent,
       body: SafeArea(
         bottom: false,
         child: Center(
@@ -447,15 +449,8 @@ class _Cabecera extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(children: [
-          Image.asset('assets/logo_isotipo.webp', width: 30, height: 30),
-          const SizedBox(width: 8),
-          const Text('MATERNA',
-              style: TextStyle(fontWeight: FontWeight.w900, color: ColoresMaterna.ciruela900, fontSize: 18, letterSpacing: -.4)),
-          const Spacer(),
-          Text('Paso $numero de $total', key: const Key('paso-actual'), style: const TextStyle(color: ColoresMaterna.tintaSuave)),
-        ]),
-        const SizedBox(height: 12),
+        EncabezadoMaterna(etiqueta: 'Paso $numero de $total', claveEtiqueta: const Key('paso-actual')),
+        const SizedBox(height: 10),
         ClipRRect(
           borderRadius: BorderRadius.circular(8),
           child: TweenAnimationBuilder<double>(
@@ -465,7 +460,7 @@ class _Cabecera extends StatelessWidget {
             builder: (context, valor, _) => LinearProgressIndicator(
               value: valor,
               minHeight: 6,
-              backgroundColor: ColoresMaterna.ciruela100,
+              backgroundColor: ColoresMaterna.fondoProgreso,
               color: ColoresMaterna.ciruela900,
             ),
           ),
@@ -473,9 +468,9 @@ class _Cabecera extends StatelessWidget {
         const SizedBox(height: 18),
         Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Container(
-            width: 46,
-            height: 46,
-            decoration: BoxDecoration(color: ColoresMaterna.ciruela100, borderRadius: BorderRadius.circular(14)),
+            width: 50,
+            height: 50,
+            decoration: BoxDecoration(color: ColoresMaterna.ciruela100, borderRadius: BorderRadius.circular(15)),
             child: Icon(paso.icono, color: ColoresMaterna.ciruela900),
           ),
           const SizedBox(width: 12),
