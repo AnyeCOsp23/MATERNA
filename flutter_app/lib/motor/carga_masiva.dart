@@ -311,13 +311,6 @@ String _celdaCsv(Object? v) {
   return RegExp(r'[",\n\r]').hasMatch(t) ? '"${t.replaceAll('"', '""')}"' : t;
 }
 
-/// Motivo legible del semáforo: las reglas críticas o los signos de alarma que lo decidieron.
-String motivoDelSemaforo(Evaluacion e, RecursosMaterna recursos) => switch (e.origen) {
-      'regla_clinica' => [for (final id in e.triaje.reglasActivadas) recursos.mensajeRegla(id)].join('; '),
-      'signo_alarma_3280' => [for (final a in e.alertasQueEscalan) a.etiqueta].join('; '),
-      _ => 'Modelo (Random Forest)',
-    };
-
 /// CSV con el triaje ordenado y las filas sin evaluar. Sin nombres ni documentos: solo el seudónimo.
 /// Lleva BOM para que Excel muestre bien las tildes.
 String exportarCsv(CargaMasiva carga, RecursosMaterna recursos) {
@@ -332,7 +325,7 @@ String exportarCsv(CargaMasiva carga, RecursosMaterna recursos) {
         _semaforo[r.evaluacion.clase],
         clases[r.evaluacion.clase],
         r.evaluacion.origen,
-        motivoDelSemaforo(r.evaluacion, recursos),
+        recursos.motivo(r.evaluacion),
         for (final p in r.evaluacion.triaje.probabilidades) p.toStringAsFixed(4),
         [for (final a in r.evaluacion.alertas) a.variable].join(';'),
         version,

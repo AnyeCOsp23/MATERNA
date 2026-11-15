@@ -341,7 +341,7 @@ class _EstadoTriaje extends State<PantallaTriaje> {
             const SizedBox(height: 10),
           ],
           _seccionPlegable('Territorio', _catalogo.porDecision('auditoria'), Icons.map_rounded,
-              nota: 'Solo para auditar sesgos; no entra al modelo'),
+              nota: 'Solo para análisis por territorio; no cambia el resultado'),
         ]);
       case 5:
         return _Revision(

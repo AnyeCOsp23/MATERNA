@@ -124,9 +124,9 @@ ACTIVIDADES = [
      "Hoy la exportación es un comando: python -m src.exportar_a_dart", ["src/exportar_a_dart.py"], 7),
     ("12", "Módulo 2: app web y móvil con triaje, carga masiva, historial y cuentas, sin internet", "Hecho",
      "App MATERNA (Flutter)", ["flutter_app/lib/main.dart", "flutter_app/lib/motor/clasificador.dart"], None),
-    ("12", "Resultado de la app en lenguaje claro, sin términos de aprendizaje automático", "Falta",
-     "Hoy el resultado dice «Modelo de IA» y «Probabilidad por clase»",
-     ["flutter_app/lib/ui/pantallas/pantalla_resultado.dart"], 2),
+    ("12", "Resultado de la app en lenguaje claro, sin términos de aprendizaje automático", "Hecho",
+     "App MATERNA · pantalla de resultado (nivel, motivo, conducta y aviso de apoyo; los porcentajes, en «Ver detalle»)",
+     ["flutter_app/lib/ui/pantallas/pantalla_resultado.dart", "flutter_app/test/flujo_test.dart"], None),
 ]
 
 

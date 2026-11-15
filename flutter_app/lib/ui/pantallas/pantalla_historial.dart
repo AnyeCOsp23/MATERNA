@@ -17,7 +17,7 @@ import '../widgets/iconos_trazo.dart';
 import 'pantalla_resultado.dart';
 import 'pantalla_triaje.dart' show atiende;
 
-const origenLegible = {'regla_clinica': 'regla clínica', 'signo_alarma_3280': 'signo de alarma', 'modelo_ml': 'modelo'};
+const origenLegible = {'regla_clinica': 'regla clínica', 'signo_alarma_3280': 'signo de alarma', 'modelo_ml': 'factores de riesgo'};
 
 String fechaLegible(DateTime f) {
   String dos(int n) => n.toString().padLeft(2, '0');
@@ -109,7 +109,7 @@ class _EstadoHistorial extends State<PantallaHistorial> {
         evaluacion: widget.recursos.evaluar(r.registro),
         soloLectura: true,
         nota: 'Evaluación del ${fechaLegible(r.fecha)} · ${atiende[r.atendidoPor] ?? r.atendidoPor} · ${r.ips}'
-            '${r.versionModelo == widget.recursos.clasificador.version ? '' : ' · guardada con el modelo ${r.versionModelo}, recalculada con el ${widget.recursos.clasificador.version}'}',
+            '${r.versionModelo == widget.recursos.clasificador.version ? '' : ' · guardada con la versión ${r.versionModelo}, recalculada con la ${widget.recursos.clasificador.version}'}',
       ),
     ));
   }

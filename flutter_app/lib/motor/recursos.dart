@@ -86,6 +86,15 @@ class RecursosMaterna {
 
   String get aviso => reglas['aviso'] as String;
 
+  /// Motivo del nivel en lenguaje claro, sin términos técnicos: los signos críticos o de alarma que lo
+  /// decidieron o, si no hubo ninguno, que el nivel sale de la combinación de los datos de la gestante.
+  String motivo(Evaluacion e) => switch (e.origen) {
+        'regla_clinica' => [for (final id in e.triaje.reglasActivadas) mensajeRegla(id)].join('; '),
+        'signo_alarma_3280' => [for (final a in e.alertasQueEscalan) a.etiqueta].join('; '),
+        _ when e.clase > 0 => 'Combinación de factores de riesgo',
+        _ => e.alertas.isEmpty ? 'Sin signos críticos ni de alarma' : 'Sin signos críticos',
+      };
+
   Evaluacion evaluar(Map<String, dynamic> registro) => Evaluacion(
         registro: registro,
         triaje: clasificador.evaluar(registro),
