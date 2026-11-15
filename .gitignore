@@ -16,6 +16,9 @@ data/registros_locales.sqlite
 # Salidas de la ingesta de la IPS (datos seudonimizados): no se versionan
 data/salidas/
 
+# Conjunto de trabajo del laboratorio: versiones y registro de experimentos (se regeneran entrenando)
+experimentos/
+
 # Secretos de la consola (usuarios y sal de seudonimización) y base consolidada de la IPS
 .streamlit/secrets.toml
 data/consolidado_ips.sqlite

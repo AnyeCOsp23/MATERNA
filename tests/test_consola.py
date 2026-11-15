@@ -9,6 +9,7 @@ from src.autenticacion import (
     INTENTOS_MAXIMOS, PERMISOS, ROLES, autenticar, bloque_toml, generar_hash, puede, verificar_hash,
 )
 from src.consolidado_ips import datos_consolidados, guardar_carga, resumen_consolidado
+from src.experimentos import leer_registro
 from src.generar_ejemplo_ips import DIR_EJEMPLOS
 from src.inspeccionar_ips import inspeccionar
 from src.lista_chequeo import ACTIVIDADES, ESTADOS
@@ -32,6 +33,7 @@ def entorno(tmp_path, monkeypatch):
     monkeypatch.setenv("MATERNA_SAL", SAL)
     monkeypatch.setenv("MATERNA_BD", str(tmp_path / "triaje.sqlite"))
     monkeypatch.setenv("MATERNA_BD_IPS", str(tmp_path / "laboratorio.sqlite"))
+    monkeypatch.setenv("MATERNA_EXPERIMENTOS", str(tmp_path / "experimentos"))
     return tmp_path
 
 
@@ -177,12 +179,64 @@ def test_laboratorio_tiene_las_14_pestanas(entorno, rol):
     assert boton(at, "Entrenar en vivo").disabled == (rol != "administrador")
 
 
-def test_entrenar_en_vivo_reproduce_el_modelo(entorno):
+def test_entrenar_en_vivo_reproduce_el_modelo_y_crea_una_version(entorno):
     at = pagina("laboratorio", "administrador")
+    assert any("Aún no hay experimentos" in c.value for c in at.caption)
     boton(at, "Entrenar en vivo").click().run()
     assert not at.exception
     assert any("Reproducible" in i.value for i in at.info)
     assert at.session_state["entrenamiento"]["identico_al_modelo_en_uso"]
+    assert (entorno / "experimentos" / "modelos" / "exp-0001.joblib").exists()
+    # la versión aparece en la misma ejecución en el registro de la pestaña 07, con el criterio de selección
+    assert any("Criterio de selección" in s.value and "exp-0001" in s.value for s in at.success)
+
+
+def numero(at, etiqueta):
+    return next(n for n in at.number_input if n.label == etiqueta)
+
+
+def test_particion_parametrizable(entorno):
+    at = pagina("laboratorio", "administrador")
+    numero(at, "Entrenamiento (%)").set_value(80)
+    numero(at, "Validación (%)").set_value(10)
+    numero(at, "Prueba (%)").set_value(10).run()
+    assert not at.exception and not at.error
+    conteos = next(d.value for d in at.dataframe if "Conjunto" in d.value)
+    assert list(conteos["Gestantes"]) == [960, 120, 120]
+    assert not boton(at, "Entrenar en vivo").disabled
+    # si no suman 100 se explica y no se puede entrenar
+    numero(at, "Prueba (%)").set_value(15).run()
+    assert any("suman 105" in e.value for e in at.error)
+    assert boton(at, "Entrenar en vivo").disabled and boton(at, "Entrenar esta configuración").disabled
+    # con muy pocos casos de Alto en un conjunto, avisa
+    numero(at, "Entrenamiento (%)").set_value(94)
+    numero(at, "Validación (%)").set_value(3)
+    numero(at, "Prueba (%)").set_value(3).run()
+    assert any("Muy pocos casos de Alto Riesgo" in w.value for w in at.warning)
+
+
+def test_probar_otra_configuracion_guarda_particion_semilla_y_usuario(entorno):
+    at = pagina("laboratorio", "administrador")
+    numero(at, "Entrenamiento (%)").set_value(60)
+    numero(at, "Validación (%)").set_value(20)
+    numero(at, "Prueba (%)").set_value(20)
+    numero(at, "Semilla").set_value(7)
+    next(s for s in at.selectbox if s.key == "hp_algoritmo").set_value("Regresión Logística").run()
+    next(s for s in at.select_slider if s.key == "hp_lr_c").set_value(1.0).run()
+    boton(at, "Entrenar esta configuración").click().run()
+    assert not at.exception
+    (fila,) = leer_registro()
+    assert fila["version"] == "exp-0001" and fila["algoritmo"] == "Regresión Logística" and fila["usuario"] == "administrador"
+    assert fila["particion"] == "60/20/20" and fila["semilla"] == 7 and fila["n_entrenamiento"] == 720
+    assert fila["hiperparametros"]["C"] == 1.0 and not fila["identico_al_modelo_en_uso"]
+    # la curva de esa versión se calcula desde la pestaña 11
+    boton(at, "Calcular la curva").click().run()
+    assert not at.exception and len(at.session_state["curvas_exp"]["exp-0001"]) == 7
+
+
+def test_medico_auditor_ve_el_registro_pero_no_entrena(entorno):
+    at = pagina("laboratorio", "medico_auditor")
+    assert boton(at, "Entrenar en vivo").disabled and boton(at, "Entrenar esta configuración").disabled
 
 
 def test_motor_de_reglas_interactivo(entorno):

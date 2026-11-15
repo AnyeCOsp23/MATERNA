@@ -77,18 +77,24 @@ def histogramas_comparados(sintetico, ips, variable, titulo):
     ).resolve_scale(y="independent"), 140)
 
 
-def curva_aprendizaje(df, modelo):
-    """F1-macro en entrenamiento y en validación cruzada según el tamaño del entrenamiento."""
+def curva_aprendizaje(df, modelo, dominio_x=(50, 720)):
+    """F1-macro en entrenamiento y en validación cruzada según el tamaño del entrenamiento.
+
+    dominio_x=None ajusta el eje a los datos (para particiones distintas de la oficial).
+    """
     d = df[df["modelo"] == modelo]
+    if dominio_x is None:
+        dominio_x = (d["n_entrenamiento"].min() * 0.85, d["n_entrenamiento"].max() * 1.05)
     largo = pd.concat([
         pd.DataFrame({"n": d["n_entrenamiento"], "f1": d["f1_entrenamiento"], "std": d["f1_entrenamiento_std"], "serie": "Entrenamiento"}),
         pd.DataFrame({"n": d["n_entrenamiento"], "f1": d["f1_cv"], "std": d["f1_cv_std"], "serie": "Validación cruzada"}),
     ])
     largo["bajo"], largo["alto"] = largo["f1"] - largo["std"], largo["f1"] + largo["std"]
     escala = alt.Scale(domain=["Entrenamiento", "Validación cruzada"], range=[SERIE_1, SERIE_2])
-    base = alt.Chart(largo).encode(x=alt.X("n:Q", title="Gestantes de entrenamiento", scale=alt.Scale(domain=[50, 720], nice=False)),
+    base = alt.Chart(largo).encode(x=alt.X("n:Q", title="Gestantes de entrenamiento", scale=alt.Scale(domain=list(dominio_x), nice=False)),
                                    color=alt.Color("serie:N", title=None, scale=escala))
-    banda = base.mark_area(opacity=0.14).encode(y=alt.Y("bajo:Q", title="F1-macro", scale=alt.Scale(domain=[0.55, 1.02])), y2="alto:Q")
+    piso = min(0.55, float(largo["bajo"].min()) - 0.02)  # una configuración mala no debe salirse del gráfico
+    banda = base.mark_area(opacity=0.14).encode(y=alt.Y("bajo:Q", title="F1-macro", scale=alt.Scale(domain=[piso, 1.02])), y2="alto:Q")
     linea = base.mark_line(strokeWidth=2).encode(y="f1:Q")
     puntos = base.mark_point(size=70, filled=True, stroke="white", strokeWidth=2).encode(
         y="f1:Q", tooltip=[alt.Tooltip("serie:N", title="Serie"), alt.Tooltip("n:Q", title="n"),
