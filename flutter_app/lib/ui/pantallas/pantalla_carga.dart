@@ -22,7 +22,9 @@ import '../../motor/carga_masiva.dart';
 import '../../motor/recursos.dart';
 import '../tema/tema_materna.dart';
 import '../widgets/barra_flotante.dart';
-import 'pantalla_historial.dart' show fechaLegible, origenLegible;
+import '../widgets/encabezado.dart';
+import '../widgets/iconos_trazo.dart';
+import 'pantalla_historial.dart' show fechaLegible;
 import 'pantalla_resultado.dart';
 
 typedef ElegirArchivo = Future<(String, Uint8List)?> Function();
@@ -153,7 +155,7 @@ class _EstadoCarga extends State<PantallaCarga> {
           if (mounted) setState(() => _avance = (hechas, total));
         },
       );
-      final previa = await widget.base.cargaPrevia(carga.huellaArchivo);
+      final previa = await widget.base.cargaPrevia(carga.huellaArchivo, idUsuario: widget.perfil.id);
       if (!mounted) return;
       setState(() {
         _carga = carga;
@@ -196,48 +198,62 @@ class _EstadoCarga extends State<PantallaCarga> {
         recursos: widget.recursos,
         evaluacion: r.evaluacion,
         soloLectura: true,
-        nota: 'Fila ${r.fila} de ${_carga!.archivo}'
-            '${r.idSeudonimo == null ? ' · sin documento' : ' · seudónimo ${r.idSeudonimo!.substring(0, 12)}…'}',
+        nota: 'Fila ${r.fila} del registro',
       ),
     ));
   }
 
   // ------------------------------------------------------------------ vista
-  Widget _tarjeta({required IconData icono, required String titulo, required List<Widget> hijos, Key? key}) => Card(
+  static const _suave = TextStyle(color: ColoresMaterna.tintaSuave, height: 1.4);
+
+  Widget _tarjeta({required List<Widget> hijos, Key? key}) => Card(
         key: key,
         child: Padding(
           padding: const EdgeInsets.all(18),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-            Row(children: [
-              Icon(icono, color: ColoresMaterna.ciruela700, size: 20),
-              const SizedBox(width: 8),
-              Expanded(child: Text(titulo, style: const TextStyle(fontWeight: FontWeight.w700))),
-            ]),
-            const SizedBox(height: 10),
-            ...hijos,
-          ]),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: hijos),
         ),
       );
 
-  static const _suave = TextStyle(color: ColoresMaterna.tintaSuave, height: 1.4);
+  static final _botonRosa = FilledButton.styleFrom(
+    backgroundColor: ColoresMaterna.ciruela100,
+    foregroundColor: ColoresMaterna.ciruela900,
+    minimumSize: const Size(0, 42),
+    padding: const EdgeInsets.symmetric(horizontal: 18),
+    textStyle: const TextStyle(fontFamily: fuente, fontWeight: FontWeight.w700),
+  );
 
   Widget _clavePanel() {
     if (_clave != null && !_editandoClave) {
-      return _tarjeta(key: const Key('clave-configurada'), icono: Icons.key_rounded, titulo: 'Clave de la IPS configurada', hijos: [
-        Text('Huella ${huellaSal(_clave!)}: debe ser la misma en todos los dispositivos de la IPS y en el laboratorio.',
-            key: const Key('huella-clave'), style: _suave),
-        Align(
-          alignment: Alignment.centerLeft,
-          child: TextButton.icon(
-            key: const Key('cambiar-clave'),
-            onPressed: _procesando ? null : () => setState(() => _editandoClave = true),
-            icon: const Icon(Icons.edit_rounded, size: 18),
-            label: const Text('Cambiar la clave'),
-          ),
+      return Card(
+        key: const Key('clave-configurada'),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 8, 12),
+          child: Row(children: [
+            const Icon(Icons.key_rounded, color: ColoresMaterna.ciruela900),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                const Text('Clave de la IPS configurada', style: TextStyle(fontWeight: FontWeight.w700, color: ColoresMaterna.tinta)),
+                Text('Huella ${huellaSal(_clave!)} · la misma en todos los dispositivos de la IPS',
+                    key: const Key('huella-clave'), style: const TextStyle(color: ColoresMaterna.tintaSuave, fontSize: 12.5)),
+              ]),
+            ),
+            TextButton(
+              key: const Key('cambiar-clave'),
+              onPressed: _procesando ? null : () => setState(() => _editandoClave = true),
+              child: const Text('Cambiar'),
+            ),
+          ]),
         ),
-      ]);
+      );
     }
-    return _tarjeta(key: const Key('configurar-clave'), icono: Icons.key_rounded, titulo: 'Clave de la IPS', hijos: [
+    return _tarjeta(key: const Key('configurar-clave'), hijos: [
+      const Row(children: [
+        Icon(Icons.key_rounded, color: ColoresMaterna.ciruela900),
+        SizedBox(width: 10),
+        Expanded(child: Text('Clave de la IPS', style: TextStyle(fontWeight: FontWeight.w800, color: ColoresMaterna.tinta))),
+      ]),
+      const SizedBox(height: 8),
       const Text(
         'Con ella se reemplaza el documento de cada gestante por un seudónimo (HMAC-SHA256): el documento nunca se '
         'guarda. Debe ser la misma en todos los dispositivos de la IPS; pídala al responsable de datos. '
@@ -246,9 +262,9 @@ class _EstadoCarga extends State<PantallaCarga> {
       ),
       if (_clave != null) ...[
         const SizedBox(height: 8),
-        const Text(
+        Text(
           'Si cambia la clave, las gestantes ya cargadas tendrán otro seudónimo y no se podrán relacionar con las nuevas.',
-          style: TextStyle(color: Color(0xFF6B1832), height: 1.4),
+          style: TextStyle(color: estiloPorCategoria['Alto Riesgo']!.tinta, height: 1.4),
         ),
       ],
       const SizedBox(height: 12),
@@ -280,7 +296,7 @@ class _EstadoCarga extends State<PantallaCarga> {
       if (_errorClave != null)
         Padding(
           padding: const EdgeInsets.only(top: 8),
-          child: Text(_errorClave!, key: const Key('error-clave'), style: const TextStyle(color: Color(0xFFB3261E))),
+          child: Text(_errorClave!, key: const Key('error-clave'), style: TextStyle(color: estiloPorCategoria['Alto Riesgo']!.tinta)),
         ),
       const SizedBox(height: 12),
       FilledButton.icon(
@@ -300,39 +316,73 @@ class _EstadoCarga extends State<PantallaCarga> {
     ]);
   }
 
-  Widget _archivoPanel() => _tarjeta(icono: Icons.description_outlined, titulo: 'Archivo con la plantilla 3280', hijos: [
-        const Text(
-          'CSV, TXT separado por «|» o Excel (.xlsx). Los encabezados se reconocen por sus nombres habituales (TAS, '
-          'Fetocardia, Glicemia…). Nombres, teléfono y datos administrativos se descartan.',
-          style: _suave,
-        ),
-        const SizedBox(height: 12),
-        FilledButton.icon(
-          key: const Key('elegir-archivo'),
-          onPressed: _clave == null || _procesando ? null : _elegir,
-          icon: const Icon(Icons.upload_file_rounded),
-          label: Text(_carga == null ? 'Elegir archivo' : 'Cargar otro archivo'),
-        ),
-        if (_clave == null)
-          const Padding(
-            padding: EdgeInsets.only(top: 8),
-            child: Text('Primero configure la clave de la IPS.', style: _suave),
+  /// Sin archivo: qué se puede cargar y el botón para elegirlo. Con archivo: su nombre y «Cambiar».
+  Widget _archivoPanel() {
+    final carga = _carga;
+    final puedeElegir = _clave != null && !_procesando;
+    if (carga == null) {
+      return TarjetaPunteada(
+        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          const Text('Archivo con la plantilla 3280', style: TextStyle(fontWeight: FontWeight.w800, color: ColoresMaterna.tinta)),
+          const SizedBox(height: 4),
+          const Text(
+            'CSV, TXT separado por «|» o Excel (.xlsx). Los encabezados se reconocen por sus nombres habituales (TAS, '
+            'Fetocardia, Glicemia…). Nombres, teléfono y datos administrativos se descartan.',
+            style: _suave,
           ),
-      ]);
+          const SizedBox(height: 12),
+          FilledButton.icon(
+            key: const Key('elegir-archivo'),
+            onPressed: puedeElegir ? _elegir : null,
+            icon: const Icon(Icons.upload_file_rounded),
+            label: const Text('Elegir archivo'),
+          ),
+          if (_clave == null)
+            const Padding(
+              padding: EdgeInsets.only(top: 8),
+              child: Text('Primero configure la clave de la IPS.', textAlign: TextAlign.center, style: _suave),
+            ),
+        ]),
+      );
+    }
+    final r = carga.reporte;
+    final formato = r.separador == null
+        ? 'Excel (.xlsx)'
+        : 'separador ${r.separador == '\t' ? 'tabulador' : r.separador} · ${r.formato}';
+    return TarjetaPunteada(
+      key: const Key('archivo-cargado'),
+      child: Row(children: [
+        Expanded(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(carga.archivo,
+                overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w800, color: ColoresMaterna.tinta)),
+            const SizedBox(height: 2),
+            Text('${r.filasLeidas - r.filasDuplicadas} registros · $formato',
+                style: const TextStyle(color: ColoresMaterna.tintaSuave, fontSize: 12.5)),
+          ]),
+        ),
+        const SizedBox(width: 8),
+        FilledButton(
+          key: const Key('elegir-archivo'),
+          style: _botonRosa,
+          onPressed: puedeElegir ? _elegir : null,
+          child: const Text('Cambiar'),
+        ),
+      ]),
+    );
+  }
 
   Widget _progreso() {
     final (hechas, total) = _avance;
-    return Card(
-      key: const Key('procesando'),
-      child: Padding(
-        padding: const EdgeInsets.all(18),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(total == 0 ? 'Leyendo el archivo…' : 'Evaluando $hechas de $total registros…'),
-          const SizedBox(height: 10),
-          LinearProgressIndicator(value: total == 0 ? null : hechas / total, color: ColoresMaterna.ciruela700),
-        ]),
+    return _tarjeta(key: const Key('procesando'), hijos: [
+      Text(total == 0 ? 'Leyendo el archivo…' : 'Evaluando $hechas de $total registros…',
+          style: const TextStyle(color: ColoresMaterna.tinta)),
+      const SizedBox(height: 10),
+      ClipRRect(
+        borderRadius: BorderRadius.circular(6),
+        child: LinearProgressIndicator(value: total == 0 ? null : hechas / total, minHeight: 6),
       ),
-    );
+    ]);
   }
 
   Widget _conteo(int clase) {
@@ -340,12 +390,12 @@ class _EstadoCarga extends State<PantallaCarga> {
     return Expanded(
       child: Container(
         key: Key('conteo-$clase'),
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
-        decoration: BoxDecoration(color: estilo.fondo, borderRadius: BorderRadius.circular(16)),
+        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
+        decoration: BoxDecoration(color: estilo.fondo, borderRadius: BorderRadius.circular(18)),
         child: Column(children: [
-          Icon(estilo.icono, color: estilo.tinta),
-          Text('${_carga!.cuantas(clase)}', style: TextStyle(color: estilo.tinta, fontSize: 22, fontWeight: FontWeight.w800)),
-          Text(estilo.semaforo, style: TextStyle(color: estilo.tinta, fontWeight: FontWeight.w600)),
+          Text('${_carga!.cuantas(clase)}', style: TextStyle(color: estilo.barra, fontSize: 26, fontWeight: FontWeight.w800, height: 1.1)),
+          const SizedBox(height: 2),
+          Text(estilo.corto, style: TextStyle(color: estilo.tinta, fontWeight: FontWeight.w600)),
         ]),
       ),
     );
@@ -353,88 +403,96 @@ class _EstadoCarga extends State<PantallaCarga> {
 
   String _etiqueta(String variable) => widget.recursos.catalogo.variable(variable)?.etiqueta ?? variable;
 
+  Widget _desplegable({required Key key, required String titulo, required List<Widget> hijos}) => Card(
+        child: Theme(
+          data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+          child: ExpansionTile(
+            key: key,
+            shape: const Border(),
+            title: Text(titulo, style: const TextStyle(fontWeight: FontWeight.w700, color: ColoresMaterna.tinta)),
+            childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+            expandedCrossAxisAlignment: CrossAxisAlignment.start,
+            children: hijos,
+          ),
+        ),
+      );
+
   Widget _resumen() {
     final carga = _carga!;
     final r = carga.reporte;
     final registros = r.filasLeidas - r.filasDuplicadas;
-    return _tarjeta(key: const Key('resumen-carga'), icono: Icons.fact_check_outlined, titulo: carga.archivo, hijos: [
-      Row(children: [_conteo(2), const SizedBox(width: 8), _conteo(1), const SizedBox(width: 8), _conteo(0)]),
-      const SizedBox(height: 12),
+    return Column(key: const Key('resumen-carga'), crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      Row(children: [_conteo(2), const SizedBox(width: 10), _conteo(1), const SizedBox(width: 10), _conteo(0)]),
+      const SizedBox(height: 10),
       Text(
         '$registros registros (${r.filasLeidas} filas leídas, ${r.filasDuplicadas} repetidas) · '
         '${carga.resultados.length} evaluadas · ${carga.rechazadas.length} sin evaluar',
         key: const Key('totales-carga'),
-        style: _suave,
+        textAlign: TextAlign.center,
+        style: const TextStyle(color: ColoresMaterna.tintaSuave, fontSize: 12.5),
       ),
       const SizedBox(height: 10),
       if (_guardada)
-        const Row(key: Key('carga-guardada'), children: [
-          Icon(Icons.check_circle_rounded, color: Color(0xFF2C5219), size: 20),
-          SizedBox(width: 8),
-          Expanded(child: Text('Guardadas en el historial de este dispositivo.')),
-        ])
+        Container(
+          key: const Key('carga-guardada'),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(color: ColoresMaterna.sinConexionFondo, borderRadius: BorderRadius.circular(14)),
+          child: const Row(children: [
+            Icon(Icons.check_circle_rounded, color: ColoresMaterna.sinConexionPunto, size: 20),
+            SizedBox(width: 8),
+            Expanded(child: Text('Guardadas en el historial de este dispositivo.', style: TextStyle(color: ColoresMaterna.sinConexionTexto))),
+          ]),
+        )
       else if (_previa != null) ...[
-        Text(
-          'Este archivo ya se cargó el ${fechaLegible(_previa!.fecha)} (${_previa!.evaluadas} evaluadas): no se guardó de '
-          'nuevo para no duplicar el historial.',
+        Container(
           key: const Key('carga-previa'),
-          style: const TextStyle(color: Color(0xFF5A4F0E), height: 1.4),
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(color: estiloPorCategoria['Riesgo Medio']!.fondo, borderRadius: BorderRadius.circular(14)),
+          child: Text(
+            'Este archivo ya se cargó el ${fechaLegible(_previa!.fecha)} (${_previa!.evaluadas} evaluadas): no se guardó de '
+            'nuevo para no duplicar el historial.',
+            style: TextStyle(color: estiloPorCategoria['Riesgo Medio']!.tinta, height: 1.4),
+          ),
         ),
         Align(
           alignment: Alignment.centerLeft,
           child: TextButton(key: const Key('guardar-otra-vez'), onPressed: _guardar, child: const Text('Guardar otra vez')),
         ),
       ],
-      const SizedBox(height: 8),
+      const SizedBox(height: 10),
       FilledButton.icon(
         key: const Key('exportar-csv'),
         onPressed: _exportar,
         icon: const Icon(Icons.download_rounded),
-        label: const Text('Exportar CSV'),
+        label: const Text('Exportar lista priorizada (CSV)'),
       ),
-      const SizedBox(height: 4),
-      Theme(
-        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-        child: ExpansionTile(
-          key: const Key('detalle-lectura'),
-          tilePadding: EdgeInsets.zero,
-          title: const Text('Detalle de la lectura', style: TextStyle(fontWeight: FontWeight.w600)),
-          expandedCrossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            for (final linea in [
-              'Formato: ${r.formato}${r.separador == null ? '' : ', separador «${r.separador == '\t' ? 'tabulador' : r.separador}»'}',
-              'Gestantes distintas: ${r.gestantesUnicas}; con varias atenciones: ${r.gestantesConVariasAtenciones}; '
-                  'filas sin documento: ${r.sinDocumento}',
-              if (r.centinelas.isNotEmpty)
-                'Valores «sin dato» (centinelas): ${r.centinelas.entries.map((e) => '${_etiqueta(e.key)} ${e.value}').join(', ')}',
-              if (r.fueraDeRango.isNotEmpty)
-                'Fuera de rango fisiológico, tomados como vacíos: '
-                    '${r.fueraDeRango.entries.map((e) => '${_etiqueta(e.key)} ${e.value}').join(', ')}',
-              if (r.columnasEliminadas.isNotEmpty) 'Datos personales descartados: ${r.columnasEliminadas.join(', ')}',
-              if (r.columnasDesconocidas.isNotEmpty) 'Columnas no reconocidas (descartadas): ${r.columnasDesconocidas.join(', ')}',
-            ])
-              Padding(padding: const EdgeInsets.only(bottom: 6), child: Text(linea, style: _suave)),
-          ],
-        ),
-      ),
-      if (carga.rechazadas.isNotEmpty)
-        Theme(
-          data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-          child: ExpansionTile(
-            key: const Key('filas-sin-evaluar'),
-            tilePadding: EdgeInsets.zero,
-            title: Text('Filas sin evaluar (${carga.rechazadas.length})', style: const TextStyle(fontWeight: FontWeight.w600)),
-            expandedCrossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              for (final f in carga.rechazadas.take(200))
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 6),
-                  child: Text('Fila ${f.fila}: falta ${f.faltan.map(_etiqueta).join(', ').toLowerCase()}', style: _suave),
-                ),
-              if (carga.rechazadas.length > 200) Text('… y ${carga.rechazadas.length - 200} más (ver el CSV exportado).', style: _suave),
-            ],
-          ),
-        ),
+      const SizedBox(height: 12),
+      _desplegable(key: const Key('detalle-lectura'), titulo: 'Detalle de la lectura', hijos: [
+        for (final linea in [
+          'Formato: ${r.formato}${r.separador == null ? '' : ', separador «${r.separador == '\t' ? 'tabulador' : r.separador}»'}',
+          'Gestantes distintas: ${r.gestantesUnicas}; con varias atenciones: ${r.gestantesConVariasAtenciones}; '
+              'filas sin documento: ${r.sinDocumento}',
+          if (r.centinelas.isNotEmpty)
+            'Valores «sin dato» (centinelas): ${r.centinelas.entries.map((e) => '${_etiqueta(e.key)} ${e.value}').join(', ')}',
+          if (r.fueraDeRango.isNotEmpty)
+            'Fuera de rango fisiológico, tomados como vacíos: '
+                '${r.fueraDeRango.entries.map((e) => '${_etiqueta(e.key)} ${e.value}').join(', ')}',
+          if (r.columnasEliminadas.isNotEmpty) 'Datos personales descartados: ${r.columnasEliminadas.join(', ')}',
+          if (r.columnasDesconocidas.isNotEmpty) 'Columnas no reconocidas (descartadas): ${r.columnasDesconocidas.join(', ')}',
+        ])
+          Padding(padding: const EdgeInsets.only(bottom: 6), child: Text(linea, style: _suave)),
+      ]),
+      if (carga.rechazadas.isNotEmpty) ...[
+        const SizedBox(height: 10),
+        _desplegable(key: const Key('filas-sin-evaluar'), titulo: 'Filas sin evaluar (${carga.rechazadas.length})', hijos: [
+          for (final f in carga.rechazadas.take(200))
+            Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: Text('Fila ${f.fila}: falta ${f.faltan.map(_etiqueta).join(', ').toLowerCase()}', style: _suave),
+            ),
+          if (carga.rechazadas.length > 200) Text('… y ${carga.rechazadas.length - 200} más (ver el CSV exportado).', style: _suave),
+        ]),
+      ],
     ]);
   }
 
@@ -443,10 +501,10 @@ class _EstadoCarga extends State<PantallaCarga> {
         child: SegmentedButton<int>(
           key: const Key('filtro-carga'),
           segments: [
-            ButtonSegment(value: -1, label: Text('Todas (${_carga!.resultados.length})')),
-            ButtonSegment(value: 2, label: Text('Rojo (${_carga!.cuantas(2)})')),
-            ButtonSegment(value: 1, label: Text('Ámbar (${_carga!.cuantas(1)})')),
-            ButtonSegment(value: 0, label: Text('Verde (${_carga!.cuantas(0)})')),
+            ButtonSegment(value: -1, label: Text('Todas')),
+            ButtonSegment(value: 2, label: Text('Rojo')),
+            ButtonSegment(value: 1, label: Text('Ámbar')),
+            ButtonSegment(value: 0, label: Text('Verde')),
           ],
           selected: {_filtro ?? -1},
           showSelectedIcon: false,
@@ -454,27 +512,56 @@ class _EstadoCarga extends State<PantallaCarga> {
         ),
       );
 
+  /// Lo que más pesó en el nivel, para la lista: la regla o el signo de alarma, o la presión arterial.
+  String _hallazgo(Evaluacion e) {
+    String n(String c) => e.registro[c] is num ? (e.registro[c] as num).round().toString() : '–';
+    final primera = e.triaje.reglasActivadas.firstOrNull;
+    return switch (e.origen) {
+      'signo_alarma_3280' => e.alertasQueEscalan.first.etiqueta,
+      'regla_clinica' when primera == 'convulsiones' => 'Convulsiones',
+      'regla_clinica' when primera == 'proteinuria' => 'Proteinuria ++',
+      _ => 'PAS ${n('pas_mmhg')}/${n('pad_mmhg')}',
+    };
+  }
+
   Widget _fila(ResultadoFila r) {
     final e = r.evaluacion;
     final estilo = estiloPorCategoria[widget.recursos.clasificador.clases[e.clase]]!;
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Card(
-        child: ListTile(
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
           key: Key('fila-${r.fila}'),
           onTap: () => _abrir(r),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-          leading: CircleAvatar(backgroundColor: estilo.fondo, child: Icon(estilo.icono, color: estilo.tinta)),
-          title: Text('${estilo.semaforo.toUpperCase()} · ${estilo.titulo}', style: const TextStyle(fontWeight: FontWeight.w700)),
-          subtitle: Text(
-            'Fila ${r.fila} · ${origenLegible[e.origen] ?? e.origen}'
-            '${e.origen == 'modelo_ml' ? '' : ': ${motivoDelSemaforo(e, widget.recursos)}'}'
-            '${e.urgentesSinEscalar.isEmpty ? '' : ' · alerta urgente de la ruta'}'
-            '\n${r.idSeudonimo == null ? 'Sin documento' : 'Seudónimo ${r.idSeudonimo!.substring(0, 12)}…'}',
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Row(children: [
+              Expanded(
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text(seudonimoCorto(r.idSeudonimo),
+                      style: const TextStyle(fontWeight: FontWeight.w800, color: ColoresMaterna.tinta, fontSize: 15)),
+                  const SizedBox(height: 2),
+                  Text(edadYSemanas(e.registro),
+                      style: const TextStyle(color: ColoresMaterna.tintaSuave, fontSize: 12.5)),
+                ]),
+              ),
+              if (e.urgentesSinEscalar.isNotEmpty)
+                const Padding(
+                  padding: EdgeInsets.only(right: 6),
+                  child: Icon(Icons.priority_high_rounded, color: ColoresMaterna.ciruela900, size: 18, semanticLabel: 'Alerta urgente'),
+                ),
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 130),
+                child: Text(_hallazgo(e),
+                    textAlign: TextAlign.right,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(color: ColoresMaterna.tinta, fontSize: 12.5)),
+              ),
+              const SizedBox(width: 8),
+              EtiquetaNivel(estilo, key: Key('nivel-${e.clase}')),
+            ]),
           ),
-          trailing: e.urgentesSinEscalar.isEmpty
-              ? null
-              : const Icon(Icons.priority_high_rounded, color: ColoresMaterna.ciruela900, semanticLabel: 'Alerta urgente'),
         ),
       ),
     );
@@ -493,18 +580,21 @@ class _EstadoCarga extends State<PantallaCarga> {
           constraints: const BoxConstraints(maxWidth: 760),
           child: CustomScrollView(slivers: [
             SliverPadding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
               sliver: SliverList.list(children: [
-                Text('Carga masiva IPS', style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800)),
-                const SizedBox(height: 4),
-                const Text('Triaje de todas las gestantes de un archivo de la IPS, ordenado por urgencia. Sin internet.',
-                    style: TextStyle(color: ColoresMaterna.tintaSuave)),
+                const EncabezadoMaterna(etiqueta: 'Archivo IPS'),
                 const SizedBox(height: 14),
+                const TituloConIcono(
+                  icono: IconoDeTrazo(IconoTrazo.subirArchivo, color: ColoresMaterna.ciruela900, tamano: 26),
+                  titulo: 'Carga masiva IPS',
+                  subtitulo: 'Triaje ordenado por urgencia · sin internet',
+                ),
+                const SizedBox(height: 16),
                 if (_cargandoClave)
                   const Center(child: Padding(padding: EdgeInsets.all(24), child: CircularProgressIndicator()))
                 else ...[
                   _clavePanel(),
-                  const SizedBox(height: 14),
+                  const SizedBox(height: 12),
                   _archivoPanel(),
                 ],
                 if (_procesando) ...[const SizedBox(height: 14), _progreso()],
@@ -513,11 +603,11 @@ class _EstadoCarga extends State<PantallaCarga> {
                   Container(
                     key: const Key('error-carga'),
                     padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(color: const Color(0xFFF099AB).withValues(alpha: .5), borderRadius: BorderRadius.circular(16)),
+                    decoration: BoxDecoration(color: estiloPorCategoria['Alto Riesgo']!.fondo, borderRadius: BorderRadius.circular(16)),
                     child: Row(children: [
-                      const Icon(Icons.error_outline_rounded, color: Color(0xFF6B1832)),
+                      Icon(Icons.error_outline_rounded, color: estiloPorCategoria['Alto Riesgo']!.tinta),
                       const SizedBox(width: 10),
-                      Expanded(child: Text(_error!, style: const TextStyle(color: Color(0xFF6B1832)))),
+                      Expanded(child: Text(_error!, style: TextStyle(color: estiloPorCategoria['Alto Riesgo']!.tinta))),
                     ]),
                   ),
                 ],
@@ -525,7 +615,7 @@ class _EstadoCarga extends State<PantallaCarga> {
                   const SizedBox(height: 14),
                   _resumen(),
                   if (carga.resultados.isNotEmpty) ...[
-                    const SizedBox(height: 14),
+                    const SizedBox(height: 16),
                     _filtros(),
                     const SizedBox(height: 10),
                   ],

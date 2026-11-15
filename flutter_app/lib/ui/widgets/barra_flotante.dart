@@ -18,7 +18,7 @@ class DestinoBarra {
 }
 
 const _gris = Color(0xFF8A8487);
-const _rosaActivo = Color(0xFFF7DCE7);
+const _rosaActivo = ColoresMaterna.ciruela100;
 
 class BarraFlotante extends StatelessWidget {
   const BarraFlotante({super.key, required this.destinos, required this.indice, required this.alCambiar});

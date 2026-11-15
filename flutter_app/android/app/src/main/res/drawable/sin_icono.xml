@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Ícono vacío para la pantalla de arranque del sistema (Android 12+): la pantalla de inicio de MATERNA la dibuja
+     Flutter (lib/ui/pantallas/pantalla_inicio.dart), así no aparece antes el ícono de Flutter. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <solid android:color="@android:color/transparent" />
+</shape>

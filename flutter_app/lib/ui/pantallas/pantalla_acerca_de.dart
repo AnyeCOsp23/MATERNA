@@ -7,6 +7,8 @@ import '../../datos/base_local.dart';
 import '../../motor/recursos.dart';
 import '../tema/tema_materna.dart';
 import '../widgets/barra_flotante.dart';
+import '../widgets/encabezado.dart';
+import '../widgets/iconos_trazo.dart';
 import 'pantalla_triaje.dart' show atiende;
 
 /// Debe coincidir con `version:` de pubspec.yaml (lo verifica una prueba).
@@ -50,9 +52,9 @@ class _EstadoAcercaDe extends State<PantallaAcercaDe> {
           padding: const EdgeInsets.all(18),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Row(children: [
-              Icon(icono, color: ColoresMaterna.ciruela700, size: 20),
+              Icon(icono, color: ColoresMaterna.ciruela900, size: 20),
               const SizedBox(width: 8),
-              Text(titulo, style: const TextStyle(fontWeight: FontWeight.w700)),
+              Text(titulo, style: const TextStyle(fontWeight: FontWeight.w800, color: ColoresMaterna.tinta)),
             ]),
             const SizedBox(height: 10),
             ...hijos,
@@ -86,24 +88,22 @@ class _EstadoAcercaDe extends State<PantallaAcercaDe> {
       child: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 760),
-          child: ListView(padding: const EdgeInsets.fromLTRB(16, 16, 16, BarraFlotante.espacioInferior), children: [
-            Row(children: [
-              Image.asset('assets/logo_isotipo.webp', width: 52, height: 52),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  const Text('MATERNA',
-                      style: TextStyle(fontSize: 26, fontWeight: FontWeight.w900, color: ColoresMaterna.ciruela900, letterSpacing: -.5)),
-                  Text('Versión $versionApp · Módulo 2, aplicación de usuario final',
-                      key: const Key('version-app'), style: const TextStyle(color: ColoresMaterna.tintaSuave)),
-                ]),
-              ),
-            ]),
+          child: ListView(padding: const EdgeInsets.fromLTRB(16, 8, 16, BarraFlotante.espacioInferior), children: [
+            const EncabezadoMaterna(etiqueta: 'Información'),
+            const SizedBox(height: 14),
+            const TituloConIcono(
+              icono: IconoDeTrazo(IconoTrazo.informacion, color: ColoresMaterna.ciruela900, tamano: 26),
+              titulo: 'Acerca de',
+              subtitulo: 'Versión $versionApp · Módulo 2, aplicación de usuario final',
+            ),
             const SizedBox(height: 16),
             Container(
               key: const Key('deslinde'),
               padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(color: ColoresMaterna.ciruela900, borderRadius: BorderRadius.circular(18)),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(colors: [ColoresMaterna.ciruela900, ColoresMaterna.ciruelaNoche]),
+                borderRadius: BorderRadius.circular(20),
+              ),
               child: const Row(children: [
                 Icon(Icons.gavel_rounded, color: Colors.white),
                 SizedBox(width: 12),
@@ -112,6 +112,7 @@ class _EstadoAcercaDe extends State<PantallaAcercaDe> {
             ),
             const SizedBox(height: 14),
             _seccion('Operador', Icons.badge_outlined, [
+              if (perfil.usuario != null) _dato('Usuario', perfil.usuario!, key: const Key('usuario-sesion')),
               _dato('Quién atiende', atiende[perfil.atendidoPor] ?? perfil.atendidoPor),
               _dato('IPS o puesto de salud', perfil.ips),
               if (perfil.municipio != null) _dato('Municipio', perfil.municipio!),
@@ -148,7 +149,8 @@ class _EstadoAcercaDe extends State<PantallaAcercaDe> {
                   'archivos de la app.'),
               _vineta('La clave de la IPS para seudonimizar los documentos también se guarda sin cifrar en el dispositivo.'),
               _vineta('La sincronización es una simulación: no hay servidor y no se envía ningún dato.'),
-              _vineta('Si se olvida el PIN, la app se reinicia y se pierden las evaluaciones guardadas.'),
+              _vineta('Si se olvida el PIN, se pone uno nuevo con el código de recuperación o, si también se perdió, con la '
+                  'clave de la IPS; solo como último recurso se elimina la cuenta con sus evaluaciones.'),
             ]),
           ]),
         ),

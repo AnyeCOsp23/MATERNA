@@ -25,7 +25,7 @@ void main() {
       expect(hex(derivarPin('password', sal, iteraciones: 2)), 'ae4d0c95af6b46d32d0adff928f06dd02a303f8ef3c251dfd6e2d85a95474c43');
     });
 
-    test('el PIN no se guarda y cada dispositivo tiene su sal', () {
+    test('el PIN no se guarda y cada cuenta tiene su sal', () {
       final a = generarSal(), b = generarSal();
       expect(a, isNot(b));
       expect(derivarPin('1234', a), isNot(derivarPin('1234', b)));
@@ -35,35 +35,106 @@ void main() {
     });
   });
 
-  group('perfil y PIN', () {
-    test('configurar, verificar y bloquear tras 5 intentos', () async {
+  group('código de recuperación', () {
+    test('8 caracteres sin letras confusas; se acepta con o sin guion', () {
+      final c = generarCodigoRecuperacion();
+      expect(c, matches(RegExp(r'^[A-HJ-NP-Z2-9]{4}-[A-HJ-NP-Z2-9]{4}$')));
+      expect(normalizarCodigo(' ${c.toLowerCase().replaceAll('-', ' ')} '), c.replaceAll('-', ''));
+      expect(generarCodigoRecuperacion(), isNot(c));
+    });
+  });
+
+  group('cuentas de usuario', () {
+    test('registrar, entrar y bloquear tras 5 intentos solo esa cuenta', () async {
       final base = await baseNueva();
-      expect(await base.tienePin(), isFalse);
-      await base.configurar(pin: '2580', perfil: perfil);
-      expect(await base.tienePin(), isTrue);
-      expect((await base.perfil())!.ips, 'ESE Uribia');
-      expect(await base.verificar('2580'), isTrue);
+      final codigo = await base.registrar(usuario: ' Auxiliar.Rural ', pin: '2580', perfil: perfil);
+      expect(codigo, hasLength(9));
+      await base.registrar(usuario: 'medico.uribia', pin: '1357', perfil: perfil);
+      expect(() => base.registrar(usuario: 'auxiliar.rural', pin: '1111', perfil: perfil), throwsA(isA<UsuarioRepetido>()));
+      expect(() => base.registrar(usuario: 'a b', pin: '1111', perfil: perfil), throwsArgumentError);
+
+      final entro = await base.entrar('AUXILIAR.RURAL', '2580');
+      expect(entro, isA<AccesoConcedido>());
+      final perfilEntrado = (entro as AccesoConcedido).perfil;
+      expect(perfilEntrado.usuario, 'auxiliar.rural');
+      expect(perfilEntrado.ips, 'ESE Uribia');
+      expect(perfilEntrado.id, isNotNull);
+      expect(await base.entrar('nadie', '2580'), isA<AccesoDenegado>());
+
       final ahora = DateTime(2026, 11, 8, 10);
       for (var i = 0; i < intentosMaximos; i++) {
-        expect(await base.verificar('0000', ahora: ahora), isFalse);
+        expect(await base.entrar('auxiliar.rural', '0000', ahora: ahora), isA<AccesoDenegado>());
       }
-      expect(await base.segundosDeBloqueo(ahora: ahora), greaterThan(0));
-      expect(await base.verificar('2580', ahora: ahora), isFalse, reason: 'bloqueado, aunque sea el PIN correcto');
-      expect(await base.verificar('2580', ahora: ahora.add(const Duration(seconds: segundosBloqueo + 1))), isTrue);
+      final bloqueado = await base.entrar('auxiliar.rural', '2580', ahora: ahora);
+      expect((bloqueado as AccesoDenegado).segundosDeBloqueo, greaterThan(0), reason: 'bloqueado, aunque sea el PIN correcto');
+      expect(await base.entrar('medico.uribia', '1357', ahora: ahora), isA<AccesoConcedido>(), reason: 'las demás cuentas no');
+      expect(await base.entrar('auxiliar.rural', '2580', ahora: ahora.add(const Duration(seconds: segundosBloqueo + 1))),
+          isA<AccesoConcedido>());
       await base.cerrar();
     });
 
-    test('olvidé el PIN: se borra todo', () async {
+    test('PIN olvidado, nivel 1: con el código de recuperación, sin perder nada', () async {
       final base = await baseNueva();
-      await base.configurar(pin: '2580', perfil: perfil);
-      await base.guardar(recursos.evaluar(_rutina), perfil: perfil, versionModelo: 'v1', categoria: 'Bajo Riesgo');
+      final codigo = await base.registrar(usuario: 'auxiliar.rural', pin: '2580', perfil: perfil);
+      final yo = (await base.perfilDe('auxiliar.rural'))!;
+      await base.guardar(recursos.evaluar(_rutina), perfil: yo, versionModelo: 'v1', categoria: 'Bajo Riesgo');
+      expect(await base.restablecerConCodigo('auxiliar.rural', 'AAAA-AAAA', '1111'), isNull);
+      final nuevo = await base.restablecerConCodigo('auxiliar.rural', codigo.toLowerCase(), '1111');
+      expect(nuevo, isNotNull);
+      expect(nuevo, isNot(codigo));
+      expect(await base.entrar('auxiliar.rural', '2580'), isA<AccesoDenegado>());
+      expect(await base.entrar('auxiliar.rural', '1111'), isA<AccesoConcedido>());
+      expect(await base.restablecerConCodigo('auxiliar.rural', codigo, '2222'), isNull, reason: 'el código viejo ya no sirve');
+      expect(await base.listar(idUsuario: yo.id), hasLength(1));
+      await base.cerrar();
+    });
+
+    test('PIN olvidado, nivel 2: el responsable con la clave de la IPS', () async {
+      final base = await baseNueva();
+      await base.registrar(usuario: 'auxiliar.rural', pin: '2580', perfil: perfil);
+      expect(await base.restablecerConClaveIps('auxiliar.rural', _clave, '1111'), isNull, reason: 'sin clave configurada');
       await base.fijarClaveIps(_clave);
-      await base.guardarCarga(await _cargaEjemplo(), perfil: perfil, versionModelo: 'v1', clases: _clases, clave: _clave);
-      await base.borrarTodo();
-      expect(await base.tienePin(), isFalse);
-      expect(await base.claveIps(), isNull);
-      expect(await base.listar(), isEmpty);
-      expect(await base.cargaPrevia((await _cargaEjemplo()).huellaArchivo), isNull);
+      expect(await base.restablecerConClaveIps('auxiliar.rural', '${_clave}x', '1111'), isNull);
+      expect(await base.restablecerConClaveIps('auxiliar.rural', _clave, '1111'), isNotNull);
+      expect(await base.entrar('auxiliar.rural', '1111'), isA<AccesoConcedido>());
+      await base.cerrar();
+    });
+
+    test('nivel 3: eliminar solo esa cuenta con sus evaluaciones y cargas', () async {
+      final base = await baseNueva();
+      await base.registrar(usuario: 'auxiliar.rural', pin: '2580', perfil: perfil);
+      await base.registrar(usuario: 'medico.uribia', pin: '1357', perfil: perfil);
+      final a = (await base.perfilDe('auxiliar.rural'))!;
+      final b = (await base.perfilDe('medico.uribia'))!;
+      await base.guardar(recursos.evaluar(_rutina), perfil: a, versionModelo: 'v1', categoria: 'Bajo Riesgo');
+      await base.guardar(recursos.evaluar(_rutina), perfil: b, versionModelo: 'v1', categoria: 'Bajo Riesgo');
+      final carga = await _cargaEjemplo();
+      await base.guardarCarga(carga, perfil: a, versionModelo: 'v1', clases: _clases, clave: _clave);
+      await base.eliminarUsuario('auxiliar.rural');
+      expect(await base.existeUsuario('auxiliar.rural'), isFalse);
+      expect(await base.listar(idUsuario: a.id), isEmpty);
+      expect(await base.cargaPrevia(carga.huellaArchivo, idUsuario: a.id), isNull);
+      expect(await base.listar(idUsuario: b.id), hasLength(1));
+      expect(await base.entrar('medico.uribia', '1357'), isA<AccesoConcedido>());
+      await base.cerrar();
+    });
+
+    test('cada usuario ve solo sus evaluaciones, su sincronización y sus cargas', () async {
+      final base = await baseNueva();
+      await base.registrar(usuario: 'auxiliar.rural', pin: '2580', perfil: perfil);
+      await base.registrar(usuario: 'medico.uribia', pin: '1357', perfil: perfil);
+      final a = (await base.perfilDe('auxiliar.rural'))!;
+      final b = (await base.perfilDe('medico.uribia'))!;
+      await base.guardar(recursos.evaluar(_rutina), perfil: a, versionModelo: 'v1', categoria: 'Bajo Riesgo');
+      final carga = await _cargaEjemplo();
+      await base.guardarCarga(carga, perfil: b, versionModelo: 'v1', clases: _clases, clave: _clave);
+      expect(await base.listar(idUsuario: a.id), hasLength(1));
+      expect(await base.listar(idUsuario: b.id, limite: 1000), hasLength(300));
+      expect(await base.cargaPrevia(carga.huellaArchivo, idUsuario: a.id), isNull);
+      expect(await base.cargaPrevia(carga.huellaArchivo, idUsuario: b.id), isNotNull);
+      expect(await base.pendientesDeSincronizar(idUsuario: a.id), 1);
+      expect(await base.marcarSincronizadas(idUsuario: a.id), 1);
+      expect(await base.pendientesDeSincronizar(idUsuario: b.id), 300);
       await base.cerrar();
     });
   });
@@ -125,7 +196,7 @@ void main() {
       await base.cerrar();
     });
 
-    test('una base de la versión 1 (commit B) pasa a la 2 sin perder nada', () async {
+    test('una base de la versión 1 (commit B) pasa a la 3: se descarta el perfil viejo y sus datos de prueba', () async {
       final carpeta = Directory.systemTemp.createTempSync('materna_');
       addTearDown(() => carpeta.deleteSync(recursive: true));
       final ruta = '${carpeta.path}/materna.db';
@@ -139,6 +210,7 @@ void main() {
               alertas TEXT NOT NULL, registro TEXT NOT NULL, version_modelo TEXT NOT NULL,
               id_seudonimo TEXT, id_carga INTEGER, sincronizado INTEGER NOT NULL DEFAULT 0)''');
             await bd.insert('ajustes', {'clave': 'atendido_por', 'valor': 'Medico'});
+            await bd.insert('ajustes', {'clave': 'clave_ips', 'valor': _clave});
             await bd.insert('ajustes', {'clave': 'ips', 'valor': 'ESE Valledupar'});
             await bd.insert('evaluaciones', {
               'fecha': '2026-11-08T10:00:00', 'atendido_por': 'Medico', 'ips': 'ESE Valledupar', 'categoria': 'Bajo Riesgo',
@@ -148,10 +220,12 @@ void main() {
           }));
       await v1.close();
       final base = await BaseLocal.abrir(databaseFactoryFfiNoIsolate, ruta);
-      expect((await base.perfil())!.ips, 'ESE Valledupar');
-      expect(await base.listar(), hasLength(1));
-      await base.guardarCarga(await _cargaEjemplo(), perfil: perfil, versionModelo: 'v1', clases: _clases, clave: _clave);
-      expect(await base.listar(limite: 1000), hasLength(301));
+      expect(await base.listar(), isEmpty, reason: 'evaluaciones de prueba descartadas');
+      expect(await base.claveIps(), _clave, reason: 'la clave de la IPS es del dispositivo y se conserva');
+      await base.registrar(usuario: 'medico.valledupar', pin: '2580', perfil: perfil);
+      final yo = (await base.perfilDe('medico.valledupar'))!;
+      await base.guardarCarga(await _cargaEjemplo(), perfil: yo, versionModelo: 'v1', clases: _clases, clave: _clave);
+      expect(await base.listar(idUsuario: yo.id, limite: 1000), hasLength(300));
       await base.cerrar();
     });
   });

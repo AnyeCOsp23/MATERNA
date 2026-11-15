@@ -1,17 +1,22 @@
-/// Acceso local al Módulo 2, sin servidor ni señal celular.
+/// Acceso local al Módulo 2, sin servidor ni señal celular. Varias personas pueden usar el mismo dispositivo.
 ///
-/// La primera vez se crea el perfil del operador (quién atiende, IPS y municipio) y un PIN de 4 dígitos.
-/// Después, un teclado numérico táctil pide el PIN. Tras 5 intentos fallidos se bloquea 30 s. Si se olvida el
-/// PIN no hay de dónde recuperarlo: se puede reiniciar el dispositivo, lo que borra el perfil y las evaluaciones.
+///   Iniciar sesión: usuario y PIN de 4 dígitos (5 intentos fallidos bloquean esa cuenta 30 s).
+///   Registrarse: usuario, quién atiende, IPS o puesto, municipio y PIN; al terminar se muestra una sola vez el
+///     código de recuperación.
+///   ¿Olvidó el PIN?: PIN nuevo con el código de recuperación; si también se perdió, el responsable de datos lo
+///     pone con la clave de la IPS; como último recurso se elimina solo esa cuenta.
 library;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../datos/base_local.dart';
 import '../../datos/seguridad.dart';
 import '../tema/tema_materna.dart';
 import '../widgets/campos.dart';
 import 'pantalla_triaje.dart' show atiende;
+
+enum _Vista { entrar, registrarse, recuperar, codigo }
 
 class PantallaAcceso extends StatefulWidget {
   const PantallaAcceso({super.key, required this.base, required this.alEntrar});
@@ -24,26 +29,75 @@ class PantallaAcceso extends StatefulWidget {
 }
 
 class _EstadoAcceso extends State<PantallaAcceso> {
-  late Future<bool> _configurado = widget.base.tienePin();
+  var _vista = _Vista.entrar;
 
-  void _recargar() => setState(() {
-        _configurado = widget.base.tienePin();
+  /// Código de recuperación recién creado y a dónde ir después de mostrarlo.
+  String? _codigo;
+  Perfil? _entrarTras;
+  String? _avisoEntrar;
+  String _usuario = '';
+
+  void _ir(_Vista vista, {String? aviso}) => setState(() {
+        _vista = vista;
+        _avisoEntrar = aviso;
+      });
+
+  void _mostrarCodigo(String codigo, {Perfil? entrar, required String usuario}) => setState(() {
+        _codigo = codigo;
+        _entrarTras = entrar;
+        _usuario = usuario;
+        _vista = _Vista.codigo;
       });
 
   @override
-  Widget build(BuildContext context) => FutureBuilder<bool>(
-        future: _configurado,
-        builder: (context, estado) => Scaffold(
-          body: SafeArea(
-            child: Center(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(24),
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 420),
-                  child: switch (estado.data) {
-                    null => const CircularProgressIndicator(),
-                    false => _Configurar(base: widget.base, alTerminar: _recargar),
-                    true => _Pin(base: widget.base, alEntrar: widget.alEntrar, alReiniciar: _recargar),
+  Widget build(BuildContext context) => Scaffold(
+        backgroundColor: Colors.white, // acceso en blanco, como la pantalla de inicio
+        body: SafeArea(
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 420),
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 250),
+                  child: switch (_vista) {
+                    _Vista.entrar => _Entrar(
+                        key: const ValueKey('vista-entrar'),
+                        base: widget.base,
+                        usuarioInicial: _usuario,
+                        aviso: _avisoEntrar,
+                        alEntrar: widget.alEntrar,
+                        alRegistrarse: () => _ir(_Vista.registrarse),
+                        alOlvidar: (usuario) => setState(() {
+                          _usuario = usuario;
+                          _vista = _Vista.recuperar;
+                        }),
+                      ),
+                    _Vista.registrarse => _Registrarse(
+                        key: const ValueKey('vista-registrarse'),
+                        base: widget.base,
+                        alVolver: () => _ir(_Vista.entrar),
+                        alCrear: (perfil, codigo) => _mostrarCodigo(codigo, entrar: perfil, usuario: perfil.usuario!),
+                      ),
+                    _Vista.recuperar => _Recuperar(
+                        key: const ValueKey('vista-recuperar'),
+                        base: widget.base,
+                        usuarioInicial: _usuario,
+                        alVolver: () => _ir(_Vista.entrar),
+                        alRestablecer: (usuario, codigo) => _mostrarCodigo(codigo, usuario: usuario),
+                        alEliminar: (usuario) {
+                          _usuario = '';
+                          _ir(_Vista.entrar, aviso: 'Se eliminó la cuenta «$usuario». Puede registrarse de nuevo.');
+                        },
+                      ),
+                    _Vista.codigo => _Codigo(
+                        key: const ValueKey('vista-codigo'),
+                        codigo: _codigo!,
+                        textoBoton: _entrarTras == null ? 'Ya lo anoté · iniciar sesión' : 'Ya lo anoté · entrar',
+                        alContinuar: () => _entrarTras == null
+                            ? _ir(_Vista.entrar, aviso: 'PIN cambiado. Inicie sesión con el PIN nuevo.')
+                            : widget.alEntrar(_entrarTras!),
+                      ),
                   },
                 ),
               ),
@@ -53,90 +107,272 @@ class _EstadoAcceso extends State<PantallaAcceso> {
       );
 }
 
+// ------------------------------------------------------------------ piezas comunes
 class _Marca extends StatelessWidget {
-  const _Marca(this.subtitulo);
+  const _Marca({required this.titulo, required this.subtitulo, this.grande = true});
 
+  final String titulo;
   final String subtitulo;
+  final bool grande;
 
   @override
   Widget build(BuildContext context) => Column(children: [
-        Image.asset('assets/logo_isotipo.webp', width: 72, height: 72),
-        const SizedBox(height: 10),
+        Image.asset('assets/logo_isotipo.webp', width: grande ? 104 : 64, height: grande ? 104 : 64),
         const Text('MATERNA',
-            style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: ColoresMaterna.ciruela900, letterSpacing: -.6)),
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w400, color: ColoresMaterna.vinoLogo, letterSpacing: 4)),
+        SizedBox(height: grande ? 26 : 16),
+        Text(titulo, textAlign: TextAlign.center,
+            style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w800, color: ColoresMaterna.tinta)),
         const SizedBox(height: 4),
         Text(subtitulo, textAlign: TextAlign.center, style: const TextStyle(color: ColoresMaterna.tintaSuave)),
       ]);
 }
 
-// ------------------------------------------------------------------ primera vez: perfil y PIN
-class _Configurar extends StatefulWidget {
-  const _Configurar({required this.base, required this.alTerminar});
+/// Campo de texto con su etiqueta encima (como el mockup).
+Widget _campo(
+  String clave,
+  String etiqueta,
+  TextEditingController control, {
+  String? pista,
+  String? ayuda,
+  String? error,
+  bool pin = false,
+  bool oculto = false,
+  VoidCallback? alVerOcultar,
+  ValueChanged<String>? alEnviar,
+}) =>
+    Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Etiqueta(etiqueta, ayuda: ayuda),
+      TextField(
+        key: Key('campo-$clave'),
+        controller: control,
+        obscureText: oculto,
+        maxLength: pin ? 4 : null,
+        keyboardType: pin ? TextInputType.number : TextInputType.text,
+        inputFormatters: pin ? [FilteringTextInputFormatter.digitsOnly] : null,
+        autocorrect: false,
+        enableSuggestions: false,
+        textInputAction: alEnviar == null ? TextInputAction.next : TextInputAction.done,
+        onSubmitted: alEnviar,
+        decoration: InputDecoration(
+          hintText: pista,
+          counterText: '',
+          errorText: error,
+          suffixIcon: alVerOcultar == null
+              ? null
+              : IconButton(
+                  tooltip: oculto ? 'Mostrar' : 'Ocultar',
+                  icon: Icon(oculto ? Icons.visibility_outlined : Icons.visibility_off_outlined, color: ColoresMaterna.tintaSuave),
+                  onPressed: alVerOcultar,
+                ),
+        ),
+      ),
+    ]);
+
+Widget _mensaje(String? texto, {Key key = const Key('mensaje-acceso'), bool bueno = false}) => texto == null
+    ? const SizedBox.shrink()
+    : Container(
+        key: key,
+        margin: const EdgeInsets.only(top: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        decoration: BoxDecoration(
+          color: bueno ? ColoresMaterna.sinConexionFondo : estiloPorCategoria['Alto Riesgo']!.fondo,
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Text(texto,
+            style: TextStyle(color: bueno ? ColoresMaterna.sinConexionTexto : estiloPorCategoria['Alto Riesgo']!.tinta)),
+      );
+
+/// Enlace en una línea: «¿No tiene cuenta? Registrarse».
+Widget _enlace(String pregunta, String accion, Key clave, VoidCallback alTocar) => Wrap(
+      alignment: WrapAlignment.center,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        Text(pregunta, style: const TextStyle(color: ColoresMaterna.tintaSuave)),
+        TextButton(
+          key: clave,
+          onPressed: alTocar,
+          style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 6)),
+          child: Text(accion, style: const TextStyle(fontWeight: FontWeight.w800)),
+        ),
+      ],
+    );
+
+final _sinConexion = Container(
+  key: const Key('sin-conexion'),
+  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+  decoration: BoxDecoration(color: ColoresMaterna.sinConexionFondo, borderRadius: BorderRadius.circular(14)),
+  child: Row(children: [
+    Container(width: 8, height: 8, decoration: const BoxDecoration(color: ColoresMaterna.sinConexionPunto, shape: BoxShape.circle)),
+    const SizedBox(width: 10),
+    const Expanded(
+      child: Text('Funciona sin conexión · datos solo en este dispositivo',
+          style: TextStyle(color: ColoresMaterna.sinConexionTexto, fontSize: 12.5)),
+    ),
+  ]),
+);
+
+String? _errorPin(String pin) => pinValido(pin) ? null : 'El PIN debe tener 4 dígitos.';
+
+// ------------------------------------------------------------------ iniciar sesión
+class _Entrar extends StatefulWidget {
+  const _Entrar({
+    super.key,
+    required this.base,
+    required this.usuarioInicial,
+    required this.aviso,
+    required this.alEntrar,
+    required this.alRegistrarse,
+    required this.alOlvidar,
+  });
 
   final BaseLocal base;
-  final VoidCallback alTerminar;
+  final String usuarioInicial;
+  final String? aviso;
+  final ValueChanged<Perfil> alEntrar;
+  final VoidCallback alRegistrarse;
+  final ValueChanged<String> alOlvidar;
 
   @override
-  State<_Configurar> createState() => _EstadoConfigurar();
+  State<_Entrar> createState() => _EstadoEntrar();
 }
 
-class _EstadoConfigurar extends State<_Configurar> {
+class _EstadoEntrar extends State<_Entrar> {
+  late final _usuario = TextEditingController(text: widget.usuarioInicial);
+  final _pin = TextEditingController();
+  var _oculto = true;
+  var _entrando = false;
+  String? _error;
+
+  @override
+  void dispose() {
+    _usuario.dispose();
+    _pin.dispose();
+    super.dispose();
+  }
+
+  Future<void> _entrar() async {
+    if (_entrando) return;
+    if (_usuario.text.trim().isEmpty || !pinValido(_pin.text)) {
+      setState(() => _error = 'Escriba su usuario y su PIN de 4 dígitos.');
+      return;
+    }
+    setState(() => _entrando = true);
+    final resultado = await widget.base.entrar(_usuario.text, _pin.text);
+    if (!mounted) return;
+    switch (resultado) {
+      case AccesoConcedido(:final perfil):
+        widget.alEntrar(perfil);
+      case AccesoDenegado(:final segundosDeBloqueo):
+        setState(() {
+          _entrando = false;
+          _pin.clear();
+          _error = segundosDeBloqueo > 0
+              ? 'Demasiados intentos. Espere $segundosDeBloqueo s.'
+              : 'Usuario o PIN incorrecto.';
+        });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        const _Marca(titulo: 'Iniciar sesión', subtitulo: 'Acceso del personal de salud'),
+        const SizedBox(height: 26),
+        _campo('usuario', 'Usuario', _usuario, pista: 'Ej. auxiliar.rural'),
+        const SizedBox(height: 16),
+        _campo('pin', 'PIN de 4 dígitos', _pin,
+            pin: true, oculto: _oculto, alVerOcultar: () => setState(() => _oculto = !_oculto), alEnviar: (_) => _entrar()),
+        _mensaje(_error ?? widget.aviso, bueno: _error == null),
+        const SizedBox(height: 22),
+        FilledButton(
+          key: const Key('entrar'),
+          onPressed: _entrando ? null : _entrar,
+          child: _entrando
+              ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2.4, color: Colors.white))
+              : const Text('Entrar'),
+        ),
+        const SizedBox(height: 8),
+        _enlace('¿No tiene cuenta?', 'Registrarse', const Key('ir-registro'), widget.alRegistrarse),
+        TextButton(
+          key: const Key('olvide-pin'),
+          onPressed: () => widget.alOlvidar(_usuario.text.trim()),
+          child: const Text('¿Olvidó el PIN?'),
+        ),
+        const SizedBox(height: 18),
+        _sinConexion,
+      ]);
+}
+
+// ------------------------------------------------------------------ registrarse
+class _Registrarse extends StatefulWidget {
+  const _Registrarse({super.key, required this.base, required this.alVolver, required this.alCrear});
+
+  final BaseLocal base;
+  final VoidCallback alVolver;
+  final void Function(Perfil perfil, String codigo) alCrear;
+
+  @override
+  State<_Registrarse> createState() => _EstadoRegistrarse();
+}
+
+class _EstadoRegistrarse extends State<_Registrarse> {
+  final _usuario = TextEditingController();
   final _ips = TextEditingController();
   final _municipio = TextEditingController();
   final _pin = TextEditingController();
   final _pin2 = TextEditingController();
   String? _atiende;
   var _errores = <String, String>{};
+  var _creando = false;
 
   @override
   void dispose() {
-    for (final c in [_ips, _municipio, _pin, _pin2]) {
+    for (final c in [_usuario, _ips, _municipio, _pin, _pin2]) {
       c.dispose();
     }
     super.dispose();
   }
 
   Future<void> _crear() async {
+    if (_creando) return;
     final errores = <String, String>{
+      if (!usuarioValido(_usuario.text)) 'usuario': 'Use de 3 a 30 letras minúsculas, números, punto o guion.',
       if (_atiende == null) 'atendido_por': 'Elija una opción.',
       if (_ips.text.trim().isEmpty) 'ips': 'Escriba la IPS o el puesto de salud.',
-      if (!pinValido(_pin.text)) 'pin': 'El PIN debe tener 4 dígitos.',
+      if (_errorPin(_pin.text) != null) 'pin': _errorPin(_pin.text)!,
       if (pinValido(_pin.text) && _pin.text != _pin2.text) 'pin2': 'Los PIN no coinciden.',
     };
+    if (errores.isEmpty && await widget.base.existeUsuario(_usuario.text)) {
+      errores['usuario'] = 'Ese usuario ya existe en este dispositivo.';
+    }
+    if (!mounted) return;
     setState(() => _errores = errores);
     if (errores.isNotEmpty) return;
-    await widget.base.configurar(
-      pin: _pin.text,
-      perfil: Perfil(
-        atendidoPor: _atiende!,
-        ips: _ips.text.trim(),
-        municipio: _municipio.text.trim().isEmpty ? null : _municipio.text.trim(),
-      ),
+    setState(() => _creando = true);
+    final perfil = Perfil(
+      atendidoPor: _atiende!,
+      ips: _ips.text.trim(),
+      municipio: _municipio.text.trim().isEmpty ? null : _municipio.text.trim(),
     );
-    widget.alTerminar();
+    final codigo = await widget.base.registrar(usuario: _usuario.text, pin: _pin.text, perfil: perfil);
+    final creado = await widget.base.perfilDe(_usuario.text);
+    if (mounted) widget.alCrear(creado!, codigo);
   }
-
-  Widget _texto(String clave, String etiqueta, TextEditingController c, {bool pin = false, String? ayuda}) =>
-      Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Etiqueta(etiqueta, ayuda: ayuda),
-        TextField(
-          key: Key('campo-$clave'),
-          controller: c,
-          obscureText: pin,
-          maxLength: pin ? 4 : null,
-          keyboardType: pin ? TextInputType.number : TextInputType.text,
-          decoration: InputDecoration(counterText: '', errorText: _errores[clave]),
-        ),
-      ]);
 
   @override
   Widget build(BuildContext context) => Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        const _Marca('Configure este dispositivo. Los datos quedan solo aquí: no se necesita internet.'),
-        const SizedBox(height: 24),
+        const _Marca(
+          titulo: 'Crear cuenta',
+          subtitulo: 'Configure su acceso en este dispositivo. Los datos quedan solo aquí: no se necesita internet.',
+          grande: false,
+        ),
+        const SizedBox(height: 22),
         Card(
           child: Padding(
             padding: const EdgeInsets.all(20),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              _campo('usuario', 'Usuario', _usuario, pista: 'Ej. auxiliar.rural', error: _errores['usuario']),
+              const SizedBox(height: 16),
               CampoLista(
                 nombre: 'atendido_por',
                 etiqueta: 'Quién atiende',
@@ -146,162 +382,230 @@ class _EstadoConfigurar extends State<_Configurar> {
                 alCambiar: (v) => setState(() => _atiende = v),
               ),
               const SizedBox(height: 16),
-              _texto('ips', 'IPS o puesto de salud', _ips),
+              _campo('ips', 'IPS o puesto de salud', _ips, error: _errores['ips']),
               const SizedBox(height: 16),
-              _texto('municipio', 'Municipio', _municipio, ayuda: 'opcional'),
+              _campo('municipio', 'Municipio', _municipio, ayuda: 'opcional'),
               const SizedBox(height: 16),
-              _texto('pin', 'PIN de 4 dígitos', _pin, pin: true),
+              _campo('pin', 'PIN de 4 dígitos', _pin, pin: true, oculto: true, error: _errores['pin']),
               const SizedBox(height: 16),
-              _texto('pin2', 'Repita el PIN', _pin2, pin: true),
+              _campo('pin2', 'Repita el PIN', _pin2, pin: true, oculto: true, error: _errores['pin2'], alEnviar: (_) => _crear()),
             ]),
           ),
         ),
         const SizedBox(height: 20),
         FilledButton.icon(
           key: const Key('crear-acceso'),
-          onPressed: _crear,
+          onPressed: _creando ? null : _crear,
           icon: const Icon(Icons.lock_outline_rounded),
-          label: const Text('Crear acceso'),
+          label: const Text('Crear cuenta'),
         ),
-        const SizedBox(height: 12),
-        const Text('Si olvida el PIN, la app se puede reiniciar, pero se borran las evaluaciones guardadas en el dispositivo.',
+        const SizedBox(height: 8),
+        _enlace('¿Ya tiene cuenta?', 'Iniciar sesión', const Key('ir-entrar'), widget.alVolver),
+        const SizedBox(height: 4),
+        const Text('Al crear la cuenta verá un código de recuperación: anótelo, sirve para poner un PIN nuevo si lo olvida.',
             textAlign: TextAlign.center, style: TextStyle(color: ColoresMaterna.tintaSuave, fontSize: 12.5)),
       ]);
 }
 
-// ------------------------------------------------------------------ PIN con teclado numérico
-class _Pin extends StatefulWidget {
-  const _Pin({required this.base, required this.alEntrar, required this.alReiniciar});
+// ------------------------------------------------------------------ código de recuperación
+class _Codigo extends StatelessWidget {
+  const _Codigo({super.key, required this.codigo, required this.textoBoton, required this.alContinuar});
 
-  final BaseLocal base;
-  final ValueChanged<Perfil> alEntrar;
-  final VoidCallback alReiniciar;
+  final String codigo;
+  final String textoBoton;
+  final VoidCallback alContinuar;
 
   @override
-  State<_Pin> createState() => _EstadoPin();
+  Widget build(BuildContext context) => Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        const _Marca(
+          titulo: 'Su código de recuperación',
+          subtitulo: 'Con él puede poner un PIN nuevo si lo olvida. Anótelo en un lugar seguro: no se vuelve a mostrar.',
+          grande: false,
+        ),
+        const SizedBox(height: 24),
+        Container(
+          padding: const EdgeInsets.symmetric(vertical: 22),
+          decoration: BoxDecoration(
+            color: ColoresMaterna.campo,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: ColoresMaterna.ciruela100),
+          ),
+          child: SelectableText(codigo,
+              key: const Key('codigo-recuperacion'),
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 30, fontWeight: FontWeight.w800, letterSpacing: 4, color: ColoresMaterna.ciruela900)),
+        ),
+        const SizedBox(height: 12),
+        const Text('Si pierde el PIN y este código, el responsable de datos de la IPS puede ponerle uno nuevo con la clave de la IPS.',
+            textAlign: TextAlign.center, style: TextStyle(color: ColoresMaterna.tintaSuave, fontSize: 12.5)),
+        const SizedBox(height: 24),
+        FilledButton(key: const Key('codigo-anotado'), onPressed: alContinuar, child: Text(textoBoton)),
+      ]);
 }
 
-class _EstadoPin extends State<_Pin> {
-  var _pin = '';
-  String? _mensaje;
-  Perfil? _perfil;
-  var _verificando = false;
+// ------------------------------------------------------------------ recuperar el acceso
+class _Recuperar extends StatefulWidget {
+  const _Recuperar({
+    super.key,
+    required this.base,
+    required this.usuarioInicial,
+    required this.alVolver,
+    required this.alRestablecer,
+    required this.alEliminar,
+  });
+
+  final BaseLocal base;
+  final String usuarioInicial;
+  final VoidCallback alVolver;
+  final void Function(String usuario, String codigoNuevo) alRestablecer;
+  final ValueChanged<String> alEliminar;
 
   @override
-  void initState() {
-    super.initState();
-    widget.base.perfil().then((p) => mounted ? setState(() => _perfil = p) : null);
+  State<_Recuperar> createState() => _EstadoRecuperar();
+}
+
+class _EstadoRecuperar extends State<_Recuperar> {
+  late final _usuario = TextEditingController(text: widget.usuarioInicial);
+  final _secreto = TextEditingController();
+  final _pin = TextEditingController();
+  final _pin2 = TextEditingController();
+  var _conClaveIps = false;
+  var _errores = <String, String>{};
+  String? _error;
+  var _trabajando = false;
+
+  @override
+  void dispose() {
+    for (final c in [_usuario, _secreto, _pin, _pin2]) {
+      c.dispose();
+    }
+    super.dispose();
   }
 
-  Future<void> _tecla(String t) async {
-    if (_verificando) return;
+  Future<void> _restablecer() async {
+    if (_trabajando) return;
+    final errores = <String, String>{
+      if (_usuario.text.trim().isEmpty) 'usuario': 'Escriba el usuario.',
+      if (_secreto.text.trim().isEmpty) 'secreto': _conClaveIps ? 'Escriba la clave de la IPS.' : 'Escriba el código de recuperación.',
+      if (_errorPin(_pin.text) != null) 'pin-nuevo': _errorPin(_pin.text)!,
+      if (pinValido(_pin.text) && _pin.text != _pin2.text) 'pin-nuevo2': 'Los PIN no coinciden.',
+    };
     setState(() {
-      _mensaje = null;
-      if (t == 'borrar') {
-        if (_pin.isNotEmpty) _pin = _pin.substring(0, _pin.length - 1);
-      } else if (_pin.length < 4) {
-        _pin += t;
-      }
+      _errores = errores;
+      _error = null;
     });
-    if (_pin.length < 4) return;
-    _verificando = true;
-    final espera = await widget.base.segundosDeBloqueo();
-    final correcto = espera == 0 && await widget.base.verificar(_pin);
-    _verificando = false;
+    if (errores.isNotEmpty) return;
+    setState(() => _trabajando = true);
+    final codigo = _conClaveIps
+        ? await widget.base.restablecerConClaveIps(_usuario.text, _secreto.text, _pin.text)
+        : await widget.base.restablecerConCodigo(_usuario.text, _secreto.text, _pin.text);
     if (!mounted) return;
-    if (correcto) {
-      widget.alEntrar((await widget.base.perfil())!);
+    if (codigo != null) {
+      widget.alRestablecer(normalizarUsuario(_usuario.text), codigo);
       return;
     }
-    final bloqueo = await widget.base.segundosDeBloqueo();
     setState(() {
-      _pin = '';
-      _mensaje = bloqueo > 0 ? 'Demasiados intentos. Espere $bloqueo s.' : 'PIN incorrecto.';
+      _trabajando = false;
+      _error = _conClaveIps
+          ? 'Usuario o clave de la IPS incorrectos (o la clave no está configurada en este dispositivo).'
+          : 'Usuario o código incorrectos. Tras 5 intentos la cuenta se bloquea 30 s.';
     });
   }
 
-  Future<void> _olvide() async {
+  Future<void> _eliminar() async {
+    final usuario = normalizarUsuario(_usuario.text);
+    if (usuario.isEmpty || !await widget.base.existeUsuario(usuario)) {
+      setState(() => _errores = {'usuario': 'Escriba un usuario que exista en este dispositivo.'});
+      return;
+    }
+    if (!mounted) return;
     final confirmar = await showDialog<bool>(
       context: context,
       builder: (contexto) => AlertDialog(
-        title: const Text('¿Reiniciar el dispositivo?'),
-        content: const Text('No hay servidor desde el cual recuperar el PIN. Para crear uno nuevo se borrarán el perfil '
-            'y TODAS las evaluaciones guardadas en este dispositivo. No se puede deshacer.'),
+        title: Text('¿Eliminar la cuenta «$usuario»?'),
+        content: const Text('Use esta opción solo si no tiene el código de recuperación ni la clave de la IPS. Se borrarán '
+            'la cuenta y TODAS sus evaluaciones y cargas de este dispositivo; las demás cuentas no se tocan. No se puede deshacer.'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(contexto, false), child: const Text('Cancelar')),
           FilledButton(
-            key: const Key('confirmar-reinicio'),
-            style: FilledButton.styleFrom(minimumSize: const Size(0, 44)),
+            key: const Key('confirmar-eliminar'),
+            style: FilledButton.styleFrom(minimumSize: const Size(0, 44), backgroundColor: estiloPorCategoria['Alto Riesgo']!.tinta),
             onPressed: () => Navigator.pop(contexto, true),
-            child: const Text('Borrar y reiniciar'),
+            child: const Text('Eliminar la cuenta'),
           ),
         ],
       ),
     );
     if (confirmar != true) return;
-    await widget.base.borrarTodo();
-    widget.alReiniciar();
+    await widget.base.eliminarUsuario(usuario);
+    widget.alEliminar(usuario);
   }
 
   @override
-  Widget build(BuildContext context) {
-    final operador = _perfil == null ? '' : '${atiende[_perfil!.atendidoPor] ?? _perfil!.atendidoPor} · ${_perfil!.ips}';
-    return Column(children: [
-      _Marca(operador.isEmpty ? 'Ingrese su PIN' : 'Ingrese su PIN\n$operador'),
-      const SizedBox(height: 26),
-      Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-        for (var i = 0; i < 4; i++)
-          AnimatedContainer(
-            duration: const Duration(milliseconds: 180),
-            margin: const EdgeInsets.symmetric(horizontal: 9),
-            width: 16,
-            height: 16,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: i < _pin.length ? ColoresMaterna.ciruela900 : Colors.transparent,
-              border: Border.all(color: ColoresMaterna.ciruela900, width: 1.6),
-            ),
+  Widget build(BuildContext context) => Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        const _Marca(
+          titulo: 'Recuperar el acceso',
+          subtitulo: 'Ponga un PIN nuevo sin perder sus evaluaciones.',
+          grande: false,
+        ),
+        const SizedBox(height: 20),
+        SegmentedButton<bool>(
+          key: const Key('modo-recuperar'),
+          segments: const [
+            ButtonSegment(value: false, label: Text('Código de recuperación')),
+            ButtonSegment(value: true, label: Text('Clave de la IPS')),
+          ],
+          selected: {_conClaveIps},
+          showSelectedIcon: false,
+          onSelectionChanged: (s) => setState(() {
+            _conClaveIps = s.first;
+            _secreto.clear();
+            _errores = {};
+            _error = null;
+          }),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          _conClaveIps
+              ? 'Para el responsable de datos de la IPS: la clave que se configuró en «Carga IPS».'
+              : 'El código que le mostró la app al crear la cuenta (p. ej. K7M2-Q9XP).',
+          textAlign: TextAlign.center,
+          style: const TextStyle(color: ColoresMaterna.tintaSuave, fontSize: 12.5),
+        ),
+        const SizedBox(height: 16),
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              _campo('usuario', 'Usuario', _usuario, pista: 'Ej. auxiliar.rural', error: _errores['usuario']),
+              const SizedBox(height: 16),
+              _campo(_conClaveIps ? 'clave-ips' : 'codigo', _conClaveIps ? 'Clave de la IPS' : 'Código de recuperación', _secreto,
+                  oculto: _conClaveIps, error: _errores['secreto']),
+              const SizedBox(height: 16),
+              _campo('pin-nuevo', 'PIN nuevo de 4 dígitos', _pin, pin: true, oculto: true, error: _errores['pin-nuevo']),
+              const SizedBox(height: 16),
+              _campo('pin-nuevo2', 'Repita el PIN nuevo', _pin2,
+                  pin: true, oculto: true, error: _errores['pin-nuevo2'], alEnviar: (_) => _restablecer()),
+            ]),
           ),
-      ]),
-      SizedBox(
-        height: 36,
-        child: Center(
-          child: Text(_mensaje ?? '', key: const Key('mensaje-pin'),
-              style: TextStyle(color: Theme.of(context).colorScheme.error, fontWeight: FontWeight.w600)),
         ),
-      ),
-      for (final fila in const [['1', '2', '3'], ['4', '5', '6'], ['7', '8', '9'], ['', '0', 'borrar']])
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: 7),
-          child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-            for (final t in fila)
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                child: t.isEmpty
-                    ? const SizedBox(width: 72, height: 72)
-                    : SizedBox(
-                        width: 72,
-                        height: 72,
-                        child: Material(
-                          color: t == 'borrar' ? Colors.transparent : Colors.white,
-                          shape: const CircleBorder(side: BorderSide(color: ColoresMaterna.borde)),
-                          child: InkWell(
-                            key: Key('tecla-$t'),
-                            customBorder: const CircleBorder(),
-                            onTap: () => _tecla(t),
-                            child: Center(
-                              child: t == 'borrar'
-                                  ? const Icon(Icons.backspace_outlined, color: ColoresMaterna.tintaSuave, semanticLabel: 'Borrar')
-                                  : Text(t, style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w500, color: ColoresMaterna.tinta)),
-                            ),
-                          ),
-                        ),
-                      ),
-              ),
-          ]),
+        _mensaje(_error),
+        const SizedBox(height: 20),
+        FilledButton(
+          key: const Key('restablecer'),
+          onPressed: _trabajando ? null : _restablecer,
+          child: const Text('Poner PIN nuevo'),
         ),
-      const SizedBox(height: 14),
-      TextButton(key: const Key('olvide-pin'), onPressed: _olvide, child: const Text('¿Olvidó el PIN?')),
-    ]);
-  }
+        const SizedBox(height: 8),
+        _enlace('¿Lo recordó?', 'Iniciar sesión', const Key('ir-entrar'), widget.alVolver),
+        const Divider(height: 28),
+        const Text('¿Sin código ni clave de la IPS?',
+            textAlign: TextAlign.center, style: TextStyle(color: ColoresMaterna.tintaSuave, fontSize: 12.5)),
+        TextButton(
+          key: const Key('eliminar-cuenta'),
+          onPressed: _eliminar,
+          style: TextButton.styleFrom(foregroundColor: estiloPorCategoria['Alto Riesgo']!.tinta),
+          child: const Text('Eliminar solo esta cuenta'),
+        ),
+      ]);
 }

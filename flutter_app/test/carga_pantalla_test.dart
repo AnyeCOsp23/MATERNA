@@ -39,11 +39,11 @@ Future<void> subir(WidgetTester tester) async {
   await tester.pumpAndSettle();
 }
 
-/// Elige el archivo y espera a que termine la evaluación (el botón vuelve a decir «Cargar otro archivo»).
+/// Elige el archivo y espera a que termine la evaluación (aparece la tarjeta del archivo cargado).
 Future<void> cargarEjemplo(WidgetTester tester) async {
   await subir(tester);
   await tocar(tester, find.byKey(const Key('elegir-archivo')));
-  await esperar(tester, find.text('Cargar otro archivo'));
+  await esperar(tester, find.byKey(const Key('archivo-cargado')));
   await tester.dragUntilVisible(find.byKey(const Key('resumen-carga')), find.byType(CustomScrollView), const Offset(0, -200));
   await tester.pumpAndSettle();
 }
@@ -91,18 +91,20 @@ void main() {
     // la primera fila de la lista es la más urgente (la misma que en Python)
     final primera = find.byKey(Key('fila-${resultados.first['fila']}'));
     expect(primera, findsOneWidget);
-    expect(find.descendant(of: primera, matching: find.textContaining('ROJO')), findsOneWidget);
+    expect(find.descendant(of: primera, matching: find.byKey(const Key('nivel-2'))), findsOneWidget);
+    expect(find.descendant(of: primera, matching: find.text('Alto')), findsOneWidget);
 
     await tocar(tester, find.byKey(const Key('filas-sin-evaluar')));
     expect(find.textContaining('Fila 122: falta edad'), findsOneWidget);
 
     await tocar(tester, find.descendant(of: find.byKey(const Key('filtro-carga')), matching: find.textContaining('Verde')));
-    expect(find.descendant(of: find.byType(ListTile), matching: find.textContaining('ROJO')), findsNothing);
+    expect(find.byKey(const Key('nivel-2')), findsNothing);
+    expect(find.byKey(const Key('nivel-0')), findsWidgets);
     await tocar(tester, find.descendant(of: find.byKey(const Key('filtro-carga')), matching: find.textContaining('Todas')));
 
     await tocar(tester, primera);
     expect(find.text('Evaluación guardada'), findsOneWidget);
-    expect(find.textContaining('Fila ${resultados.first['fila']} de ips_ficticio_3280.csv'), findsOneWidget);
+    expect(find.text('Fila ${resultados.first['fila']} del registro'), findsOneWidget);
     await tester.pageBack();
     await tester.pumpAndSettle();
     await subir(tester);

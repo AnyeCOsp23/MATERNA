@@ -3,6 +3,7 @@ library;
 
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart' show compute;
 import 'package:flutter/services.dart';
 
 import 'catalogo_3280.dart';
@@ -61,12 +62,17 @@ class RecursosMaterna {
         reglas: jsonDecode(reglas) as Map<String, dynamic>,
       );
 
-  static Future<RecursosMaterna> cargar() async => RecursosMaterna.desdeTextos(
-        preproceso: await rootBundle.loadString('assets/preproceso.json'),
-        modelo: await rootBundle.loadString('assets/modelo_rf.json'),
-        reglas: await rootBundle.loadString('assets/reglas.json'),
-        catalogo: await rootBundle.loadString('assets/variables_3280.json'),
-      );
+  /// Lee los JSON y arma el modelo en otro hilo (compute): son 918 KB y 300 árboles, y en un teléfono lento o en
+  /// modo debug congelarían la pantalla de inicio unos segundos. En la web compute corre en el mismo hilo.
+  static Future<RecursosMaterna> cargar() async => compute(_desdeLista, [
+        await rootBundle.loadString('assets/preproceso.json'),
+        await rootBundle.loadString('assets/modelo_rf.json'),
+        await rootBundle.loadString('assets/reglas.json'),
+        await rootBundle.loadString('assets/variables_3280.json'),
+      ]);
+
+  static RecursosMaterna _desdeLista(List<String> t) =>
+      RecursosMaterna.desdeTextos(preproceso: t[0], modelo: t[1], reglas: t[2], catalogo: t[3]);
 
   final ClasificadorMaterna clasificador;
   final Catalogo3280 catalogo;

@@ -1,19 +1,22 @@
 /// Pantalla 2: resultado del triaje.
 ///
 /// Orden deliberado: primero las alertas URGENTES de la ruta 3280 que no cambian el semáforo (p. ej. exposición
-/// a violencias, que tiene su propia ruta), luego el semáforo con el motivo de la decisión (regla clínica, signo
-/// de alarma obstétrico o modelo), las probabilidades del modelo, las demás alertas y el protocolo.
-/// Los signos de alarma obstétricos (sangrado, visión borrosa…) elevan el semáforo a ROJO: un verde o un ámbar
-/// nunca acompañan a una urgencia obstétrica.
+/// a violencias, que tiene su propia ruta), luego la tarjeta del nivel con el motivo de la decisión (regla clínica,
+/// signo de alarma obstétrico o modelo), las probabilidades del modelo, los datos clave, las demás alertas y la
+/// conducta sugerida. Los signos de alarma obstétricos (sangrado, visión borrosa…) elevan el semáforo a ROJO: un
+/// verde o un ámbar nunca acompañan a una urgencia obstétrica.
 library;
+
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
 import '../../motor/catalogo_3280.dart';
 import '../../motor/recursos.dart';
 import '../tema/tema_materna.dart';
+import '../widgets/encabezado.dart';
 
-String _pct(double p) => '${(p * 100).toStringAsFixed(1).replaceAll('.', ',')} %';
+String _pct(double p) => '${(p * 100).round()}%';
 
 class PantallaResultado extends StatelessWidget {
   const PantallaResultado({super.key, required this.recursos, required this.evaluacion, this.soloLectura = false, this.nota});
@@ -29,59 +32,68 @@ class PantallaResultado extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final triaje = evaluacion.triaje;
     final categoria = recursos.clasificador.clases[evaluacion.clase];
     final estilo = estiloPorCategoria[categoria]!;
     final urgentes = evaluacion.urgentesSinEscalar;
     return Scaffold(
-      appBar: AppBar(title: Text(soloLectura ? 'Evaluación guardada' : 'Resultado del triaje')),
-      body: SafeArea(
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 760),
-            child: ListView(padding: const EdgeInsets.fromLTRB(16, 8, 16, 32), children: [
-              if (nota != null) ...[
-                Text(nota!, key: const Key('nota-resultado'), style: const TextStyle(color: ColoresMaterna.tintaSuave)),
-                const SizedBox(height: 12),
-              ],
-              if (urgentes.isNotEmpty) ...[
-                _AlertasUrgentes(urgentes, contradiceAlModelo: categoria != 'Alto Riesgo'),
-                const SizedBox(height: 14),
-              ],
-              _Semaforo(estilo: estilo, evaluacion: evaluacion, recursos: recursos),
-              if (evaluacion.imputadas.isNotEmpty) ...[
-                const SizedBox(height: 10),
-                _Nota(
-                  icono: Icons.info_outline_rounded,
-                  texto: 'Sin dato de ${evaluacion.imputadas.map((v) => v == 'fcf_bpm' ? 'FCF' : 'glucosa').join(' y ')}: '
-                      'el modelo lo completó con la mediana por área y trimestre. Interpretar con cautela.',
-                ),
-              ],
-              const SizedBox(height: 14),
-              _Probabilidades(triaje.probabilidades, recursos.clasificador.clases),
-              if (evaluacion.noUrgentes.isNotEmpty) ...[
-                const SizedBox(height: 14),
-                _OtrasAlertas(evaluacion.noUrgentes),
-              ],
-              const SizedBox(height: 14),
-              _Protocolo(recursos.protocolo(categoria), recursos.aviso),
-              if (!soloLectura) ...[
-                const SizedBox(height: 22),
-                FilledButton.icon(
-                  key: const Key('nueva-evaluacion'),
-                  onPressed: () => Navigator.of(context).pop('nueva'),
-                  icon: const Icon(Icons.add_rounded),
-                  label: const Text('Nueva evaluación'),
+      body: DecoratedBox(
+        decoration: fondoCrema,
+        child: SafeArea(
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 760),
+              child: ListView(padding: const EdgeInsets.fromLTRB(16, 8, 16, 32), children: [
+                EncabezadoMaterna(
+                  etiqueta: soloLectura ? 'Evaluación guardada' : 'Evaluación',
+                  alVolver: () => Navigator.of(context).maybePop(),
                 ),
                 const SizedBox(height: 10),
-                OutlinedButton.icon(
-                  key: const Key('editar-datos'),
-                  onPressed: () => Navigator.of(context).pop('editar'),
-                  icon: const Icon(Icons.edit_rounded),
-                  label: const Text('Corregir los datos'),
-                ),
-              ],
-            ]),
+                if (nota != null) ...[
+                  Text(nota!, key: const Key('nota-resultado'), style: const TextStyle(color: ColoresMaterna.tintaSuave)),
+                  const SizedBox(height: 12),
+                ],
+                if (urgentes.isNotEmpty) ...[
+                  _AlertasUrgentes(urgentes, contradiceAlModelo: categoria != 'Alto Riesgo'),
+                  const SizedBox(height: 14),
+                ],
+                _TarjetaNivel(estilo: estilo, evaluacion: evaluacion, recursos: recursos),
+                if (evaluacion.imputadas.isNotEmpty) ...[
+                  const SizedBox(height: 10),
+                  _Aviso(
+                    estilo: estiloPorCategoria['Riesgo Medio']!,
+                    icono: Icons.info_outline_rounded,
+                    texto: 'Sin dato de ${evaluacion.imputadas.map((v) => v == 'fcf_bpm' ? 'FCF' : 'glucosa').join(' y ')}: '
+                        'el modelo lo completó con la mediana por área y trimestre. Interpretar con cautela.',
+                  ),
+                ],
+                const SizedBox(height: 14),
+                _Probabilidades(evaluacion.triaje.probabilidades, recursos.clasificador.clases),
+                const SizedBox(height: 14),
+                _DatosClave(evaluacion.registro),
+                if (evaluacion.noUrgentes.isNotEmpty) ...[
+                  const SizedBox(height: 14),
+                  _OtrasAlertas(evaluacion.noUrgentes),
+                ],
+                const SizedBox(height: 14),
+                _Conducta(estilo: estilo, pasos: recursos.protocolo(categoria), aviso: recursos.aviso),
+                if (!soloLectura) ...[
+                  const SizedBox(height: 24),
+                  FilledButton.icon(
+                    key: const Key('nueva-evaluacion'),
+                    onPressed: () => Navigator.of(context).pop('nueva'),
+                    icon: const Icon(Icons.add_rounded),
+                    label: const Text('Nueva evaluación'),
+                  ),
+                  const SizedBox(height: 10),
+                  OutlinedButton.icon(
+                    key: const Key('editar-datos'),
+                    onPressed: () => Navigator.of(context).pop('editar'),
+                    icon: const Icon(Icons.edit_rounded),
+                    label: const Text('Corregir los datos'),
+                  ),
+                ],
+              ]),
+            ),
           ),
         ),
       ),
@@ -101,7 +113,10 @@ class _AlertasUrgentes extends StatelessWidget {
   Widget build(BuildContext context) => Container(
         key: const Key('alertas-urgentes'),
         padding: const EdgeInsets.all(18),
-        decoration: BoxDecoration(color: ColoresMaterna.ciruela900, borderRadius: BorderRadius.circular(20)),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(colors: [ColoresMaterna.ciruela900, ColoresMaterna.ciruelaNoche]),
+          borderRadius: BorderRadius.circular(22),
+        ),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           const Row(children: [
             Icon(Icons.priority_high_rounded, color: Colors.white),
@@ -130,8 +145,9 @@ class _AlertasUrgentes extends StatelessWidget {
       );
 }
 
-class _Semaforo extends StatelessWidget {
-  const _Semaforo({required this.estilo, required this.evaluacion, required this.recursos});
+/// Tarjeta del nivel: degradado del color, anillo con la probabilidad del modelo y el motivo de la decisión.
+class _TarjetaNivel extends StatelessWidget {
+  const _TarjetaNivel({required this.estilo, required this.evaluacion, required this.recursos});
 
   final EstiloRiesgo estilo;
   final Evaluacion evaluacion;
@@ -140,47 +156,110 @@ class _Semaforo extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final triaje = evaluacion.triaje;
-    final motivos = switch (evaluacion.origen) {
-      'regla_clinica' => [for (final id in triaje.reglasActivadas) recursos.mensajeRegla(id)],
-      'signo_alarma_3280' => [for (final a in evaluacion.alertasQueEscalan) a.etiqueta],
-      _ => <String>[],
+    final motivo = switch (evaluacion.origen) {
+      'regla_clinica' => 'Regla clínica: ${[for (final id in triaje.reglasActivadas) recursos.mensajeRegla(id)].join('; ')}',
+      'signo_alarma_3280' => 'Signo de alarma (Res. 3280): ${evaluacion.alertasQueEscalan.map((a) => a.etiqueta).join(', ')}',
+      _ => evaluacion.alertas.isEmpty ? 'Modelo de IA · sin signos críticos ni de alarma' : 'Modelo de IA · sin signos críticos',
     };
-    final titulo = switch (evaluacion.origen) {
-      'regla_clinica' => 'Decidido por regla clínica (GPC Minsalud 2013):',
-      'signo_alarma_3280' => 'Decidido por signos de alarma de la ruta (Res. 3280):',
-      _ => 'Decidido por el modelo (Random Forest).',
-    };
+    // El anillo muestra la probabilidad que el modelo da al nivel final; si una regla o un signo de alarma lo
+    // cambiaron, el modelo no lo respalda y el anillo muestra un ícono en lugar de un porcentaje engañoso.
+    final respaldado = triaje.claseModelo == evaluacion.clase;
+    const blanco = Colors.white;
+    final suave = Colors.white.withValues(alpha: .82);
     return Container(
       key: const Key('semaforo'),
       padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(color: estilo.fondo, borderRadius: BorderRadius.circular(22)),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: estilo.degradado),
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [BoxShadow(color: estilo.degradado.last.withValues(alpha: .18), blurRadius: 24, offset: const Offset(0, 6))],
+      ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
-          Icon(estilo.icono, color: estilo.tinta, size: 40),
-          const SizedBox(width: 12),
+          _Anillo(
+            valor: respaldado ? triaje.probabilidades[evaluacion.clase] : 1,
+            centro: respaldado
+                ? Text(_pct(triaje.probabilidades[evaluacion.clase]),
+                    style: const TextStyle(color: blanco, fontWeight: FontWeight.w800, fontSize: 19))
+                : Icon(estilo.icono, color: blanco, size: 30),
+            descripcion: respaldado
+                ? 'El modelo asigna ${_pct(triaje.probabilidades[evaluacion.clase])} a este nivel'
+                : 'Nivel decidido por la ruta, no por el modelo',
+          ),
+          const SizedBox(width: 16),
           Expanded(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('${estilo.semaforo.toUpperCase()} · ${estilo.titulo}',
-                  style: TextStyle(color: estilo.tinta, fontWeight: FontWeight.w800, fontSize: 22)),
-              Text(estilo.subtitulo, style: TextStyle(color: estilo.tinta)),
+              Row(children: [
+                // punto dibujado: la tipografía incluida no trae «●» y sin internet saldría un cuadro vacío
+                Container(width: 7, height: 7, decoration: BoxDecoration(color: suave, shape: BoxShape.circle)),
+                const SizedBox(width: 6),
+                Text(estilo.nivel, style: TextStyle(color: suave, fontWeight: FontWeight.w700, fontSize: 11.5, letterSpacing: 1.1)),
+              ]),
+              const SizedBox(height: 2),
+              Text(estilo.titulo, style: const TextStyle(color: blanco, fontWeight: FontWeight.w800, fontSize: 26, height: 1.1)),
+              const SizedBox(height: 6),
+              Text(motivo, key: const Key('motivo'), style: TextStyle(color: suave, fontWeight: FontWeight.w600, fontSize: 13.5, height: 1.3)),
             ]),
           ),
         ]),
-        const SizedBox(height: 14),
-        Text(titulo, style: TextStyle(color: estilo.tinta, fontWeight: FontWeight.w700)),
-        for (final m in motivos) Text('•  $m', style: TextStyle(color: estilo.tinta)),
         if (evaluacion.origen == 'regla_clinica' && evaluacion.signosAlarma.isNotEmpty)
-          Text('•  Además, signos de alarma: ${evaluacion.alertasQueEscalan.map((a) => a.etiqueta.toLowerCase()).join(', ')}',
-              style: TextStyle(color: estilo.tinta)),
+          Padding(
+            padding: const EdgeInsets.only(top: 10),
+            child: Text('Además, signos de alarma: ${evaluacion.alertasQueEscalan.map((a) => a.etiqueta.toLowerCase()).join(', ')}',
+                style: TextStyle(color: suave, fontSize: 13)),
+          ),
         if (evaluacion.origen != 'modelo_ml' && triaje.claseModelo != evaluacion.clase)
           Padding(
-            padding: const EdgeInsets.only(top: 6),
+            padding: const EdgeInsets.only(top: 10),
             child: Text('El modelo por sí solo habría dicho ${recursos.clasificador.clases[triaje.claseModelo]}.',
-                style: TextStyle(color: estilo.tinta, fontSize: 13)),
+                style: TextStyle(color: suave, fontSize: 13)),
           ),
+        Padding(
+          padding: const EdgeInsets.only(top: 10),
+          child: Text(estilo.subtitulo, style: const TextStyle(color: blanco, fontWeight: FontWeight.w700, fontSize: 13.5)),
+        ),
       ]),
     );
   }
+}
+
+class _Anillo extends StatelessWidget {
+  const _Anillo({required this.valor, required this.centro, required this.descripcion});
+
+  final double valor;
+  final Widget centro;
+  final String descripcion;
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+        label: descripcion,
+        child: SizedBox(
+          width: 78,
+          height: 78,
+          child: CustomPaint(painter: _PintorAnillo(valor), child: Center(child: centro)),
+        ),
+      );
+}
+
+class _PintorAnillo extends CustomPainter {
+  _PintorAnillo(this.valor);
+
+  final double valor;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    const grosor = 7.0;
+    final rect = (Offset.zero & size).deflate(grosor / 2);
+    final pincel = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = grosor
+      ..strokeCap = StrokeCap.round;
+    canvas.drawArc(rect, 0, 2 * math.pi, false, pincel..color = Colors.white.withValues(alpha: .25));
+    canvas.drawArc(rect, -math.pi / 2, 2 * math.pi * valor.clamp(0, 1), false, pincel..color = Colors.white);
+  }
+
+  @override
+  bool shouldRepaint(_PintorAnillo anterior) => anterior.valor != valor;
 }
 
 class _Probabilidades extends StatelessWidget {
@@ -192,31 +271,59 @@ class _Probabilidades extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Card(
         child: Padding(
-          padding: const EdgeInsets.all(18),
+          padding: const EdgeInsets.fromLTRB(18, 16, 18, 10),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            const Text('Probabilidad del modelo', style: TextStyle(fontWeight: FontWeight.w700)),
+            const Text('Probabilidad por clase', style: TextStyle(fontWeight: FontWeight.w800, color: ColoresMaterna.tinta)),
             const SizedBox(height: 12),
-            for (var k = clases.length - 1; k >= 0; k--) ...[
+            for (var k = 0; k < clases.length; k++) ...[
               Row(children: [
-                SizedBox(width: 110, child: Text(clases[k])),
+                SizedBox(width: 62, child: Text(estiloPorCategoria[clases[k]]!.corto, style: const TextStyle(color: ColoresMaterna.tinta))),
                 Expanded(
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(8),
                     child: LinearProgressIndicator(
                       value: probabilidades[k],
-                      minHeight: 12,
-                      backgroundColor: ColoresMaterna.campo,
-                      color: estiloPorCategoria[clases[k]]!.tinta,
+                      minHeight: 9,
+                      backgroundColor: ColoresMaterna.fondoBarras,
+                      color: estiloPorCategoria[clases[k]]!.barra,
                     ),
                   ),
                 ),
-                SizedBox(width: 70, child: Text(_pct(probabilidades[k]), textAlign: TextAlign.right)),
+                SizedBox(
+                  width: 52,
+                  child: Text(_pct(probabilidades[k]),
+                      textAlign: TextAlign.right, style: const TextStyle(fontWeight: FontWeight.w700, color: ColoresMaterna.tinta)),
+                ),
               ]),
-              const SizedBox(height: 8),
+              const SizedBox(height: 10),
             ],
           ]),
         ),
       );
+}
+
+/// Los datos que más pesan, como píldoras: edad, semanas, presión y área.
+class _DatosClave extends StatelessWidget {
+  const _DatosClave(this.registro);
+
+  final Map<String, dynamic> registro;
+
+  @override
+  Widget build(BuildContext context) {
+    String? n(String clave, String formato) {
+      final v = registro[clave];
+      return v is num ? formato.replaceFirst('#', v.round().toString()) : null;
+    }
+
+    final datos = [
+      n('edad', 'Edad #'),
+      n('semanas_gestacion', '# sem'),
+      n('pas_mmhg', 'PAS #'),
+      n('pad_mmhg', 'PAD #'),
+      if (registro['area_residencia'] is String) registro['area_residencia'] == 'Cabecera' ? 'Cabecera municipal' : registro['area_residencia'] as String,
+    ].whereType<String>();
+    return Wrap(key: const Key('datos-clave'), spacing: 8, runSpacing: 8, children: [for (final d in datos) ChipDato(d)]);
+  }
 }
 
 class _OtrasAlertas extends StatelessWidget {
@@ -230,7 +337,7 @@ class _OtrasAlertas extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.all(18),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            const Text('Alertas de la ruta 3280', style: TextStyle(fontWeight: FontWeight.w700)),
+            const Text('Alertas de la ruta 3280', style: TextStyle(fontWeight: FontWeight.w800, color: ColoresMaterna.tinta)),
             const SizedBox(height: 4),
             const Text('No cambian la clasificación del modelo.', style: TextStyle(color: ColoresMaterna.tintaSuave, fontSize: 13)),
             for (final a in alertas)
@@ -238,7 +345,7 @@ class _OtrasAlertas extends StatelessWidget {
                 padding: const EdgeInsets.only(top: 10),
                 child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Icon(a.severidad == 'atencion' ? Icons.report_rounded : Icons.event_note_rounded,
-                      size: 20, color: ColoresMaterna.ciruela700),
+                      size: 20, color: ColoresMaterna.ciruela900),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text.rich(TextSpan(children: [
@@ -254,52 +361,57 @@ class _OtrasAlertas extends StatelessWidget {
       );
 }
 
-class _Protocolo extends StatelessWidget {
-  const _Protocolo(this.pasos, this.aviso);
+/// Conducta sugerida en el aviso del color del nivel.
+class _Conducta extends StatelessWidget {
+  const _Conducta({required this.estilo, required this.pasos, required this.aviso});
 
+  final EstiloRiesgo estilo;
   final List<String> pasos;
   final String aviso;
 
   @override
-  Widget build(BuildContext context) => Card(
-        child: Padding(
-          padding: const EdgeInsets.all(18),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            const Text('Qué hacer', style: TextStyle(fontWeight: FontWeight.w700)),
-            for (final (i, paso) in pasos.indexed)
-              Padding(
-                padding: const EdgeInsets.only(top: 10),
-                child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  CircleAvatar(
-                    radius: 12,
-                    backgroundColor: ColoresMaterna.ciruela100,
-                    child: Text('${i + 1}', style: const TextStyle(fontSize: 12, color: ColoresMaterna.ciruela900)),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(child: Text(paso, style: const TextStyle(height: 1.4))),
-                ]),
-              ),
-            const SizedBox(height: 12),
-            Text(aviso, style: const TextStyle(color: ColoresMaterna.tintaSuave, fontSize: 12)),
-          ]),
-        ),
+  Widget build(BuildContext context) => Container(
+        key: const Key('conducta'),
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(color: estilo.fondo, borderRadius: BorderRadius.circular(18)),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text('Conducta sugerida', style: TextStyle(fontWeight: FontWeight.w800, color: estilo.tinta)),
+          for (final (i, paso) in pasos.indexed)
+            Padding(
+              padding: const EdgeInsets.only(top: 10),
+              child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                CircleAvatar(
+                  radius: 11,
+                  backgroundColor: Colors.white.withValues(alpha: .75),
+                  child: Text('${i + 1}', style: TextStyle(fontSize: 12, color: estilo.tinta, fontWeight: FontWeight.w700)),
+                ),
+                const SizedBox(width: 10),
+                Expanded(child: Text(paso, style: TextStyle(height: 1.4, color: estilo.tinta))),
+              ]),
+            ),
+          const SizedBox(height: 12),
+          Text(aviso,
+              style: TextStyle(color: estilo.tinta.withValues(alpha: .8), fontSize: 12)),
+        ]),
       );
 }
 
-class _Nota extends StatelessWidget {
-  const _Nota({required this.icono, required this.texto});
+/// Aviso con el fondo y el texto de un nivel (p. ej. ámbar para un dato faltante).
+class _Aviso extends StatelessWidget {
+  const _Aviso({required this.estilo, required this.icono, required this.texto});
 
+  final EstiloRiesgo estilo;
   final IconData icono;
   final String texto;
 
   @override
   Widget build(BuildContext context) => Container(
         padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(color: const Color(0xFFF2E88F).withValues(alpha: .45), borderRadius: BorderRadius.circular(16)),
+        decoration: BoxDecoration(color: estilo.fondo, borderRadius: BorderRadius.circular(16)),
         child: Row(children: [
-          Icon(icono, color: const Color(0xFF5A4F0E)),
+          Icon(icono, color: estilo.tinta),
           const SizedBox(width: 10),
-          Expanded(child: Text(texto, style: const TextStyle(color: Color(0xFF5A4F0E)))),
+          Expanded(child: Text(texto, style: TextStyle(color: estilo.tinta))),
         ]),
       );
 }
