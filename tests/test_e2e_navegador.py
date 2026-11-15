@@ -162,7 +162,7 @@ def test_navegar_al_laboratorio(pagina):
     pagina.get_by_role("link", name="Laboratorio ML").click()
     pagina.get_by_role("tab", name="13 Ética y limitaciones").wait_for(timeout=60000)
     esperar_fin_ejecucion(pagina)
-    assert pagina.get_by_role("tab").count() == 13
+    assert pagina.get_by_role("tab").count() == 14
     ir_al_triaje(pagina)
 
 

@@ -11,12 +11,13 @@ from src.autenticacion import (
 from src.consolidado_ips import datos_consolidados, guardar_carga, resumen_consolidado
 from src.generar_ejemplo_ips import DIR_EJEMPLOS
 from src.inspeccionar_ips import inspeccionar
+from src.lista_chequeo import ACTIVIDADES, ESTADOS
 
 APP = str(RAIZ / "app_demo.py")
 PAGINA = lambda nombre: str(RAIZ / "paginas" / f"{nombre}.py")
 SAL = "sal-solo-para-pruebas-0123456789"
-CLAVES = {"admin": "clave-admin-123", "medico": "clave-medico-123", "profe": "clave-profe-123"}
-ROL_DE = {"admin": "administrador", "medico": "medico_auditor", "profe": "evaluador"}
+CLAVES = {"admin": "clave-admin-123", "medico": "clave-medico-123"}
+ROL_DE = {"admin": "administrador", "medico": "medico_auditor"}
 
 
 def sesion(rol):
@@ -70,21 +71,22 @@ def test_hash_de_contrasena():
 
 
 def test_autenticar():
-    usuarios = {"profe": {"nombre": "Profe", "rol": "evaluador", "hash": generar_hash("clave-profe-123")}}
-    assert autenticar(" PROFE ", "clave-profe-123", usuarios) == {"usuario": "profe", "nombre": "Profe", "rol": "evaluador"}
-    assert autenticar("profe", "mala-clave", usuarios) is None
-    assert autenticar("nadie", "clave-profe-123", usuarios) is None
-    # un rol que no existe no entra aunque la contraseña sea correcta
-    raro = {"otro": {"nombre": "O", "rol": "superusuario", "hash": generar_hash("clave-otro-123")}}
-    assert autenticar("otro", "clave-otro-123", raro) is None
+    usuarios = {"medico": {"nombre": "Médico", "rol": "medico_auditor", "hash": generar_hash("clave-medico-123")}}
+    assert autenticar(" MEDICO ", "clave-medico-123", usuarios) == {"usuario": "medico", "nombre": "Médico", "rol": "medico_auditor"}
+    assert autenticar("medico", "mala-clave", usuarios) is None
+    assert autenticar("nadie", "clave-medico-123", usuarios) is None
+    # un rol que no existe (como el antiguo "evaluador") no entra aunque la contraseña sea correcta
+    for rol in ("evaluador", "superusuario"):
+        raro = {"otro": {"nombre": "O", "rol": rol, "hash": generar_hash("clave-otro-123")}}
+        assert autenticar("otro", "clave-otro-123", raro) is None
 
 
 def test_permisos_por_rol():
-    assert set(ROLES) == set(PERMISOS) == {"administrador", "medico_auditor", "evaluador"}
+    assert set(ROLES) == set(PERMISOS) == {"administrador", "medico_auditor"}
     assert puede(sesion("administrador"), "entrenar") and puede(sesion("administrador"), "ingesta_archivos")
     assert puede(sesion("medico_auditor"), "ingesta_archivos") and not puede(sesion("medico_auditor"), "entrenar")
-    assert not puede(sesion("evaluador"), "entrenar") and not puede(sesion("evaluador"), "ingesta_archivos")
-    assert puede(sesion("evaluador"), "laboratorio")
+    assert puede(sesion("medico_auditor"), "laboratorio")
+    assert not puede(sesion("evaluador"), "laboratorio")  # el rol se eliminó
     assert not puede(None, "laboratorio")
 
 
@@ -96,10 +98,10 @@ def test_sin_sesion_muestra_el_login(entorno):
 
 
 def test_login_abre_el_laboratorio(entorno):
-    at = iniciar_sesion(app_abierta(), "profe", CLAVES["profe"])
+    at = iniciar_sesion(app_abierta(), "medico", CLAVES["medico"])
     assert not at.exception
-    assert at.session_state["usuario"]["rol"] == "evaluador"
-    assert len(at.tabs) == 13  # la página de inicio es el laboratorio (Módulo 1)
+    assert at.session_state["usuario"]["rol"] == "medico_auditor"
+    assert len(at.tabs) == 14  # la página de inicio es el laboratorio (Módulo 1)
     # el login se borra en la misma ejecución: no queda ningún campo ni texto suyo debajo del laboratorio
     assert not at.text_input and not any("Inicie sesión" in m.value for m in at.markdown)
 
@@ -128,14 +130,12 @@ def test_cerrar_sesion(entorno):
 
 
 # ------------------------------------------------------------------ ingesta auditable (fase 02)
-def test_evaluador_audita_la_ingesta_con_el_ejemplo(entorno):
-    at = pagina("laboratorio", "evaluador")
-    assert not any(u for u in at.get("file_uploader"))  # no puede subir archivos propios
+def test_reporte_de_la_ingesta_del_ejemplo(entorno):
+    at = pagina("laboratorio", "medico_auditor")
     boton(at, "Ingerir el ejemplo").click().run()
     assert not at.exception
     metricas = {m.label: m.value for m in at.metric}
     assert metricas["Filas leídas"] == "307" and metricas["Aptas para el modelo"] == "300"
-    assert not any(b.label.startswith("Guardar en la base") for b in at.button)  # tampoco guarda
 
 
 @pytest.mark.parametrize("rol", ["administrador", "medico_auditor"])
@@ -167,12 +167,13 @@ def test_base_del_laboratorio(entorno):
 
 
 # ------------------------------------------------------------------ resto del laboratorio y variables 3280
-@pytest.mark.parametrize("rol", ["evaluador", "medico_auditor", "administrador"])
-def test_laboratorio_tiene_las_13_pestanas(entorno, rol):
+@pytest.mark.parametrize("rol", ["medico_auditor", "administrador"])
+def test_laboratorio_tiene_las_14_pestanas(entorno, rol):
     at = pagina("laboratorio", rol)
     assert not at.exception
     etiquetas = [t.label for t in at.tabs]
-    assert len(etiquetas) == 13 and etiquetas[1] == "02 Recolección e ingesta" and etiquetas[11] == "12 Entrega al Módulo 2"
+    assert len(etiquetas) == 14 and etiquetas[1] == "02 Recolección e ingesta" and etiquetas[11] == "12 Entrega al Módulo 2"
+    assert etiquetas[12] == "13 Ética y limitaciones" and etiquetas[13] == "Lista de chequeo"
     assert boton(at, "Entrenar en vivo").disabled == (rol != "administrador")
 
 
@@ -185,11 +186,19 @@ def test_entrenar_en_vivo_reproduce_el_modelo(entorno):
 
 
 def test_motor_de_reglas_interactivo(entorno):
-    at = pagina("laboratorio", "evaluador")
+    at = pagina("laboratorio", "medico_auditor")
     next(n for n in at.number_input if n.label == "PAS").set_value(165).run()
     assert any("Alto Riesgo por regla clínica" in e.value for e in at.error)
 
 
 def test_pagina_variables_3280(entorno):
-    at = pagina("variables_3280", "evaluador")
+    at = pagina("variables_3280", "medico_auditor")
     assert not at.exception and len(at.dataframe[0].value) == 71
+
+
+def test_lista_de_chequeo_en_el_laboratorio(entorno):
+    at = pagina("laboratorio", "administrador")
+    assert not at.exception
+    por_estado = {m.label: int(m.value) for m in at.metric if m.label in ESTADOS}
+    assert set(por_estado) == set(ESTADOS) and sum(por_estado.values()) == len(ACTIVIDADES)
+    assert any(len(d.value) == len(ACTIVIDADES) and "Evidencia en el aplicativo" in d.value for d in at.dataframe)

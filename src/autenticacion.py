@@ -1,22 +1,22 @@
 """Fase 3 — Usuarios, contraseñas y permisos del Módulo 1 (Laboratorio de ML, Streamlit).
 
-El Módulo 1 sirve para REVISAR el sistema: lo usan el docente, los evaluadores y el médico auditor
-de la IPS. El personal de salud que USA el sistema con las gestantes (médico, enfermería, auxiliar o
+El Módulo 1 sirve para REVISAR el sistema: lo usan el equipo (administrador) y el médico auditor
+de la IPS; en la sustentación se opera con el administrador. El personal de salud que USA el sistema con las gestantes (médico, enfermería, auxiliar o
 partera) entra al Módulo 2 (app Flutter, web y móvil), con su propio inicio de sesión por PIN.
 
 Las contraseñas nunca se guardan: solo su hash scrypt con una sal aleatoria por usuario.
 Los usuarios viven en .streamlit/secrets.toml (fuera del repositorio) bajo [usuarios.<nombre>]:
 
-    [usuarios.profe]
-    nombre = "Evaluador académico"
-    rol = "evaluador"
+    [usuarios.medico]
+    nombre = "Médico auditor"
+    rol = "medico_auditor"
     hash = "scrypt$16384$8$1$<sal>$<hash>"
 
 La variable de entorno MATERNA_USUARIOS puede apuntar a otro archivo TOML con la misma
 estructura (lo usan las pruebas).
 
 Crear un usuario (pide la contraseña sin mostrarla y agrega el bloque al archivo):
-    python -m src.autenticacion crear-usuario profe --rol evaluador --nombre "Tony Jiménez"
+    python -m src.autenticacion crear-usuario medico --rol medico_auditor --nombre "Médico auditor"
 """
 import argparse
 import base64
@@ -39,16 +39,14 @@ SCRYPT = {"n": 2**14, "r": 8, "p": 1}
 ROLES = {
     "administrador": "Administrador",
     "medico_auditor": "Médico auditor",
-    "evaluador": "Evaluador académico",
 }
 # Qué puede hacer cada rol en el laboratorio:
 # - administrador: todo, incluido reentrenar;
-# - médico auditor (de la IPS): audita el laboratorio e ingiere y guarda archivos reales de la IPS;
-# - evaluador académico: audita todo en modo lectura (la ingesta, solo con el ejemplo ficticio).
+# - médico auditor (de la IPS): audita el laboratorio e ingiere y guarda archivos reales de la IPS; no reentrena.
+# Un usuario con cualquier otro rol (p. ej. el antiguo "evaluador") no puede iniciar sesión.
 PERMISOS = {
     "administrador": {"laboratorio", "variables_3280", "triaje", "ingesta_archivos", "entrenar"},
     "medico_auditor": {"laboratorio", "variables_3280", "triaje", "ingesta_archivos"},
-    "evaluador": {"laboratorio", "variables_3280", "triaje"},
 }
 
 
