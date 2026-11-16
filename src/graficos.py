@@ -3,7 +3,7 @@
 Colores validados para daltonismo con el validador de paletas (adyacentes y todos los pares):
 - clases de riesgo: Bajo #2F9C8A, Medio #E0A33A, Alto #9B2D5C. El ámbar tiene poco contraste
   sobre fondo claro: por eso cada gráfico lleva leyenda, tooltip y una tabla al lado.
-- dos series (entrenamiento / validación, sintético / IPS): ciruela #7D2F5F y rosa #D8639B.
+- dos series (entrenamiento / validación, sintético / IPS): vino #7B2D5B y rosa #D8639B.
 """
 import altair as alt
 import pandas as pd
@@ -11,8 +11,8 @@ import pandas as pd
 from src.config import NOMBRES_CLASES
 
 COLOR_CLASE = dict(zip(NOMBRES_CLASES, ["#2F9C8A", "#E0A33A", "#9B2D5C"]))
-SERIE_1, SERIE_2 = "#7D2F5F", "#D8639B"
-TINTA, TINTA_SUAVE, REJILLA = "#3A1F30", "#76606D", "#E6D6DF"
+SERIE_1, SERIE_2 = "#7B2D5B", "#D8639B"
+TINTA, TINTA_SUAVE, REJILLA = "#3A1230", "#6B4A5E", "#E9DDE3"
 
 
 def _tema(grafico, alto=320):

@@ -256,3 +256,42 @@ def paneles(evaluacion):
                         "Los pesos son supuestos del equipo, por validar con un asesor clínico.",
          "frase": frase_costo, "matriz": MATRIZ_COSTO.tolist()},
     ]
+
+
+def indicadores(evaluacion):
+    """Los cuatro indicadores de cabecera de la evaluación, cada uno con una frase corta armada desde los números.
+
+    `panel` es el nombre del panel de `paneles()` que lo explica (qué es, por qué se usa y cómo se lee).
+    """
+    m, matriz = evaluacion["metricas"], np.array(evaluacion["matriz"])
+    reales_alto, detectadas = int(matriz[CLASE_ALTO].sum()), int(matriz[CLASE_ALTO, CLASE_ALTO])
+    errores = int(matriz.sum() - np.trace(matriz))
+    f1_clase = _f1_por_clase(matriz)
+    debil = int(np.argmin(f1_clase))
+    auc = m.get("roc_auc_ovr_macro")
+    return [
+        {"nombre": "Recall de Alto Riesgo", "panel": "Recall de Alto Riesgo (sensibilidad)", "valor": _fmt(m["recall_alto"]),
+         "pie": (f"Detecta {detectadas} de {reales_alto} casos graves" if reales_alto else "Sin casos graves en este conjunto")},
+        {"nombre": "F1-macro", "panel": "F1-macro", "valor": _fmt(m["f1_macro"]),
+         "pie": f"La clase más difícil es {NOMBRES_CLASES[debil]} ({_fmt(f1_clase[debil])})"},
+        {"nombre": "ROC-AUC", "panel": "ROC-AUC", "valor": _fmt(auc) if auc is not None else "—",
+         "pie": (f"Ordena bien el {_pct(auc)} de los pares de gestantes" if auc is not None
+                 else "No se puede calcular: faltan clases en este conjunto")},
+        {"nombre": "Costo clínico", "panel": "Costo clínico", "valor": str(int(m["costo_clinico_total"])),
+         "pie": (f"{errores} error(es) pesados por gravedad: menos es mejor" if errores else "Sin errores en este conjunto")},
+    ]
+
+
+def como_leer(evaluacion):
+    """Frases para leer la matriz de confusión de un conjunto, armadas desde sus números."""
+    matriz = np.array(evaluacion["matriz"])
+    n, aciertos = int(matriz.sum()), int(np.trace(matriz))
+    reales_alto, graves_como_bajo = int(matriz[CLASE_ALTO].sum()), int(matriz[CLASE_ALTO, 0])
+    frases = [f"La diagonal son los aciertos: {aciertos} de {n}."]
+    if reales_alto:
+        frases.append("Ningún caso de Alto Riesgo se clasificó como Bajo." if not graves_como_bajo else
+                      f"{graves_como_bajo} caso(s) de Alto Riesgo se clasificaron como Bajo: es el error más peligroso.")
+    if "ic_recall_alto" in evaluacion and reales_alto:
+        lo, hi = evaluacion["ic_recall_alto"]
+        frases.append(f"Con solo {reales_alto} casos graves, el intervalo del recall es amplio (de {_fmt(lo, 2)} a {_fmt(hi, 2)}).")
+    return frases

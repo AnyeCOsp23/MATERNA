@@ -43,7 +43,7 @@ def resultado(at):
 
 
 def cargar_caso(at, numero):
-    at.sidebar.button[numero - 1].click().run()
+    next(b for b in at.sidebar.button if b.label.startswith(f"Caso {numero}")).click().run()  # por nombre: antes va el menú de fases
     return at
 
 

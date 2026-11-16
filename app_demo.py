@@ -3,12 +3,12 @@
 Arquitectura de dos módulos independientes pero integrados:
   Módulo 1 (esta app, Streamlit)  fases 01 a 11 con la ingesta auditable; audiencia: docente y equipo.
   Módulo 2 (flutter_app/, web y móvil)  despliegue para el personal de salud: captura manual, carga masiva
-                                   y semáforo. Consume los JSON que entrega el Módulo 1 (pestaña 12).
+                                   y semáforo. Consume los JSON que entrega el Módulo 1 (fase 12).
 
 Páginas (carpeta paginas/):
-  Laboratorio ML  fases 01 a 11, entrega al Módulo 2, ética y lista de chequeo (inicio)
+  Laboratorio ML  las 12 fases, ética y lista de chequeo; muestra una fase a la vez, elegida en el menú lateral
   Variables 3280  tabla de decisiones del filtro de la Resolución 3280
-  Triaje (Fase 2) demo anterior del triaje; provisional hasta que el Módulo 2 esté listo
+  Triaje (Fase 2) demo anterior del triaje; la app de usuario final es el Módulo 2
 
 Ejecutar:        streamlit run app_demo.py
 Crear usuarios:  python -m src.autenticacion crear-usuario <usuario> --rol <rol> --nombre "<nombre>"
@@ -20,7 +20,7 @@ import time
 
 import streamlit as st
 
-from src import ui_theme as ui
+from src import ui_laboratorio as lab, ui_theme as ui
 from src.autenticacion import INTENTOS_MAXIMOS, ROLES, autenticar, cargar_usuarios, puede
 
 SEGUNDOS_BLOQUEO = 60
@@ -116,27 +116,34 @@ if usuario is None:
     # En el lugar del login (no en uno nuevo, para no correr la página) mientras el laboratorio se dibuja
     lugar_login.caption("Abriendo el laboratorio…")
 
-SECCIONES = {
-    "Módulo 1 · Laboratorio de ML": [
-        ("laboratorio", st.Page("paginas/laboratorio.py", title="Laboratorio ML", icon=":material/science:", default=True)),
-        ("variables_3280", st.Page("paginas/variables_3280.py", title="Variables 3280", icon=":material/fact_check:")),
-    ],
-    # Provisional: se retira cuando el Módulo 2 (app Flutter, web y móvil) esté listo
-    "Módulo 2 · Vista provisional": [
-        ("triaje", st.Page("paginas/triaje.py", title="Triaje (Fase 2)", icon=":material/stethoscope:")),
-    ],
-}
-menu = {seccion: [p for permiso, p in paginas if puede(usuario, permiso)] for seccion, paginas in SECCIONES.items()}
-pagina = st.navigation({seccion: paginas for seccion, paginas in menu.items() if paginas})
+if "sesion_anotada" not in st.session_state:
+    st.session_state["sesion_anotada"] = True
+    lab.anotar(f"Sesión iniciada · {ROLES[usuario['rol']]}")
+
+# El menú nativo de Streamlit va oculto: lo reemplaza el menú de fases de la barra lateral (src/ui_laboratorio.py).
+# El laboratorio es una sola página que muestra una fase a la vez; las demás páginas se abren con enlaces.
+laboratorio = st.Page("paginas/laboratorio.py", title="Laboratorio ML", icon=":material/science:", default=True)
+OTRAS = [
+    ("variables_3280", st.Page("paginas/variables_3280.py", title="Variables 3280", icon=":material/fact_check:")),
+    # Provisional: demo del triaje de la Fase 2; la app de usuario final es el Módulo 2 (Flutter, web y móvil)
+    ("triaje", st.Page("paginas/triaje.py", title="Triaje (Fase 2)", icon=":material/stethoscope:")),
+]
+otras = [p for permiso, p in OTRAS if puede(usuario, permiso)]
+pagina = st.navigation([laboratorio, *otras], position="hidden")
+en_laboratorio = pagina.title == laboratorio.title
+if st.session_state.pop("abrir_laboratorio", False) and not en_laboratorio:
+    st.switch_page(laboratorio)  # se eligió una fase desde otra página
+with st.sidebar:
+    lab.menu(en_laboratorio, otras)
 pagina.run()
 lugar_login.empty()
 
 # Después de la página, para no cambiar el orden de los botones propios de cada página en la barra lateral
 with st.sidebar:
-    st.divider()
     html(ui.tarjeta_usuario(usuario["nombre"], ROLES[usuario["rol"]]))
     if st.button("Cerrar sesión", icon=":material/logout:", width="stretch"):
         for clave in ("usuario", "entrenamiento", "experimento_hp", "curvas_exp", "archivo_ips", "ingesta_ips", "crudo",
-                      "depurado", "lote_eval", "patron_evento", "reentrenamiento", "publicacion", "paridad_dart"):
+                      "depurado", "lote_eval", "patron_evento", "reentrenamiento", "publicacion", "paridad_dart",
+                      "vista", "vistas_recorridas", "particion", "registro_ejecucion", "sesion_anotada"):
             st.session_state.pop(clave, None)
         st.rerun()
