@@ -88,8 +88,13 @@ def iniciar_sesion(pg):
     pg.get_by_label("Usuario").fill(USUARIO)
     pg.get_by_label("Contraseña").fill(CLAVE)
     pg.get_by_role("button", name="Ingresar").click()
-    pg.get_by_role("tab", name="01 Problema").wait_for(timeout=60000)
+    menu(pg).get_by_role("button", name="Problema").wait_for(timeout=60000)
     esperar_fin_ejecucion(pg)
+
+
+def menu(pg):
+    """El menú de fases de la barra lateral."""
+    return pg.locator('[data-testid="stSidebar"]')
 
 
 def ir_al_triaje(pg):
@@ -140,6 +145,9 @@ def test_flujo_completo_por_caso(pagina, caso, clase):
     cargar_caso(pagina, caso)
     pagina.get_by_role("button", name="Evaluar riesgo materno").click()
     pagina.wait_for_selector(f".mt-result.{clase}", timeout=30000)
+    # se espera a que el resultado termine de dibujarse (no un tiempo fijo): el protocolo es lo último
+    pagina.locator(".mt-step").first.wait_for(timeout=30000)
+    esperar_fin_ejecucion(pagina)
     pagina.wait_for_timeout(1500)
     # las animaciones terminan y las gráficas quedan dibujadas
     assert pagina.locator(".mt-ring .arc").count() == 1
@@ -159,10 +167,37 @@ def test_escribir_en_el_formulario(pagina):
 
 
 def test_navegar_al_laboratorio(pagina):
-    pagina.get_by_role("link", name="Laboratorio ML").click()
-    pagina.get_by_role("tab", name="13 Ética y limitaciones").wait_for(timeout=60000)
+    """Desde otra página, un clic en una fase del menú vuelve al laboratorio y abre esa fase."""
+    menu(pagina).get_by_role("button", name="División").click()
+    pagina.locator(".mt-h1", has_text="División de los datos").wait_for(timeout=60000)
     esperar_fin_ejecucion(pagina)
-    assert pagina.get_by_role("tab").count() == 14
+    assert pagina.locator('[class*="st-key-mt-nav-"] button').count() == 14
+    assert pagina.locator('[class*="st-key-mt-nav-activa-06"]').count() == 1
+    assert "Fase 6 · de 12" in pagina.locator(".mt-eyebrow").first.text_content()
+    # la tarjeta de la partición y la barra del registro de ejecución están en pantalla
+    assert pagina.locator(".st-key-mt-card-particion .mt-part").count() == 1
+    assert "Sesión iniciada" in pagina.locator(".mt-lg").inner_text()
+    # el ancho del menú deja ver el contenido sin barra horizontal
+    assert pagina.evaluate("document.documentElement.scrollWidth <= window.innerWidth")
+    ir_al_triaje(pagina)
+
+
+def test_ver_como_decidio_el_sistema_anima_el_recorrido(pagina):
+    """Del triaje al recorrido animado: el brillo corre, y «Ver el final» deja el resultado real en pantalla."""
+    cargar_caso(pagina, "Caso 1")
+    pagina.get_by_role("button", name="Evaluar riesgo materno").click()
+    pagina.get_by_role("button", name="Ver cómo decidió el sistema").click(timeout=30000)
+    pagina.locator(".mt-h1", has_text="Selección del algoritmo").wait_for(timeout=60000)
+    recorrido = pagina.locator(".rec")
+    recorrido.locator("svg").wait_for(timeout=30000)
+    # el componente está en un shadow DOM: se consulta con localizadores, que lo atraviesan
+    recorrido.locator(".brillo").first.wait_for(state="attached", timeout=15000)  # el brillo recorre las líneas
+    assert "1 de 5" in recorrido.locator(".paso").inner_text() or "2 de 5" in recorrido.locator(".paso").inner_text()
+    recorrido.get_by_role("button", name="Ver el final").click()
+    recorrido.locator(".paso", has_text="5 de 5").wait_for(timeout=10000)
+    texto = recorrido.locator(".paso").inner_text()
+    assert "Alto Riesgo" in texto and "por regla clínica" in texto
+    assert recorrido.locator(".puerta.activa").count() == 1 and recorrido.locator(".punto").count() == 300
     ir_al_triaje(pagina)
 
 

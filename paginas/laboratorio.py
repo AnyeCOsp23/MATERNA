@@ -1,13 +1,14 @@
-"""MATERNA — Módulo 1: Laboratorio de ML auditable (fases 01 a 11, entrega al Módulo 2, ética y lista de chequeo).
+"""MATERNA — Módulo 1: Laboratorio de ML auditable (fases 01 a 12, ética y lista de chequeo).
 
-Audiencia: docente y equipo. Cada pestaña muestra los datos y resultados reales del repositorio
-(reports/, models/) y, en "Código que se ejecuta", la función exacta de src/ que los produce.
-La fase 02 incluye la ingesta auditable de archivos de la IPS. La pestaña 12 documenta lo que el
-Módulo 1 entrega al Módulo 2 (app Flutter, web y móvil): modelo, preprocesamiento y reglas en JSON.
+Audiencia: docente y equipo. La página muestra UNA fase a la vez, la que se elige en el menú lateral
+(src/ui_laboratorio.py): cada fase tiene su encabezado y sus tarjetas, con los datos y resultados reales del
+repositorio (reports/, models/) y, en «Código que se ejecuta», la función exacta de src/ que los produce.
+La fase 02 incluye la ingesta auditable de archivos de la IPS. La fase 12 documenta lo que el Módulo 1 entrega
+al Módulo 2 (app Flutter, web y móvil): modelo, preprocesamiento y reglas en JSON.
 El administrador hace todo, incluido reentrenar; el médico auditor audita e ingiere archivos, pero no reentrena.
 Lo que se entrena aquí va al conjunto de trabajo (src/experimentos.py): cada entrenamiento es una versión nueva
 y el modelo en uso y las cifras oficiales de la Fase 2 no cambian.
-La última pestaña es la lista de chequeo del ciclo de vida (src/lista_chequeo.py).
+La barra inferior es el registro de ejecución: lo último que se hizo en la sesión, con su hora.
 """
 import hashlib
 import inspect
@@ -18,17 +19,16 @@ import tempfile
 from pathlib import Path
 
 import joblib
-import numpy as np
 import pandas as pd
 import streamlit as st
 
 from src import (
-    conjunto_trabajo, experimentos, graficos, interpretacion, publicacion, ui_datos, ui_metricas, ui_patrones,
-    ui_publicacion, ui_theme as ui,
+    conjunto_trabajo, experimentos, graficos, interpretacion, publicacion, recorrido, ui_datos, ui_laboratorio as lab,
+    ui_metricas, ui_patrones, ui_publicacion, ui_recorrido, ui_theme as ui,
 )
-from src.autenticacion import ROLES, puede
+from src.autenticacion import puede
 from src.clinical_rules import evaluar_reglas, mascara_reglas
-from src.config import CLASE_ALTO, DIR_METRICAS, DIR_MODELOS, NOMBRES_CLASES, SEMILLA, VARS_CON_NULOS
+from src.config import CLASE_ALTO, DIR_METRICAS, DIR_MODELOS, NOMBRES_CLASES, SEMILLA
 from src.consolidado_ips import datos_consolidados, guardar_carga, resumen_consolidado
 from src.depuracion import contar_filas, depurar
 from src.data_preprocessing import (
@@ -43,14 +43,19 @@ from src.inspeccionar_ips import CENTINELAS, inspeccionar, reemplazar_centinelas
 from src.lista_chequeo import ACTIVIDADES, ESTADOS, resumen as resumen_chequeo, tabla as tabla_chequeo
 from src.seudonimizacion import LONGITUD_MINIMA_SAL, VARIABLE_SAL
 from src.train_models import GRID_C_LR, con_estrategias_balanceo, grid_random_forest
+from src.ui_theme import miles
 
 usuario = st.session_state.get("usuario")
 # Con menos casos de Alto Riesgo que estos en un conjunto, un solo error mueve su recall más de 10 puntos
 MIN_ALTO = 10
 AVISO_SVM = (f"El costo de la SVM crece aproximadamente con el cuadrado del número de registros: con más de "
-             f"{ui_datos.miles(experimentos.MAX_SVM)} de entrenamiento se ajusta con una muestra estratificada de ese tamaño.")
+             f"{miles(experimentos.MAX_SVM)} de entrenamiento se ajusta con una muestra estratificada de ese tamaño.")
 ETIQUETAS = {"edad": "Edad (años)", "semanas_gestacion": "Semanas de gestación", "n_controles_prenatales": "Controles prenatales",
              "pas_mmhg": "PAS (mmHg)", "pad_mmhg": "PAD (mmHg)", "fcf_bpm": "FCF (lpm)", "glucosa_mgdl": "Glucosa (mg/dL)"}
+# Particiones de un clic (fase 06); cualquier otra combinación es «Personalizada»
+PRESETS = {"70-15-15": (70, 15, 15), "80-10-10": (80, 10, 10), "60-20-20": (60, 20, 20)}
+PERSONALIZADA = "Personalizada"
+CLAVES_PARTICION = ("part_entrenamiento", "part_validacion", "part_prueba")
 
 
 def html(bloque):
@@ -65,6 +70,11 @@ def codigo(*objetos):
 
 def grafico(chart):
     st.altair_chart(chart, width="stretch")
+
+
+def decimal(valor, decimales=3):
+    """0.957 -> «0,957»."""
+    return f"{valor:.{decimales}f}".replace(".", ",")
 
 
 @st.cache_data
@@ -121,7 +131,6 @@ def por_columna(conteo):
 
 def seccion_ingesta():
     """Ingesta auditable: lectura por lotes, centinelas, filtro 3280 y seudonimización, paso a paso."""
-    st.markdown("#### Ingesta auditable de archivos de la IPS")
     st.markdown(
         "Un archivo **CSV, TXT o Excel (.xlsx)** pasa por: lectura por lotes → valores centinela a nulo → **filtro de la "
         "Resolución 3280** (cada columna se conserva, se seudonimiza o se elimina) → **seudonimización** del documento con "
@@ -165,12 +174,14 @@ def seccion_ingesta():
             total = contar_filas(ruta)
             try:
                 datos, reporte = inspeccionar(ruta, sal_uso, al_avanzar=lambda leidas: barra.progress(
-                    min(leidas / total, 1.0) if total else 0.5, text=f"{ui_datos.miles(leidas)} filas leídas…"))
+                    min(leidas / total, 1.0) if total else 0.5, text=f"{miles(leidas)} filas leídas…"))
             except ValueError as error:
                 barra.empty()
                 st.error(str(error))
                 return
         barra.empty()
+        if not guardado or guardado[0] != huella:
+            lab.anotar(f"Ingesta de {miles(reporte.filas_leidas)} filas de la IPS · {miles(reporte.aptas_modelo)} aptas para el modelo")
         st.session_state["ingesta_ips"] = (huella, datos, reporte)
 
     st.markdown(f"**Reporte de calidad · {reporte.archivo}** ({reporte.formato}, separador "
@@ -200,6 +211,7 @@ def seccion_ingesta():
                        "ips_seudonimizado.csv", "text/csv", icon=":material/download:")
     if propio and st.button("Guardar en la base del laboratorio", type="primary", icon=":material/database:"):
         id_carga = guardar_carga(datos, reporte, usuario["usuario"])
+        lab.anotar(f"Carga n.º {id_carga} guardada en la base del laboratorio · {miles(len(datos))} atenciones")
         st.toast(f"Carga n.º {id_carga} guardada: {len(datos)} atenciones seudonimizadas.", icon=":material/check:", duration=3)
     cargas, gestantes = resumen_consolidado()
     if not cargas.empty:
@@ -207,10 +219,42 @@ def seccion_ingesta():
         st.dataframe(cargas, hide_index=True, width="stretch")
 
 
+# ---------------------------------------------------------------- partición elegida (fase 06)
+def particion_elegida():
+    """Porcentajes y semilla elegidos en la fase 06. Viven en la sesión, no en los controles: Streamlit olvida el
+    valor de un control cuando deja de dibujarse, y las fases 08 y 09 entrenan con esta partición."""
+    return st.session_state.setdefault("particion", {"proporciones": PARTICION_OFICIAL, "semilla": SEMILLA})
+
+
+def estado_particion():
+    """(proporciones, semilla, conteos por clase, disjuntos, error). Con error, los conteos son los de la oficial."""
+    elegida = particion_elegida()
+    proporciones, semilla = tuple(elegida["proporciones"]), elegida["semilla"]
+    try:
+        tabla, disjuntos = particiones_resumen(proporciones, semilla, trabajo["huella"] if trabajo else None)
+        return proporciones, semilla, tabla, disjuntos, None
+    except ValueError as error:
+        tabla, disjuntos = particiones_resumen()
+        return proporciones, semilla, tabla, disjuntos, str(error)
+
+
+def aplicar_preset():
+    valores = PRESETS.get(st.session_state.get("part_preset"))
+    if valores:
+        for clave, valor in zip(CLAVES_PARTICION, valores):
+            st.session_state[clave] = valor
+
+
+def aviso_particion_invalida(error):
+    st.error(f"La partición elegida no es válida: {error} Corríjala en {lab.nombre_fase('06')} para poder entrenar.")
+    lab.boton_ir("06")
+
+
+# ---------------------------------------------------------------- entrenamiento (fases 08 y 09)
 def entrenar_con_avance(algoritmo, hiperparametros, proporciones, semilla, patrones=None):
     """Entrena una versión nueva mostrando el avance. Devuelve el resultado, o None si la configuración falla.
 
-    `patrones`: patrones nuevos que se suman solo al entrenamiento (reentrenamiento de la pestaña 08)."""
+    `patrones`: patrones nuevos que se suman solo al entrenamiento (reentrenamiento de la fase 08)."""
     progreso = st.progress(0.0, text="Validación cruzada…")
     zona = st.empty()
     folds = []
@@ -231,6 +275,8 @@ def entrenar_con_avance(algoritmo, hiperparametros, proporciones, semilla, patro
             nombre_datos=nombre_datos, huella_datos=trabajo["huella"] if trabajo else None, patrones=patrones,
             al_avanzar=al_avanzar)
         resultado.pop("modelo")  # ya quedó guardado como versión; no hace falta en la sesión
+        r = resultado["registro"]
+        lab.anotar(f"{r['algoritmo']} entrenado · {ui_datos.segundos(r['tiempo_s'])} · versión {r['version']} guardada")
     except ValueError as error:
         st.error(f"No se pudo entrenar: {error}")
         resultado = None
@@ -243,6 +289,8 @@ def mostrar_entrenamiento(resultado, clave):
     r = resultado["registro"]
     st.success(f"Versión **{r['version']}** creada en {r['tiempo_s']:.1f} s · {r['algoritmo']} · partición {r['particion']} · "
                f"semilla {r['semilla']} · F1-macro en validación cruzada {r['cv_f1_macro']:.4f}")
+    html('<div class="mt-pills">' + ui.pills([(f"Partición {i} · {decimal(v, 2)}", "ok")
+                                              for i, v in enumerate(resultado["cv_f1_por_particion"], start=1)]) + "</div>")
     st.altair_chart(graficos.f1_por_particion(resultado["cv_f1_por_particion"]), width="stretch", key=f"folds_{clave}")
     st.dataframe(pd.DataFrame([{"Conjunto": c, "Gestantes": m["n"], "F1-macro": m["f1_macro"], "Recall Alto": m["recall_alto"],
                                 "Accuracy": m["accuracy"], "ROC-AUC": m.get("roc_auc_ovr_macro"),
@@ -273,11 +321,11 @@ def tabla_versiones(registro):
 
 
 def mostrar_registro():
-    """Tabla comparativa de las versiones del conjunto de trabajo y criterio de selección (pestaña 07)."""
-    st.markdown("#### Experimentos del conjunto de trabajo")
+    """Tabla comparativa de las versiones del conjunto de trabajo y criterio de selección (fase 07)."""
     registro = experimentos.tabla_registro()
     if registro.empty:
-        st.caption("Aún no hay experimentos. Entrene un modelo en la pestaña 08 o pruebe otra configuración en la 09.")
+        st.caption(f"Aún no hay experimentos. Entrene un modelo en {lab.nombre_fase('08')} o pruebe otra configuración en "
+                   f"{lab.nombre_fase('09')}.")
         return
     mejor = registro.set_index("version").loc[experimentos.mejor_version(registro)]
     st.success(f"**Criterio de selección:** mayor F1-macro en validación y, en empate, mayor recall de Alto Riesgo en validación. "
@@ -348,13 +396,7 @@ def artefactos(huella_publicada):
     return pd.DataFrame(filas)
 
 
-html(ui.cabecera("Módulo 1 · Laboratorio de aprendizaje automático auditable", "Laboratorio ML",
-                 "Del problema y la ingesta de datos a la generalización: datos, resultados y código reales del repositorio.",
-                 ["Semilla 42", "Datos sintéticos calibrados", ROLES.get(usuario["rol"], "Sin rol") if usuario else "Sin sesión"]))
-
-pestanas = st.tabs(["01 Problema", "02 Recolección e ingesta", "03 EDA", "04 Limpieza", "05 Variables", "06 División",
-                    "07 Algoritmo", "08 Entrenamiento", "09 Hiperparámetros", "10 Evaluación", "11 Generalización",
-                    "12 Entrega al Módulo 2", "13 Ética y limitaciones", "Lista de chequeo"])
+# ---------------------------------------------------------------- contexto común a todas las fases
 df = dataset()
 permitido = puede(usuario, "entrenar")
 # Datos con que se entrena: el conjunto de trabajo activo (generado o subido y depurado) o, si no hay, el dataset base
@@ -364,407 +406,520 @@ nombre_datos = conjunto_trabajo.descripcion(trabajo)
 test = metricas("metricas_test.csv").set_index("sistema")
 principal = test.loc["Híbrido (Random Forest + reglas)"]
 
+
 # ---------------------------------------------------------------- 01
-with pestanas[0]:
-    html(ui.titulo_seccion("01", "Definir el problema"))
-    st.markdown(
-        "**Clasificación supervisada multiclase**: a partir de datos que se toman en el control prenatal, asignar a cada "
-        "gestante **Bajo, Medio o Alto Riesgo** obstétrico, en zonas dispersas de La Guajira y Cesar y sin depender de internet. "
-        "Un motor de **reglas clínicas** (GPC Minsalud 2013) garantiza que ningún signo crítico dependa de la probabilidad del modelo."
-    )
-    st.dataframe(pd.DataFrame([
-        ("F1-macro", "Métrica de selección del modelo: pesa igual las tres clases aunque estén desbalanceadas.", f"{principal['f1_macro']:.3f}"),
-        ("Recall de Alto Riesgo", "Seguridad: de las gestantes graves, cuántas detecta. Un falso negativo puede costar una vida.", f"{principal['recall_alto']:.3f}"),
-        ("Costo clínico", "Suma de errores ponderada por su gravedad (matriz definida por el equipo). Menos es mejor.", f"{int(principal['costo_clinico_total'])}"),
-        ("ROC-AUC", "Capacidad de separar las clases, sin depender del umbral.", f"{principal['roc_auc_ovr_macro']:.3f}"),
-    ], columns=["Métrica objetivo", "Por qué", "Sistema final en prueba"]), hide_index=True, width="stretch")
-    st.markdown("**Matriz de costo clínico** (filas: clase real; columnas: clase predicha)")
-    st.dataframe(pd.DataFrame(MATRIZ_COSTO, index=NOMBRES_CLASES, columns=NOMBRES_CLASES), width="content")
+def fase_problema():
+    indicadores = [
+        ("Recall de Alto Riesgo", decimal(principal["recall_alto"]), "Seguridad: de las gestantes graves, cuántas detecta"),
+        ("F1-macro", decimal(principal["f1_macro"]), "Con ella se elige el modelo: pesa igual las tres clases"),
+        ("ROC-AUC", decimal(principal["roc_auc_ovr_macro"]), "Capacidad de separar las clases, sin depender del umbral"),
+        ("Costo clínico", str(int(principal["costo_clinico_total"])), "Errores pesados por su gravedad: menos es mejor"),
+    ]
+    for i, (columna, (nombre, valor, pie)) in enumerate(zip(st.columns(4, gap="small"), indicadores)):
+        with columna, lab.tarjeta(f"kpi-{i}", alto="stretch"):
+            html(ui.indicador(nombre, valor, pie))
+    st.caption(f"Sistema final (Random Forest + reglas clínicas) en el conjunto de prueba: {int(principal['n'])} gestantes. "
+               f"El detalle y cómo leer cada cifra están en {lab.nombre_fase('10')}.")
+    c1, c2 = st.columns([3, 2], gap="medium")
+    with c1, lab.tarjeta("problema", "Qué se predice y cómo se mide el éxito", alto="stretch"):
+        st.markdown(
+            "**Clasificación supervisada multiclase**: a partir de datos que se toman en el control prenatal, asignar a cada "
+            "gestante **Bajo, Medio o Alto Riesgo** obstétrico, en zonas dispersas de La Guajira y Cesar y sin depender de internet. "
+            "Un motor de **reglas clínicas** (GPC Minsalud 2013) garantiza que ningún signo crítico dependa de la probabilidad del modelo."
+        )
+        html(ui.filas([
+            ("F1-macro", decimal(principal["f1_macro"]), "Métrica de selección del modelo: pesa igual las tres clases aunque estén desbalanceadas."),
+            ("Recall de Alto Riesgo", decimal(principal["recall_alto"]), "Seguridad: de las gestantes graves, cuántas detecta. Un falso negativo puede costar una vida."),
+            ("Costo clínico", int(principal["costo_clinico_total"]), "Suma de errores ponderada por su gravedad (matriz definida por el equipo). Menos es mejor."),
+            ("ROC-AUC", decimal(principal["roc_auc_ovr_macro"]), "Capacidad de separar las clases, sin depender del umbral."),
+        ]))
+    with c2, lab.tarjeta("costo", "Matriz de costo clínico", "filas: clase real · columnas: clase asignada", alto="stretch"):
+        html(ui.matriz(MATRIZ_COSTO.tolist(), tono=lambda i, j, v: "d" if v >= 5 else "e" if v else "",
+                       descripcion="Matriz de costo clínico"))
+        st.caption("Subestimar el riesgo pesa mucho más que sobreestimarlo: una gestante grave tratada como Bajo Riesgo pesa 10. "
+                   "Los pesos son supuestos del equipo, por validar con un asesor clínico.")
+
 
 # ---------------------------------------------------------------- 02
-with pestanas[1]:
-    html(ui.titulo_seccion("02", "Recolección e ingesta de datos"))
-    c1, c2 = st.columns([3, 2], gap="large")
-    with c1:
-        n_gestantes = f"{len(df):,}".replace(",", ".")
-        st.markdown(f"**Dataset sintético calibrado:** {n_gestantes} gestantes y {df.shape[1]} columnas, 65 % La Guajira y 35 % Cesar. "
-                    "Calibrado con cifras del DANE (Estadísticas Vitales Wayúu 2015–2024), el INS y el ONS. "
+def fase_datos():
+    c1, c2 = st.columns([3, 2], gap="medium")
+    with c1, lab.tarjeta("dataset", "Dataset base", "sintético calibrado", alto="stretch"):
+        html(ui.cifra(miles(len(df)), etiqueta=f"gestantes · {df.shape[1]} columnas · 65 % La Guajira y 35 % Cesar"))
+        st.markdown("Calibrado con cifras del DANE (Estadísticas Vitales Wayúu 2015–2024), el INS y el ONS. "
                     "**No son pacientes reales**: las métricas no son evidencia clínica.")
         grafico(graficos.barras_clases(df))
-    with c2:
+        st.caption("Los archivos de la Resolución 4505 recibidos correspondían a recién nacidos, sin variables maternas: "
+                   "no son aptos para el modelo y, por tener datos personales reales, no se cargan en el laboratorio.")
+    with c2, lab.tarjeta("territorio", "Territorio y etnia", "solo para auditar sesgos", alto="stretch"):
         for col, titulo in [("departamento", "Departamento"), ("pertenencia_etnica", "Pertenencia étnica")]:
             st.dataframe(df[col].value_counts().rename_axis(titulo).reset_index(name="Gestantes"), hide_index=True, width="stretch")
-    st.caption("Los archivos de la Resolución 4505 recibidos correspondían a recién nacidos, sin variables maternas: "
-               "no son aptos para el modelo y, por tener datos personales reales, no se cargan en el laboratorio.")
-    seccion_ingesta()
-    ui_datos.seccion_conjunto(usuario, permitido, trabajo)
-    ui_patrones.seccion_formulario(usuario, puede(usuario, "ingesta_archivos"), permitido,
-                                   df if datos_trabajo is None else datos_trabajo, nombre_datos)
+    with lab.tarjeta("ingesta", "Ingesta auditable de archivos de la IPS", "filtro 3280 y seudonimización"):
+        seccion_ingesta()
+    with lab.tarjeta("conjunto", "Conjunto de trabajo: datos para entrenar", "generar o subir datos crudos"):
+        ui_datos.seccion_conjunto(usuario, permitido, trabajo)
+    with lab.tarjeta("escalabilidad", "Escalabilidad", "de 5.000 a 30.000 registros"):
+        ui_datos.seccion_escalabilidad(permitido)
+    with lab.tarjeta("patron", "Nuevo patrón manual", "validado con el catálogo 3280"):
+        ui_patrones.seccion_formulario(usuario, puede(usuario, "ingesta_archivos"), permitido,
+                                       df if datos_trabajo is None else datos_trabajo, nombre_datos)
+
 
 # ---------------------------------------------------------------- 03
-with pestanas[2]:
-    html(ui.titulo_seccion("03", "Análisis exploratorio (EDA)"))
-    c1, c2 = st.columns([2, 3], gap="large")
-    with c1:
-        st.markdown("**Datos faltantes**")
+def fase_eda():
+    c1, c2 = st.columns([2, 3], gap="medium")
+    with c1, lab.tarjeta("nulos", "Datos faltantes", alto="stretch"):
         nulos = (df.isna().mean() * 100).round(2)
         nulos = nulos[nulos > 0].sort_values(ascending=False)
         grafico(graficos.barras_nulos({ETIQUETAS.get(k, k): v for k, v in nulos.items()}))
         st.caption("Glucosa y FCF faltan cuando no hay glucómetro o doppler fetal. Los nulos **no** se concentran en el área rural.")
-    with c2:
-        st.markdown("**Presión sistólica vs diastólica por clase**")
+    with c2, lab.tarjeta("presion", "Presión sistólica vs diastólica por clase", alto="stretch"):
         grafico(graficos.dispersion_presion(df))
         st.caption("Las líneas punteadas marcan 140/90 (hipertensión) y 160/110 (hipertensión severa, regla clínica).")
-    st.markdown("**Comparación: dataset sintético vs archivo de la IPS**")
-    fuentes = {"Ejemplo ficticio (data/ejemplos)": ejemplo_ips}
-    if not datos_consolidados().empty:
-        fuentes["Base consolidada de la consola"] = datos_consolidados
-    fuente = st.radio("Archivo de la IPS", list(fuentes), horizontal=True)
-    ips = fuentes[fuente]()
-    variables = [v for v in ETIQUETAS if v in ips]
-    comparacion = pd.DataFrame([{
-        "Variable": ETIQUETAS[v], "Media sintético": df[v].mean(), "Media IPS": ips[v].mean(),
-        "Mediana sintético": df[v].median(), "Mediana IPS": ips[v].median(),
-        "% nulos sintético": df[v].isna().mean() * 100, "% nulos IPS": ips[v].isna().mean() * 100,
-    } for v in variables]).round(2)
-    st.dataframe(comparacion, hide_index=True, width="stretch")
-    elegida = st.selectbox("Distribución de", variables, format_func=ETIQUETAS.get)
-    grafico(graficos.histogramas_comparados(df[elegida], ips[elegida], elegida, ETIQUETAS[elegida]))
-    if fuente.startswith("Ejemplo"):
-        st.caption("El ejemplo ficticio se construyó a partir del dataset sintético: por eso las distribuciones casi coinciden. "
-                   "Con un archivo real de una IPS, esta comparación mostraría cuánto se parece el sintético a la realidad.")
-    ui_datos.seccion_eda(df, datos_trabajo, trabajo, ETIQUETAS)
+    with lab.tarjeta("comparacion", "Dataset sintético vs archivo de la IPS"):
+        fuentes = {"Ejemplo ficticio (data/ejemplos)": ejemplo_ips}
+        if not datos_consolidados().empty:
+            fuentes["Base consolidada de la consola"] = datos_consolidados
+        fuente = st.radio("Archivo de la IPS", list(fuentes), horizontal=True)
+        ips = fuentes[fuente]()
+        variables = [v for v in ETIQUETAS if v in ips]
+        comparacion = pd.DataFrame([{
+            "Variable": ETIQUETAS[v], "Media sintético": df[v].mean(), "Media IPS": ips[v].mean(),
+            "Mediana sintético": df[v].median(), "Mediana IPS": ips[v].median(),
+            "% nulos sintético": df[v].isna().mean() * 100, "% nulos IPS": ips[v].isna().mean() * 100,
+        } for v in variables]).round(2)
+        st.dataframe(comparacion, hide_index=True, width="stretch")
+        elegida = st.selectbox("Distribución de", variables, format_func=ETIQUETAS.get)
+        grafico(graficos.histogramas_comparados(df[elegida], ips[elegida], elegida, ETIQUETAS[elegida]))
+        if fuente.startswith("Ejemplo"):
+            st.caption("El ejemplo ficticio se construyó a partir del dataset sintético: por eso las distribuciones casi coinciden. "
+                       "Con un archivo real de una IPS, esta comparación mostraría cuánto se parece el sintético a la realidad.")
+    if datos_trabajo is not None:
+        with lab.tarjeta("eda-trabajo", "EDA del conjunto de trabajo", "frente al dataset base"):
+            ui_datos.seccion_eda(df, datos_trabajo, trabajo, ETIQUETAS)
+
 
 # ---------------------------------------------------------------- 04
-with pestanas[3]:
-    html(ui.titulo_seccion("04", "Limpieza"))
-    st.markdown(
-        "1. **Estructura:** se elimina la columna vacía `Unnamed: 16` y `convulsiones` pasa de TRUE/FALSE a 1/0.\n"
-        f"2. **Valores centinela** de los sistemas de información → nulo: `{'`, `'.join(sorted(CENTINELAS))}`.\n"
-        "3. **Filtro 3280:** cada columna se conserva, se seudonimiza o se elimina según el catálogo (página *Variables 3280*).\n"
-        "4. **Rangos fisiológicos:** un valor imposible es un error de captura y se vuelve nulo.\n"
-        "5. **Imputación estratificada** de glucosa y FCF: mediana por área × trimestre, aprendida solo con el entrenamiento."
-    )
-    c1, c2 = st.columns(2, gap="large")
-    with c1:
-        st.markdown("**Rangos fisiológicos plausibles**")
+def fase_limpieza():
+    with lab.tarjeta("depuracion", "Depuración de los datos crudos", "paso a paso, con el conteo antes y después"):
+        ui_datos.seccion_depuracion(usuario, permitido)
+    with lab.tarjeta("reglas", "Qué hace la limpieza"):
+        st.markdown(
+            "1. **Estructura:** se elimina la columna vacía `Unnamed: 16` y `convulsiones` pasa de TRUE/FALSE a 1/0.\n"
+            f"2. **Valores centinela** de los sistemas de información → nulo: `{'`, `'.join(sorted(CENTINELAS))}`.\n"
+            "3. **Filtro 3280:** cada columna se conserva, se seudonimiza o se elimina según el catálogo (página *Variables 3280*).\n"
+            "4. **Rangos fisiológicos:** un valor imposible es un error de captura y se vuelve nulo.\n"
+            "5. **Imputación estratificada** de glucosa y FCF: mediana por área × trimestre, aprendida solo con el entrenamiento."
+        )
+    c1, c2 = st.columns(2, gap="medium")
+    with c1, lab.tarjeta("rangos", "Rangos fisiológicos plausibles", alto="stretch"):
         st.dataframe(pd.DataFrame([(ETIQUETAS.get(k, k), lo, hi) for k, (lo, hi) in RANGOS_PLAUSIBLES.items()],
                                   columns=["Variable", "Mínimo", "Máximo"]), hide_index=True, width="stretch")
-    with c2:
-        st.markdown("**Decisiones del filtro 3280**")
+    with c2, lab.tarjeta("decisiones", "Decisiones del filtro 3280", alto="stretch"):
         st.dataframe(tabla_decisiones()["Decisión"].value_counts().rename_axis("Decisión").reset_index(name="Variables"),
                      hide_index=True, width="stretch")
-    imp = modelo_en_uso().named_steps["imputacion"]
-    st.markdown("**Medianas aprendidas por el imputador del modelo en uso** (si un estrato tiene menos de 10 datos se usa la del área)")
-    filas = []
-    for col in imp.columnas:
-        for (area, tri), valor in sorted(imp.mediana_estrato_[col].items()):
-            filas.append({"Variable": ETIQUETAS[col], "Área": area, "Trimestre": tri, "Mediana": valor})
-        filas.append({"Variable": ETIQUETAS[col], "Área": "Global (respaldo)", "Trimestre": "—", "Mediana": imp.mediana_global_[col]})
-    st.dataframe(pd.DataFrame(filas), hide_index=True, width="stretch")
-    ui_datos.seccion_depuracion(usuario, permitido)
+    with lab.tarjeta("imputador", "Medianas aprendidas por el imputador del modelo en uso",
+                     "si un estrato tiene menos de 10 datos se usa la del área"):
+        imp = modelo_en_uso().named_steps["imputacion"]
+        filas = []
+        for col in imp.columnas:
+            for (area, tri), valor in sorted(imp.mediana_estrato_[col].items()):
+                filas.append({"Variable": ETIQUETAS[col], "Área": area, "Trimestre": tri, "Mediana": valor})
+            filas.append({"Variable": ETIQUETAS[col], "Área": "Global (respaldo)", "Trimestre": "—", "Mediana": imp.mediana_global_[col]})
+        st.dataframe(pd.DataFrame(filas), hide_index=True, width="stretch")
     codigo(depurar, marcar_fuera_de_rango, reemplazar_centinelas, MedianaEstratificadaImputer.transform)
 
+
 # ---------------------------------------------------------------- 05
-with pestanas[4]:
-    html(ui.titulo_seccion("05", "Ingeniería de variables"))
+def fase_variables():
     pre = json.loads((dir_assets() / "preproceso.json").read_text(encoding="utf-8"))
     tipo = {**{c: "Continua · RobustScaler" for c in pre["escalado"]["columnas"]},
             **{c: "Discreta · sin escalar" for c in pre["discretas"]},
             **{c: "Indicador de dato faltante" for c in pre["indicadores"]}}
-    st.markdown(f"Entran al modelo **{len(pre['variables_entrada'])} variables** construidas a partir de "
-                f"**{len(variables_modelo())} datos** de la gestante. Etnia, municipio y departamento **no entran**.")
-    c1, c2 = st.columns(2, gap="large")
-    with c1:
+    c1, c2 = st.columns(2, gap="medium")
+    with c1, lab.tarjeta("entrada", "Variables de entrada", alto="stretch"):
+        html(ui.cifra(len(variables_modelo()), len(pre["variables_entrada"]), "datos de la gestante → variables del modelo"))
+        st.markdown("Etnia, municipio y departamento **no entran** al modelo.")
         st.dataframe(pd.DataFrame([{"N.º": i + 1, "Variable de entrada": v, "Tipo": tipo.get(v, "One-Hot")}
                                    for i, v in enumerate(pre["variables_entrada"])]), hide_index=True, width="stretch", height=420)
     with c2:
-        st.markdown("**RobustScaler**: (x − mediana) / rango intercuartílico, robusto a valores extremos")
-        st.dataframe(pd.DataFrame({"Variable": [ETIQUETAS[c] for c in pre["escalado"]["columnas"]],
-                                   "Centro (mediana)": pre["escalado"]["centro"], "Escala (RIC)": pre["escalado"]["escala"]}),
-                     hide_index=True, width="stretch")
-        st.markdown("**Ablación: ¿mejoran las variables demográficas?**")
-        st.dataframe(metricas("ablacion_variables_demograficas.csv"), hide_index=True, width="stretch")
-        st.caption("Agregar etnia y territorio no mejora el modelo: quedan fuera por ética y solo sirven para auditar sesgos.")
+        with lab.tarjeta("escalado", "RobustScaler", "(x − mediana) / rango intercuartílico"):
+            st.caption("Robusto a valores extremos.")
+            st.dataframe(pd.DataFrame({"Variable": [ETIQUETAS[c] for c in pre["escalado"]["columnas"]],
+                                       "Centro (mediana)": pre["escalado"]["centro"], "Escala (RIC)": pre["escalado"]["escala"]}),
+                         hide_index=True, width="stretch")
+        with lab.tarjeta("ablacion", "Ablación: ¿mejoran las variables demográficas?"):
+            st.dataframe(metricas("ablacion_variables_demograficas.csv"), hide_index=True, width="stretch")
+            st.caption("Agregar etnia y territorio no mejora el modelo: quedan fuera por ética y solo sirven para auditar sesgos.")
     codigo(pasos_preprocesamiento)
 
+
 # ---------------------------------------------------------------- 06
-with pestanas[5]:
-    html(ui.titulo_seccion("06", "División de los datos"))
-    st.markdown("Elija los porcentajes y la semilla de la partición del **conjunto de trabajo**. La usan los entrenamientos de las "
-                "pestañas 08 y 09. Las cifras oficiales de la Fase 2 se calcularon con 70/15/15 y semilla 42, y no cambian.")
-    st.caption(f"Datos: {nombre_datos}.")
-    c = st.columns(4)
-    proporciones = (c[0].number_input("Entrenamiento (%)", 1, 98, PARTICION_OFICIAL[0], key="part_entrenamiento"),
-                    c[1].number_input("Validación (%)", 1, 98, PARTICION_OFICIAL[1], key="part_validacion"),
-                    c[2].number_input("Prueba (%)", 1, 98, PARTICION_OFICIAL[2], key="part_prueba"))
-    semilla_trabajo = c[3].number_input("Semilla", 0, 2**31 - 1, SEMILLA, key="part_semilla")
-    particion_valida = True
-    try:
-        tabla, disjuntos = particiones_resumen(proporciones, semilla_trabajo, trabajo["huella"] if trabajo else None)
-    except ValueError as error:
-        particion_valida = False
-        st.error(f"{error} Corríjalos para poder entrenar; abajo se muestra la partición oficial.")
-        tabla, disjuntos = particiones_resumen()
-    texto_particion = "/".join(str(p) for p in proporciones)
-    es_oficial = proporciones == PARTICION_OFICIAL and semilla_trabajo == SEMILLA and not trabajo
-    st.dataframe(tabla, hide_index=True, width="stretch")
-    if particion_valida:
-        pocos = tabla[tabla["Alto Riesgo"] < MIN_ALTO]
-        if not pocos.empty:
-            st.warning("Muy pocos casos de Alto Riesgo en " + " y ".join(f"{f['Conjunto']} ({f['Alto Riesgo']})" for _, f in pocos.iterrows())
-                       + f": con menos de {MIN_ALTO}, un solo error mueve el recall de Alto más de 10 puntos.")
-        if es_oficial:
-            st.caption("Es la partición oficial de la Fase 2.")
+def fase_division():
+    elegida = particion_elegida()
+    # Los controles se llenan desde la partición guardada (al volver a esta fase ya no existen en la sesión)
+    for clave, valor in zip(CLAVES_PARTICION, elegida["proporciones"]):
+        st.session_state.setdefault(clave, valor)
+    st.session_state.setdefault("part_semilla", elegida["semilla"])
+    actual = tuple(st.session_state[clave] for clave in CLAVES_PARTICION)
+    st.session_state["part_preset"] = next((nombre for nombre, valores in PRESETS.items() if valores == actual), PERSONALIZADA)
+
+    c1, c2 = st.columns([5, 4], gap="medium")
+    with c1, lab.tarjeta("particion", "Partición de los datos", alto="stretch"):
+        st.radio("Partición", [*PRESETS, PERSONALIZADA], horizontal=True, key="part_preset", on_change=aplicar_preset,
+                 label_visibility="collapsed")
+        c = st.columns(4)
+        proporciones = (c[0].number_input("Entrenamiento (%)", 1, 98, key="part_entrenamiento"),
+                        c[1].number_input("Validación (%)", 1, 98, key="part_validacion"),
+                        c[2].number_input("Prueba (%)", 1, 98, key="part_prueba"))
+        semilla_trabajo = c[3].number_input("Semilla", 0, 2**31 - 1, key="part_semilla")
+        cambio = (proporciones, semilla_trabajo) != (tuple(elegida["proporciones"]), elegida["semilla"])
+        elegida["proporciones"], elegida["semilla"] = proporciones, semilla_trabajo
+        proporciones, semilla_trabajo, tabla, disjuntos, error = estado_particion()
+        texto_particion = "/".join(str(p) for p in proporciones)
+        if cambio and not error:
+            lab.anotar(f"Partición {texto_particion} aplicada · semilla {semilla_trabajo}")
+        if error:
+            st.error(f"{error} Corríjalos para poder entrenar; abajo se muestra la partición oficial.")
+            html('<div class="mt-pills">' + ui.pills([(f"Suma {sum(proporciones)}", "warn")]) + "</div>")
         else:
-            st.info(f"Partición de trabajo **{texto_particion}** con semilla {semilla_trabajo}. Solo afecta a lo que se entrene "
-                    "desde aquí; las tablas oficiales de las pestañas 07, 09, 10 y 11 siguen siendo las de 70/15/15.")
-    st.markdown(
-        f"- Partición **estratificada** por clase: la proporción de Alto Riesgo es la misma en los tres conjuntos.\n"
-        f"- Conjuntos disjuntos (ninguna gestante se repite): **{'sí' if disjuntos else 'NO'}**.\n"
-        "- **Sin fuga de datos:** imputador, escalador y One-Hot se ajustan solo con el entrenamiento, y SMOTE se aplica "
-        "**dentro** de cada partición de la validación cruzada, nunca antes.\n"
-        "- El conjunto de **prueba** de la Fase 2 se usó una sola vez, al final: el modelo se eligió con validación."
-    )
+            html(ui.barra_particion([(f["Conjunto"], p, f["Gestantes"]) for p, (_, f) in zip(proporciones, tabla.iterrows())]))
+            html('<div class="mt-pills">' + ui.pills([
+                ("Suma 100", "ok"), ("Estratificada", "ok"),
+                f"Alto Riesgo ≈ {decimal(tabla['% Alto Riesgo'].mean(), 1)} % en cada conjunto"]) + "</div>")
+        st.caption(f"Datos: {nombre_datos}. La usan los entrenamientos de las fases 08 y 09.")
+    with c2, lab.tarjeta("garantias", "Garantías de la partición", alto="stretch"):
+        st.markdown(
+            "- Partición **estratificada** por clase: la proporción de Alto Riesgo es la misma en los tres conjuntos.\n"
+            f"- Conjuntos disjuntos (ninguna gestante se repite): **{'sí' if disjuntos else 'NO'}**.\n"
+            "- **Sin fuga de datos:** imputador, escalador y One-Hot se ajustan solo con el entrenamiento, y SMOTE se aplica "
+            "**dentro** de cada partición de la validación cruzada, nunca antes.\n"
+            "- El conjunto de **prueba** de la Fase 2 se usó una sola vez, al final: el modelo se eligió con validación.\n"
+            "- Las cifras oficiales de la Fase 2 se calcularon con 70/15/15 y semilla 42, y no cambian."
+        )
+    with lab.tarjeta("conteos", "Gestantes por clase en cada conjunto",
+                     "partición oficial 70/15/15" if error else f"partición {texto_particion} · semilla {semilla_trabajo}"):
+        st.dataframe(tabla, hide_index=True, width="stretch")
+        es_oficial = proporciones == tuple(PARTICION_OFICIAL) and semilla_trabajo == SEMILLA and not trabajo
+        if not error:
+            pocos = tabla[tabla["Alto Riesgo"] < MIN_ALTO]
+            if not pocos.empty:
+                st.warning("Muy pocos casos de Alto Riesgo en " + " y ".join(f"{f['Conjunto']} ({f['Alto Riesgo']})" for _, f in pocos.iterrows())
+                           + f": con menos de {MIN_ALTO}, un solo error mueve el recall de Alto más de 10 puntos.")
+            if es_oficial:
+                st.caption("Es la partición oficial de la Fase 2.")
+            else:
+                st.info(f"Partición de trabajo **{texto_particion}** con semilla {semilla_trabajo}. Solo afecta a lo que se entrene "
+                        "desde aquí; las tablas oficiales de las fases 07, 09, 10 y 11 siguen siendo las de 70/15/15.")
     codigo(particionar)
 
+
 # ---------------------------------------------------------------- 07
-with pestanas[6]:
-    html(ui.titulo_seccion("07", "Selección del algoritmo"))
-    st.markdown("**Validación cruzada (5 particiones) del mejor ajuste de cada modelo y estrategia de balanceo**")
-    comp = metricas("comparacion_cv_por_estrategia.csv")
-    st.dataframe(comp[["modelo", "balanceo", "hiperparametros", "cv_f1_macro_media", "cv_f1_macro_std", "cv_recall_alto_media"]]
-                 .rename(columns={"modelo": "Modelo", "balanceo": "Balanceo", "hiperparametros": "Hiperparámetros",
-                                  "cv_f1_macro_media": "F1-macro", "cv_f1_macro_std": "± desv.", "cv_recall_alto_media": "Recall Alto"}),
-                 hide_index=True, width="stretch")
-    st.markdown("**Selección del sistema híbrido en el conjunto de validación**")
-    val = metricas("metricas_validacion.csv")
-    st.dataframe(val[["sistema", "f1_macro", "recall_alto", "costo_clinico_total", "roc_auc_ovr_macro"]], hide_index=True, width="stretch")
-    ui_metricas.aviso()
-    zona_registro = st.container()  # se llena al final: así incluye lo que se entrene en esta misma ejecución
-    st.info("**Por qué Random Forest y no la SVM de la Fase 1:** además de su mejor F1-macro, las pruebas de coherencia clínica "
-            "cambian una sola variable de una gestante sana (presión 145/95, glucosa 145, FCF 165, edad 36 o cero controles). "
-            "La SVM respondía Bajo Riesgo en esos casos; el Random Forest los clasifica al menos como Medio.")
+def seccion_recorrido():
+    """«Ver el recorrido»: el camino real de una gestante por el modelo en uso y las reglas, animado."""
+    st.markdown("Elija una gestante y vea, paso a paso, cómo llega el sistema a su resultado: sus datos se convierten en "
+                "variables, cada árbol le hace sus preguntas, se promedian las 300 hojas y las reglas clínicas tienen la "
+                "última palabra. Es el **Random Forest en uso**, no un esquema: los umbrales y las respuestas son los reales.")
+    casos = dict(recorrido.CASOS)
+    if st.session_state.get("recorrido_registro"):
+        casos = {recorrido.ULTIMA: st.session_state["recorrido_registro"], **casos}
+    if st.session_state.get("recorrido_caso") not in casos:
+        st.session_state.pop("recorrido_caso", None)
+    visible = st.session_state.get("recorrido_visible", False)
+    c = st.columns([4, 1], vertical_alignment="bottom")
+    nombre = c[0].radio("Gestante", list(casos), horizontal=True, key="recorrido_caso")
+    if c[1].button("Ocultar" if visible else "Ver el recorrido", type="secondary" if visible else "primary",
+                   icon=":material/visibility_off:" if visible else ":material/account_tree:", key="recorrido_boton"):
+        st.session_state["recorrido_visible"] = visible = not visible
+        st.rerun()
+    if not visible:
+        return
+    datos = recorrido.recorrido(casos[nombre], modelo_en_uso())
+    if st.session_state.get("recorrido_anotado") != nombre:
+        st.session_state["recorrido_anotado"] = nombre
+        lab.anotar(f"Recorrido de «{nombre.split(' (')[0]}»: {datos['categoria']}")
+    ui_recorrido.mostrar(datos, clave=f"recorrido-{list(casos).index(nombre)}")
+    st.caption(f"Se dibujan {len(datos['arboles'])} de los {datos['n_arboles']} árboles; el promedio y los puntos salen de los "
+               f"{datos['n_arboles']}. Para otra gestante, evalúela en la página «Triaje (Fase 2)» y pulse «Ver cómo decidió el sistema».")
+    with st.expander("El recorrido en texto"):
+        for frase in recorrido.en_texto(datos):
+            st.markdown(frase)
+
+
+def fase_algoritmo():
+    with lab.tarjeta("recorrido", "Cómo decide el sistema", "el recorrido de una gestante, paso a paso"):
+        seccion_recorrido()
+    with lab.tarjeta("cv", "Validación cruzada de los tres modelos", "5 particiones · mejor ajuste por modelo y balanceo"):
+        comp = metricas("comparacion_cv_por_estrategia.csv")
+        st.dataframe(comp[["modelo", "balanceo", "hiperparametros", "cv_f1_macro_media", "cv_f1_macro_std", "cv_recall_alto_media"]]
+                     .rename(columns={"modelo": "Modelo", "balanceo": "Balanceo", "hiperparametros": "Hiperparámetros",
+                                      "cv_f1_macro_media": "F1-macro", "cv_f1_macro_std": "± desv.", "cv_recall_alto_media": "Recall Alto"}),
+                     hide_index=True, width="stretch")
+    with lab.tarjeta("seleccion", "Selección del sistema híbrido", "en el conjunto de validación"):
+        val = metricas("metricas_validacion.csv")
+        st.dataframe(val[["sistema", "f1_macro", "recall_alto", "costo_clinico_total", "roc_auc_ovr_macro"]], hide_index=True, width="stretch")
+        ui_metricas.aviso()
+    with lab.tarjeta("porque", "Por qué Random Forest y no la SVM de la Fase 1"):
+        st.markdown("Además de su mejor F1-macro, las pruebas de coherencia clínica cambian una sola variable de una gestante sana "
+                    "(presión 145/95, glucosa 145, FCF 165, edad 36 o cero controles). La SVM respondía Bajo Riesgo en esos casos; "
+                    "el Random Forest los clasifica al menos como Medio.")
+    with lab.tarjeta("experimentos", "Experimentos del conjunto de trabajo", "versiones propias y criterio de selección"):
+        mostrar_registro()
     codigo(con_estrategias_balanceo)
 
+
 # ---------------------------------------------------------------- 08
-with pestanas[7]:
-    html(ui.titulo_seccion("08", "Entrenamiento en vivo"))
-    st.markdown(f"Entrena el algoritmo elegido con los **mejores hiperparámetros** de la búsqueda de la Fase 2, sobre la partición "
-                f"**{texto_particion}** con semilla {semilla_trabajo} (pestaña 06). Muestra cada partición de la validación cruzada al "
-                "terminar y guarda el resultado como una **versión nueva**. **No reemplaza el modelo en uso.**")
-    st.caption(f"Datos: {nombre_datos}.")
-    algoritmo = st.selectbox("Algoritmo", experimentos.ALGORITMOS, key="entrenar_algoritmo")
-    st.json(experimentos.hiperparametros_base(algoritmo), expanded=True)
-    if algoritmo == "SVM":
-        st.caption(AVISO_SVM)
-    if st.button("Entrenar en vivo", type="primary", icon=":material/play_arrow:", disabled=not (permitido and particion_valida)):
-        st.session_state["entrenamiento"] = entrenar_con_avance(algoritmo, None, proporciones, semilla_trabajo)
-    if not permitido:
-        st.caption("Solo el administrador puede reentrenar.")
-    if st.session_state.get("entrenamiento"):
-        mostrar_entrenamiento(st.session_state["entrenamiento"], "vivo")
-    st.caption("Para cambiar los hiperparámetros, use «Probar otra configuración» en la pestaña 09.")
-    ui_patrones.seccion_reentrenar(permitido, trabajo["huella"] if trabajo else None, entrenar_con_avance)
+def fase_entrenamiento():
+    proporciones, semilla_trabajo, _, _, error = estado_particion()
+    texto_particion = "/".join(str(p) for p in proporciones)
+    with lab.tarjeta("entrenar", "Entrenamiento en vivo", f"partición {texto_particion} · semilla {semilla_trabajo}"):
+        st.markdown(f"Entrena el algoritmo elegido con los **mejores hiperparámetros** de la búsqueda de la Fase 2, sobre la partición "
+                    f"**{texto_particion}** con semilla {semilla_trabajo}, elegidas en {lab.nombre_fase('06')}. Muestra cada partición de la "
+                    "validación cruzada al terminar y guarda el resultado como una **versión nueva**. **No reemplaza el modelo en uso.**")
+        st.caption(f"Datos: {nombre_datos}.")
+        if error:
+            aviso_particion_invalida(error)
+        algoritmo = st.radio("Algoritmo", experimentos.ALGORITMOS, horizontal=True, key="entrenar_algoritmo")
+        html('<div class="mt-pills">' + ui.pills([f"{k}: {'sin límite' if v is None else v}"
+                                                  for k, v in experimentos.hiperparametros_base(algoritmo).items()]) + "</div>")
+        if algoritmo == "SVM":
+            st.caption(AVISO_SVM)
+        if st.button("Entrenar en vivo", type="primary", icon=":material/play_arrow:", disabled=not (permitido and not error)):
+            st.session_state["entrenamiento"] = entrenar_con_avance(algoritmo, None, proporciones, semilla_trabajo)
+        if not permitido:
+            st.caption("Solo el administrador puede reentrenar.")
+        if st.session_state.get("entrenamiento"):
+            mostrar_entrenamiento(st.session_state["entrenamiento"], "vivo")
+        st.caption(f"Para cambiar los hiperparámetros, use «Probar otra configuración» en {lab.nombre_fase('09')}.")
+    with lab.tarjeta("reentrenar", "Reentrenar con los patrones nuevos", "antes y después"):
+        ui_patrones.seccion_reentrenar(permitido, trabajo["huella"] if trabajo else None, entrenar_con_avance)
     codigo(experimentos.entrenar)
 
+
 # ---------------------------------------------------------------- 09
-with pestanas[8]:
-    html(ui.titulo_seccion("09", "Ajuste de hiperparámetros"))
+def fase_parametros():
+    proporciones, semilla_trabajo, _, _, error = estado_particion()
+    texto_particion = "/".join(str(p) for p in proporciones)
     exp = metricas("experimentos_cv_completo.csv")
     por_modelo = exp.groupby("modelo").size()
-    st.markdown(f"**GridSearchCV:** {len(exp)} configuraciones × 5 particiones = **{len(exp) * 5} entrenamientos**. "
-                f"SMOTE y `class_weight` se comparan como un hiperparámetro más, nunca combinados. "
-                + " · ".join(f"{m}: {n}" for m, n in por_modelo.items()))
-    grafico(graficos.dispersion_hiperparametros(exp))
-    modelo = st.selectbox("Mejores configuraciones de", list(por_modelo.index), index=list(por_modelo.index).index("Random Forest"))
-    st.dataframe(exp[exp["modelo"] == modelo].sort_values("cv_f1_macro_media", ascending=False)
-                 [["balanceo", "hiperparametros", "cv_f1_macro_media", "cv_f1_macro_std", "cv_recall_alto_media", "tiempo_ajuste_s"]].head(10),
-                 hide_index=True, width="stretch")
-
-    st.markdown("#### Probar otra configuración")
-    st.markdown(f"Cambie los hiperparámetros y entrene: se guarda como una **versión nueva** del conjunto de trabajo, con la "
-                f"partición {texto_particion} y la semilla {semilla_trabajo} elegidas en la pestaña 06. Los controles parten de la "
-                "mejor configuración de la búsqueda.")
-    st.caption(f"Datos: {nombre_datos}.")
-    algoritmo_hp = st.selectbox("Algoritmo", experimentos.ALGORITMOS, key="hp_algoritmo")
-    hiperparametros = formulario_hiperparametros(algoritmo_hp)
-    if algoritmo_hp == "SVM":
-        st.caption(AVISO_SVM)
-    if st.button("Entrenar esta configuración", type="primary", icon=":material/tune:",
-                 disabled=not (permitido and particion_valida)):
-        st.session_state["experimento_hp"] = entrenar_con_avance(algoritmo_hp, hiperparametros, proporciones, semilla_trabajo)
-    if not permitido:
-        st.caption("Solo el administrador puede entrenar.")
-    if st.session_state.get("experimento_hp"):
-        mostrar_entrenamiento(st.session_state["experimento_hp"], "hp")
-    registro = experimentos.tabla_registro()
-    if not registro.empty and (registro["algoritmo"] == algoritmo_hp).any():
-        st.markdown(f"**Versiones de {algoritmo_hp}**, de mayor a menor F1-macro en validación")
-        tabla_versiones(registro[registro["algoritmo"] == algoritmo_hp].sort_values("val_f1_macro", ascending=False))
+    with lab.tarjeta("probar", "Probar otra configuración", f"partición {texto_particion} · semilla {semilla_trabajo}"):
+        st.markdown(f"Cambie los hiperparámetros y entrene: se guarda como una **versión nueva** del conjunto de trabajo, con la "
+                    f"partición {texto_particion} y la semilla {semilla_trabajo} elegidas en {lab.nombre_fase('06')}. Los controles "
+                    "parten de la mejor configuración de la búsqueda.")
+        st.caption(f"Datos: {nombre_datos}.")
+        if error:
+            aviso_particion_invalida(error)
+        algoritmo_hp = st.radio("Algoritmo", experimentos.ALGORITMOS, horizontal=True, key="hp_algoritmo")
+        hiperparametros = formulario_hiperparametros(algoritmo_hp)
+        if algoritmo_hp == "SVM":
+            st.caption(AVISO_SVM)
+        if st.button("Entrenar esta configuración", type="primary", icon=":material/tune:",
+                     disabled=not (permitido and not error)):
+            st.session_state["experimento_hp"] = entrenar_con_avance(algoritmo_hp, hiperparametros, proporciones, semilla_trabajo)
+        if not permitido:
+            st.caption("Solo el administrador puede entrenar.")
+        if st.session_state.get("experimento_hp"):
+            mostrar_entrenamiento(st.session_state["experimento_hp"], "hp")
+        registro = experimentos.tabla_registro()
+        if not registro.empty and (registro["algoritmo"] == algoritmo_hp).any():
+            st.markdown(f"**Versiones de {algoritmo_hp}**, de mayor a menor F1-macro en validación")
+            tabla_versiones(registro[registro["algoritmo"] == algoritmo_hp].sort_values("val_f1_macro", ascending=False))
+    with lab.tarjeta("grilla", "Búsqueda en grilla de la Fase 2", f"{len(exp)} configuraciones × 5 particiones"):
+        st.markdown(f"**GridSearchCV:** {len(exp)} configuraciones × 5 particiones = **{len(exp) * 5} entrenamientos**. "
+                    f"SMOTE y `class_weight` se comparan como un hiperparámetro más, nunca combinados. "
+                    + " · ".join(f"{m}: {n}" for m, n in por_modelo.items()))
+        grafico(graficos.dispersion_hiperparametros(exp))
+        modelo = st.selectbox("Mejores configuraciones de", list(por_modelo.index), index=list(por_modelo.index).index("Random Forest"))
+        st.dataframe(exp[exp["modelo"] == modelo].sort_values("cv_f1_macro_media", ascending=False)
+                     [["balanceo", "hiperparametros", "cv_f1_macro_media", "cv_f1_macro_std", "cv_recall_alto_media", "tiempo_ajuste_s"]].head(10),
+                     hide_index=True, width="stretch")
     codigo(grid_random_forest, experimentos.construir)
 
+
 # ---------------------------------------------------------------- 10
-with pestanas[9]:
-    html(ui.titulo_seccion("10", "Evaluación en el conjunto de prueba"))
-    st.markdown(f"Se usó **una sola vez**, con {int(test['n'].iloc[0])} gestantes (23 de Alto Riesgo). Los intervalos de confianza "
-                "del 95 % se calcularon con 2.000 remuestreos bootstrap: con tan pocos casos graves, la incertidumbre es grande.")
-    st.dataframe(test[["f1_macro", "f1_macro_ic95", "recall_alto", "recall_alto_ic95", "roc_auc_ovr_macro",
-                       "falsos_negativos_alto", "costo_clinico_total"]].rename(columns={
-        "f1_macro": "F1-macro", "f1_macro_ic95": "IC 95 % F1", "recall_alto": "Recall Alto", "recall_alto_ic95": "IC 95 % recall",
-        "roc_auc_ovr_macro": "ROC-AUC", "falsos_negativos_alto": "Graves no detectadas", "costo_clinico_total": "Costo clínico"}),
-        width="stretch")
-    ui_metricas.aviso()
-    c1, c2 = st.columns(2, gap="large")
-    c1.image(str(DIR_METRICAS.parent / "figures" / "matrices_confusion_test.png"), caption="Matrices de confusión (prueba)")
-    c2.image(str(DIR_METRICAS.parent / "figures" / "curvas_roc_test.png"), caption="Curvas ROC (prueba)")
-    st.markdown("**Sin signos críticos** (lo que el modelo resuelve solo, sin las reglas)")
-    st.dataframe(metricas("metricas_test_sin_signos_criticos.csv")[["sistema", "n", "f1_macro", "recall_alto", "costo_clinico_total"]],
-                 hide_index=True, width="stretch")
+def fase_evaluacion():
     ui_metricas.seccion_interpretacion(trabajo)
-    ui_datos.seccion_lote(trabajo)
+    with lab.tarjeta("oficial", "Los tres modelos en el conjunto de prueba", "cifras oficiales de la Fase 2"):
+        st.markdown(f"Se usó **una sola vez**, con {int(test['n'].iloc[0])} gestantes (23 de Alto Riesgo). Los intervalos de confianza "
+                    "del 95 % se calcularon con 2.000 remuestreos bootstrap: con tan pocos casos graves, la incertidumbre es grande.")
+        st.dataframe(test[["f1_macro", "f1_macro_ic95", "recall_alto", "recall_alto_ic95", "roc_auc_ovr_macro",
+                           "falsos_negativos_alto", "costo_clinico_total"]].rename(columns={
+            "f1_macro": "F1-macro", "f1_macro_ic95": "IC 95 % F1", "recall_alto": "Recall Alto", "recall_alto_ic95": "IC 95 % recall",
+            "roc_auc_ovr_macro": "ROC-AUC", "falsos_negativos_alto": "Graves no detectadas", "costo_clinico_total": "Costo clínico"}),
+            width="stretch")
+        c1, c2 = st.columns(2, gap="large")
+        c1.image(str(DIR_METRICAS.parent / "figures" / "matrices_confusion_test.png"), caption="Matrices de confusión (prueba)")
+        c2.image(str(DIR_METRICAS.parent / "figures" / "curvas_roc_test.png"), caption="Curvas ROC (prueba)")
+        st.markdown("**Sin signos críticos** (lo que el modelo resuelve solo, sin las reglas)")
+        st.dataframe(metricas("metricas_test_sin_signos_criticos.csv")[["sistema", "n", "f1_macro", "recall_alto", "costo_clinico_total"]],
+                     hide_index=True, width="stretch")
+    with lab.tarjeta("lote", "Lote de demostración: registros que el modelo no usó"):
+        ui_datos.seccion_lote(trabajo)
+    lab.boton_ir("12", "Continuar a la entrega al Módulo 2 (fase 12)")
     codigo(calcular_metricas, intervalo_bootstrap, interpretacion.paneles, conjunto_trabajo.establecer)
 
-# ---------------------------------------------------------------- 11
-with pestanas[10]:
-    html(ui.titulo_seccion("11", "Generalización: sobreajuste y subajuste"))
-    curvas, brecha = metricas("curvas_aprendizaje.csv"), metricas("brecha_sobreajuste.csv")
-    columnas = st.columns(3, gap="medium")
-    for col, modelo in zip(columnas, ["Regresión Logística", "SVM", "Random Forest"]):
-        with col:
-            st.markdown(f"**{modelo}**")
-            grafico(graficos.curva_aprendizaje(curvas, modelo))
-    st.dataframe(brecha.rename(columns={"modelo": "Modelo", "f1_entrenamiento": "F1 entrenamiento", "f1_cv": "F1 validación cruzada",
-                                        "f1_cv_std": "± desv.", "brecha": "Brecha"}), hide_index=True, width="stretch")
-    ui_metricas.aviso()
-    st.markdown(
-        "- **Regresión Logística: subajusta.** Entrenamiento y validación quedan bajos y juntos: el modelo es demasiado simple.\n"
-        "- **SVM: sobreajusta.** Memoriza el entrenamiento (1,000) pero valida en 0,861: la brecha es la mayor.\n"
-        "- **Random Forest: ajusta bien.** También llega a 1,000 en entrenamiento, algo normal en un bosque, pero valida en 0,932 "
-        "y se sostiene en validación (0,944) y prueba (0,943). Más datos reales seguirían ayudando: la curva aún sube."
-    )
-    st.caption("Calculado con `python -m src.curvas_aprendizaje` (validación cruzada de 5 particiones sobre 840 gestantes). "
-               "Son las curvas oficiales de la Fase 2.")
 
-    st.markdown("#### Curva de una versión del conjunto de trabajo")
-    versiones = {r["version"]: r for r in experimentos.leer_registro()}
-    if not versiones:
-        st.caption("Aún no hay versiones. Entrene un modelo en la pestaña 08 y vuelva para calcular su curva.")
-    else:
-        elegida = st.selectbox(
-            "Versión", sorted(versiones, reverse=True), key="curva_version",
-            format_func=lambda v: f"{v} · {versiones[v]['algoritmo']} · partición {versiones[v]['particion']} · semilla {versiones[v]['semilla']}")
-        if st.button("Calcular la curva de aprendizaje", icon=":material/show_chart:", disabled=not permitido):
-            with st.spinner("Entrenando con 7 tamaños × 5 particiones…"):
-                try:
-                    st.session_state.setdefault("curvas_exp", {})[elegida] = experimentos.curva_aprendizaje(elegida)
-                except ValueError as error:
-                    st.error(str(error))
-        if not permitido:
-            st.caption("Solo el administrador puede calcular curvas nuevas.")
-        curva = st.session_state.get("curvas_exp", {}).get(elegida)
-        if curva is not None:
-            grafico(graficos.curva_aprendizaje(curva, curva["modelo"].iloc[0], dominio_x=None))
-            ultimo = curva.iloc[-1]
-            brecha_v = ultimo["f1_entrenamiento"] - ultimo["f1_cv"]
-            st.markdown(f"Con {int(ultimo['n_entrenamiento'])} gestantes de entrenamiento: F1-macro **{ultimo['f1_entrenamiento']:.3f}** "
-                        f"en entrenamiento y **{ultimo['f1_cv']:.3f}** en validación cruzada (± {ultimo['f1_cv_std']:.3f}); "
-                        f"brecha de **{brecha_v:.3f}**.")
-            st.dataframe(curva.drop(columns="modelo").rename(columns={
-                "n_entrenamiento": "Gestantes", "f1_entrenamiento": "F1 entrenamiento", "f1_entrenamiento_std": "± desv. entr.",
-                "f1_cv": "F1 validación cruzada", "f1_cv_std": "± desv. CV"}), hide_index=True, width="stretch")
+# ---------------------------------------------------------------- 11
+def fase_generalizacion():
+    curvas, brecha = metricas("curvas_aprendizaje.csv"), metricas("brecha_sobreajuste.csv")
+    veredicto = {"Regresión Logística": "subajusta", "SVM": "sobreajusta", "Random Forest": "ajusta bien"}
+    for i, (columna, modelo) in enumerate(zip(st.columns(3, gap="small"), veredicto)):
+        with columna, lab.tarjeta(f"curva-{i}", modelo, veredicto[modelo], alto="stretch"):
+            grafico(graficos.curva_aprendizaje(curvas, modelo))
+    with lab.tarjeta("brecha", "Brecha entre entrenamiento y validación cruzada", "curvas oficiales de la Fase 2"):
+        st.dataframe(brecha.rename(columns={"modelo": "Modelo", "f1_entrenamiento": "F1 entrenamiento", "f1_cv": "F1 validación cruzada",
+                                            "f1_cv_std": "± desv.", "brecha": "Brecha"}), hide_index=True, width="stretch")
+        ui_metricas.aviso()
+        st.markdown(
+            "- **Regresión Logística: subajusta.** Entrenamiento y validación quedan bajos y juntos: el modelo es demasiado simple.\n"
+            "- **SVM: sobreajusta.** Memoriza el entrenamiento (1,000) pero valida en 0,861: la brecha es la mayor.\n"
+            "- **Random Forest: ajusta bien.** También llega a 1,000 en entrenamiento, algo normal en un bosque, pero valida en 0,932 "
+            "y se sostiene en validación (0,944) y prueba (0,943). Más datos reales seguirían ayudando: la curva aún sube."
+        )
+        st.caption("Calculado con `python -m src.curvas_aprendizaje` (validación cruzada de 5 particiones sobre 840 gestantes).")
+    with lab.tarjeta("curva-version", "Curva de una versión del conjunto de trabajo"):
+        versiones = {r["version"]: r for r in experimentos.leer_registro()}
+        if not versiones:
+            st.caption(f"Aún no hay versiones. Entrene un modelo en {lab.nombre_fase('08')} y vuelva para calcular su curva.")
+        else:
+            c = st.columns([3, 2], vertical_alignment="bottom")
+            elegida = c[0].selectbox(
+                "Versión", sorted(versiones, reverse=True), key="curva_version",
+                format_func=lambda v: f"{v} · {versiones[v]['algoritmo']} · partición {versiones[v]['particion']} · semilla {versiones[v]['semilla']}")
+            if c[1].button("Calcular la curva de aprendizaje", icon=":material/show_chart:", disabled=not permitido):
+                with st.spinner("Entrenando con 7 tamaños × 5 particiones…"):
+                    try:
+                        st.session_state.setdefault("curvas_exp", {})[elegida] = experimentos.curva_aprendizaje(elegida)
+                        lab.anotar(f"Curva de aprendizaje de {elegida} calculada · 7 tamaños × 5 particiones")
+                    except ValueError as error:
+                        st.error(str(error))
+            if not permitido:
+                st.caption("Solo el administrador puede calcular curvas nuevas.")
+            curva = st.session_state.get("curvas_exp", {}).get(elegida)
+            if curva is not None:
+                grafico(graficos.curva_aprendizaje(curva, curva["modelo"].iloc[0], dominio_x=None))
+                ultimo = curva.iloc[-1]
+                brecha_v = ultimo["f1_entrenamiento"] - ultimo["f1_cv"]
+                st.markdown(f"Con {int(ultimo['n_entrenamiento'])} gestantes de entrenamiento: F1-macro **{ultimo['f1_entrenamiento']:.3f}** "
+                            f"en entrenamiento y **{ultimo['f1_cv']:.3f}** en validación cruzada (± {ultimo['f1_cv_std']:.3f}); "
+                            f"brecha de **{brecha_v:.3f}**.")
+                st.dataframe(curva.drop(columns="modelo").rename(columns={
+                    "n_entrenamiento": "Gestantes", "f1_entrenamiento": "F1 entrenamiento", "f1_entrenamiento_std": "± desv. entr.",
+                    "f1_cv": "F1 validación cruzada", "f1_cv_std": "± desv. CV"}), hide_index=True, width="stretch")
     codigo(experimentos.curva_aprendizaje)
 
+
 # ---------------------------------------------------------------- 12
-with pestanas[11]:
-    html(ui.titulo_seccion("12", "Entrega al Módulo 2 (despliegue)"))
+def fase_entrega():
     modelo_json = json.loads((dir_assets() / "modelo_rf.json").read_text(encoding="utf-8"))
     vigente = publicacion.assets_vigentes()
-    st.markdown(
-        "El despliegue es el **Módulo 2**: la app de usuario final (Flutter, **web y móvil**) para el personal de salud en "
-        "territorio, con captura manual, carga masiva de archivos de la IPS y semáforo de riesgo. Los dos módulos son "
-        "independientes y se integran **solo** a través de estos artefactos, que el Módulo 1 entrega ya validados:\n\n"
-        f"- `flutter_app/assets/modelo_rf.json`: Random Forest **versión {modelo_json['version']}** ({modelo_json['n_arboles']} árboles), "
-        "con la huella SHA-256 del `.joblib` del que salió.\n"
-        "- `preproceso.json` y `reglas.json`: imputación, escalado, One-Hot y los 4 signos críticos.\n"
-        "- `casos_paridad.json`: 200 casos con la respuesta exacta de scikit-learn, que la app debe reproducir.\n\n"
-        f"Estado de la entrega: **{'vigente' if vigente else 'ANTIGUA: vuelva a publicar'}** respecto del modelo publicado. "
-        "Con el modelo oficial v1, la inferencia desde JSON reproduce a scikit-learn con diferencia 0 en las 1.200 gestantes."
-    )
-    st.dataframe(artefactos(publicacion.publicado()["sha256"]), hide_index=True, width="stretch")
-    ui_publicacion.seccion_publicar(usuario, permitido)
-    ui_publicacion.tabla_dos_modulos()
-    st.markdown("**Motor de reglas clínicas: sensibilidad en signos críticos**")
-    X, y = separar_xy(marcar_fuera_de_rango(df))
-    mascara = mascara_reglas(X)
-    _, _, X_test, _, _, y_test = particionar(X, y)
-    mascara_test = mascara_reglas(X_test)
-    c = st.columns(2)
-    c[0].metric("Prueba: signos críticos detectados como Alto", f"{int((y_test[mascara_test] == CLASE_ALTO).sum())}/{int(mascara_test.sum())}")
-    c[1].metric("Dataset completo", f"{int((y[mascara] == CLASE_ALTO).sum())}/{int(mascara.sum())}")
-    st.caption("100 % de sensibilidad **solo** en los casos con signo crítico; el recall global de Alto Riesgo en prueba es "
-               f"{principal['recall_alto']:.3f}, con intervalo de confianza del 95 % {principal['recall_alto_ic95']}. Aviso: las etiquetas sintéticas se generaron con estos mismos "
-               "umbrales, así que esto demuestra que el sistema no deja escapar un caso crítico, no que las reglas sean clínicamente mejores.")
-    st.markdown("**Pruebe el motor de reglas**")
-    r = st.columns(4)
-    prueba = {"pas_mmhg": r[0].number_input("PAS", 60, 250, 150), "pad_mmhg": r[1].number_input("PAD", 30, 150, 95),
-              "proteinuria": r[2].selectbox("Proteinuria", [0, 1, 2], format_func=lambda v: ["Negativa", "+", "++"][v]),
-              "convulsiones": int(r[3].toggle("Convulsiones"))}
-    activadas = evaluar_reglas(prueba)
-    if activadas:
-        st.error("**Alto Riesgo por regla clínica:** " + " · ".join(activadas))
-    else:
-        st.success("Ninguna regla se activa: decide el modelo.")
+    with lab.tarjeta("entrega", "Qué recibe el Módulo 2", "entrega vigente" if vigente else "entrega ANTIGUA"):
+        st.markdown(
+            "El despliegue es el **Módulo 2**: la app de usuario final (Flutter, **web y móvil**) para el personal de salud en "
+            "territorio, con captura manual, carga masiva de archivos de la IPS y semáforo de riesgo. Los dos módulos son "
+            "independientes y se integran **solo** a través de estos artefactos, que el Módulo 1 entrega ya validados:\n\n"
+            f"- `flutter_app/assets/modelo_rf.json`: Random Forest **versión {modelo_json['version']}** ({modelo_json['n_arboles']} árboles), "
+            "con la huella SHA-256 del `.joblib` del que salió.\n"
+            "- `preproceso.json` y `reglas.json`: imputación, escalado, One-Hot y los 4 signos críticos.\n"
+            "- `casos_paridad.json`: 200 casos con la respuesta exacta de scikit-learn, que la app debe reproducir.\n\n"
+            f"Estado de la entrega: **{'vigente' if vigente else 'ANTIGUA: vuelva a publicar'}** respecto del modelo publicado. "
+            "Con el modelo oficial v1, la inferencia desde JSON reproduce a scikit-learn con diferencia 0 en las 1.200 gestantes."
+        )
+        st.dataframe(artefactos(publicacion.publicado()["sha256"]), hide_index=True, width="stretch")
+    with lab.tarjeta("publicar", "Publicar al Módulo 2", "solo el administrador · solo Random Forest"):
+        ui_publicacion.seccion_publicar(usuario, permitido)
+    with lab.tarjeta("modulos", "Los dos módulos «suman uno», pero no es lo mismo"):
+        ui_publicacion.tabla_dos_modulos()
+    with lab.tarjeta("motor", "Motor de reglas clínicas", "sensibilidad en signos críticos"):
+        X, y = separar_xy(marcar_fuera_de_rango(df))
+        mascara = mascara_reglas(X)
+        _, _, X_test, _, _, y_test = particionar(X, y)
+        mascara_test = mascara_reglas(X_test)
+        c = st.columns(2)
+        c[0].metric("Prueba: signos críticos detectados como Alto", f"{int((y_test[mascara_test] == CLASE_ALTO).sum())}/{int(mascara_test.sum())}")
+        c[1].metric("Dataset completo", f"{int((y[mascara] == CLASE_ALTO).sum())}/{int(mascara.sum())}")
+        st.caption("100 % de sensibilidad **solo** en los casos con signo crítico; el recall global de Alto Riesgo en prueba es "
+                   f"{principal['recall_alto']:.3f}, con intervalo de confianza del 95 % {principal['recall_alto_ic95']}. Aviso: las etiquetas sintéticas se generaron con estos mismos "
+                   "umbrales, así que esto demuestra que el sistema no deja escapar un caso crítico, no que las reglas sean clínicamente mejores.")
+        st.markdown("**Pruebe el motor de reglas**")
+        r = st.columns(4)
+        prueba = {"pas_mmhg": r[0].number_input("PAS", 60, 250, 150), "pad_mmhg": r[1].number_input("PAD", 30, 150, 95),
+                  "proteinuria": r[2].selectbox("Proteinuria", [0, 1, 2], format_func=lambda v: ["Negativa", "+", "++"][v]),
+                  "convulsiones": int(r[3].toggle("Convulsiones"))}
+        activadas = evaluar_reglas(prueba)
+        if activadas:
+            st.error("**Alto Riesgo por regla clínica:** " + " · ".join(activadas))
+        else:
+            st.success("Ninguna regla se activa: decide el modelo.")
     codigo(evaluar_reglas)
 
-# ---------------------------------------------------------------- 13
-with pestanas[12]:
-    html(ui.titulo_seccion("13", "Ética y limitaciones"))
-    aud = metricas("auditoria_subgrupos.csv")
-    st.markdown("**Auditoría de sesgos:** recall de Alto Riesgo por subgrupo, con predicciones fuera de partición sobre las 1.200 gestantes.")
-    variable = st.radio("Subgrupo", ["area_residencia", "pertenencia_etnica", "atendido_por", "departamento"], horizontal=True,
-                        format_func={"area_residencia": "Área", "pertenencia_etnica": "Etnia", "atendido_por": "Quién atiende",
-                                     "departamento": "Departamento"}.get)
-    st.dataframe(aud[aud["variable"] == variable][["grupo", "n", "n_alto_real", "recall_alto", "f1_macro"]]
-                 .rename(columns={"grupo": "Grupo", "n": "Gestantes", "n_alto_real": "Alto Riesgo reales",
-                                  "recall_alto": "Recall Alto", "f1_macro": "F1-macro"}), hide_index=True, width="stretch")
-    st.markdown(
-        "- **Brecha rural:** el sistema detecta el 88 % de los casos graves rurales (71/81) frente al 94 % en cabecera (67/71). "
-        "Plan: ajustar umbrales para el área rural con un especialista.\n"
-        "- **Grupos pequeños:** Wiwa y Kogui tienen 20 gestantes cada uno, y la auxiliar de enfermería 11 casos graves: sus cifras son inestables.\n"
-        "- **Etnia y territorio fuera del modelo** por decisión ética (la ablación muestra que no lo mejoran).\n"
-        "- **Datos sintéticos:** las métricas miden cuánto reproduce el sistema su propio etiquetado, no su desempeño clínico. "
-        "El siguiente paso es validar con datos reales anonimizados de una ESE/IPS.\n"
-        "- **Habeas Data (Ley 1581 de 2012):** documentos seudonimizados con HMAC-SHA256 y sal secreta; nombres y contactos se descartan.\n"
-        "- **Pendiente con un asesor clínico:** FCF de 60 o glucosa de 300 solo dan Riesgo Medio; validar la proteinuria ++ como "
-        "criterio único, los textos de protocolo y los cortes de las alertas 3280 marcados como «por validar».\n"
-        "- **Ajustes frente a la Resolución 3280:** FCF registrada antes de que sea medible, glucosa sin indicar si es en ayunas, "
-        "controles prenatales sin relación con la semana y control prenatal hecho por auxiliares o parteras: MATERNA es una "
-        "herramienta de **tamizaje y canalización comunitaria**, no reemplaza el control prenatal.\n"
-        "- **Responsabilidad:** prototipo académico. No usar para decisiones clínicas reales."
-    )
 
-# ---------------------------------------------------------------- Lista de chequeo
-with pestanas[13]:
-    html(ui.titulo_seccion("✓", "Lista de chequeo del ciclo de vida"))
+# ---------------------------------------------------------------- ética y limitaciones
+def fase_etica():
+    with lab.tarjeta("sesgos", "Auditoría de sesgos", "recall de Alto Riesgo por subgrupo"):
+        aud = metricas("auditoria_subgrupos.csv")
+        st.caption("Con predicciones fuera de partición sobre las 1.200 gestantes.")
+        variable = st.radio("Subgrupo", ["area_residencia", "pertenencia_etnica", "atendido_por", "departamento"], horizontal=True,
+                            format_func={"area_residencia": "Área", "pertenencia_etnica": "Etnia", "atendido_por": "Quién atiende",
+                                         "departamento": "Departamento"}.get)
+        st.dataframe(aud[aud["variable"] == variable][["grupo", "n", "n_alto_real", "recall_alto", "f1_macro"]]
+                     .rename(columns={"grupo": "Grupo", "n": "Gestantes", "n_alto_real": "Alto Riesgo reales",
+                                      "recall_alto": "Recall Alto", "f1_macro": "F1-macro"}), hide_index=True, width="stretch")
+    with lab.tarjeta("limitaciones", "Limitaciones que deben decirse"):
+        st.markdown(
+            "- **Brecha rural:** el sistema detecta el 88 % de los casos graves rurales (71/81) frente al 94 % en cabecera (67/71). "
+            "Plan: ajustar umbrales para el área rural con un especialista.\n"
+            "- **Grupos pequeños:** Wiwa y Kogui tienen 20 gestantes cada uno, y la auxiliar de enfermería 11 casos graves: sus cifras son inestables.\n"
+            "- **Etnia y territorio fuera del modelo** por decisión ética (la ablación muestra que no lo mejoran).\n"
+            "- **Datos sintéticos:** las métricas miden cuánto reproduce el sistema su propio etiquetado, no su desempeño clínico. "
+            "El siguiente paso es validar con datos reales anonimizados de una ESE/IPS.\n"
+            "- **Habeas Data (Ley 1581 de 2012):** documentos seudonimizados con HMAC-SHA256 y sal secreta; nombres y contactos se descartan.\n"
+            "- **Pendiente con un asesor clínico:** FCF de 60 o glucosa de 300 solo dan Riesgo Medio; validar la proteinuria ++ como "
+            "criterio único, los textos de protocolo y los cortes de las alertas 3280 marcados como «por validar».\n"
+            "- **Ajustes frente a la Resolución 3280:** FCF registrada antes de que sea medible, glucosa sin indicar si es en ayunas, "
+            "controles prenatales sin relación con la semana y control prenatal hecho por auxiliares o parteras: MATERNA es una "
+            "herramienta de **tamizaje y canalización comunitaria**, no reemplaza el control prenatal.\n"
+            "- **Responsabilidad:** prototipo académico. No usar para decisiones clínicas reales."
+        )
+
+
+# ---------------------------------------------------------------- lista de chequeo
+def fase_chequeo():
     chequeo = tabla_chequeo()
     conteo = chequeo["Estado"].value_counts().reindex(list(ESTADOS), fill_value=0)
     st.markdown(
         f"Auditoría del repositorio contra las **12 fases** del ciclo de aprendizaje automático: **{len(ACTIVIDADES)} actividades**. "
         "**Hecho** quiere decir que hoy se puede ver o ejecutar en el aplicativo; **Parcial**, que existe una parte; "
-        "**Falta**, que aún no existe y en qué etapa del plan se construye. La columna *Evidencia* dice en qué pestaña verlo."
+        "**Falta**, que aún no existe y en qué etapa del plan se construye. La columna *Evidencia* dice en qué fase verlo."
     )
-    c = st.columns(3)
-    for col, estado in zip(c, ESTADOS):
-        col.metric(estado, int(conteo[estado]))
-    st.markdown("**Resumen por fase**")
-    st.dataframe(resumen_chequeo(), hide_index=True, width="stretch")
-    filtro = st.segmented_control("Mostrar", ["Todas", *ESTADOS], default="Todas", key="chequeo_estado")
-    visibles = chequeo if filtro in (None, "Todas") else chequeo[chequeo["Estado"] == filtro]
-    st.dataframe(visibles, hide_index=True, width="stretch", height=560)
-    st.download_button("Descargar la lista de chequeo (CSV)", chequeo.to_csv(index=False).encode("utf-8-sig"),
-                       "materna_lista_de_chequeo.csv", "text/csv", icon=":material/download:")
+    for columna, estado in zip(st.columns(3), ESTADOS):
+        columna.metric(estado, int(conteo[estado]))
+    with lab.tarjeta("resumen", "Resumen por fase"):
+        st.dataframe(resumen_chequeo(), hide_index=True, width="stretch")
+    with lab.tarjeta("actividades", "Actividades y su evidencia"):
+        filtro = st.segmented_control("Mostrar", ["Todas", *ESTADOS], default="Todas", key="chequeo_estado")
+        visibles = chequeo if filtro in (None, "Todas") else chequeo[chequeo["Estado"] == filtro]
+        st.dataframe(visibles, hide_index=True, width="stretch", height=560)
+        st.download_button("Descargar la lista de chequeo (CSV)", chequeo.to_csv(index=False).encode("utf-8-sig"),
+                           "materna_lista_de_chequeo.csv", "text/csv", icon=":material/download:")
 
-# El registro de experimentos se dibuja al final, en el lugar reservado de la pestaña 07
-with zona_registro:
-    mostrar_registro()
+
+# ---------------------------------------------------------------- la fase elegida en el menú lateral
+FASES = {
+    "01": fase_problema, "02": fase_datos, "03": fase_eda, "04": fase_limpieza, "05": fase_variables, "06": fase_division,
+    "07": fase_algoritmo, "08": fase_entrenamiento, "09": fase_parametros, "10": fase_evaluacion, "11": fase_generalizacion,
+    "12": fase_entrega, "etica": fase_etica, "chequeo": fase_chequeo,
+}
+vista = lab.vista()
+etiquetas = {
+    "02": [(f"Conjunto de trabajo: {miles(trabajo['n_trabajo'])}", "on")] if trabajo else ["Dataset base: 1.200 gestantes"],
+    "10": [("Random Forest + reglas", "ok")],
+    "12": [(f"La app usa el modelo {publicacion.publicado()['version']}", "ok")],
+}
+# En la fase 06 la semilla se lee del control (ya trae el valor nuevo); en las demás, de la partición guardada
+semilla_visible = st.session_state.get("part_semilla", particion_elegida()["semilla"]) if vista == "06" else particion_elegida()["semilla"]
+lab.encabezado(vista, usuario, [*etiquetas.get(vista, []), f"Semilla {semilla_visible}", ("Datos sintéticos", "warn")])
+# Cada fase va en un contenedor propio: al cambiar de fase, Streamlit retira de inmediato lo de la anterior
+with st.container(key=f"mt-fase-{vista}"):
+    FASES[vista]()
+lab.marcar_recorrida(vista)
+lab.registro()

@@ -1,11 +1,14 @@
 [theme]
 base = "light"
-primaryColor = "#A54178"
-backgroundColor = "#F3F3E7"
-secondaryBackgroundColor = "#EFE6E9"
-textColor = "#3A1F30"
-borderColor = "#E6D6DF"
-baseRadius = "16px"
+primaryColor = "#7B2D5B"
+backgroundColor = "#F8F6F1"
+secondaryBackgroundColor = "#F3E8EE"
+textColor = "#3A1230"
+borderColor = "#E9DDE3"
+baseRadius = "14px"
+baseFontSize = 15
+# Tipografía del sistema (sin descargar fuentes: funciona sin internet); la misma pila que src/ui_theme.py
+font = "-apple-system, BlinkMacSystemFont, 'SF Pro Text', Inter, system-ui, 'Segoe UI', sans-serif"
 
 [browser]
 gatherUsageStats = false

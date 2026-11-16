@@ -43,7 +43,7 @@ def resultado(at):
 
 
 def cargar_caso(at, numero):
-    at.sidebar.button[numero - 1].click().run()
+    next(b for b in at.sidebar.button if b.label.startswith(f"Caso {numero}")).click().run()  # por nombre: antes va el menú de fases
     return at
 
 
@@ -137,3 +137,14 @@ def test_cada_evaluacion_se_guarda_y_se_sincroniza(app):
     next(b for b in app.sidebar.button if b.label.startswith("Simular sincronización")).click().run()
     with sqlite3.connect(app.bd) as con:
         assert con.execute("SELECT COUNT(*) FROM evaluaciones WHERE sincronizado = 0").fetchone()[0] == 0
+
+
+def test_ver_como_decidio_el_sistema_lleva_al_recorrido(app):
+    """Tras evaluar, el botón deja lista la gestante para «Ver el recorrido» de la fase 07 del laboratorio."""
+    evaluar(cargar_caso(app, 2))
+    assert app.session_state["ultimo_registro_triaje"]["municipio"] == "Manaure"
+    next(b for b in app.button if b.label == "Ver cómo decidió el sistema").click().run()
+    assert not app.exception
+    assert app.session_state["vista"] == "07" and app.session_state["recorrido_visible"]
+    assert app.session_state["recorrido_registro"]["municipio"] == "Manaure"
+    assert app.session_state["recorrido_caso"] == "Última evaluación del triaje"

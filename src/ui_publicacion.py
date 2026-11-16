@@ -1,8 +1,8 @@
-"""Fase 3 — Sección «Publicar al Módulo 2» del laboratorio (pestaña 12)."""
+"""Fase 3 — Sección «Publicar al Módulo 2» del laboratorio (fase 12)."""
 import pandas as pd
 import streamlit as st
 
-from src import experimentos, publicacion, ui_metricas
+from src import experimentos, publicacion, ui_laboratorio as lab, ui_metricas
 
 AVISO_RECOMPILAR = ("Los teléfonos reciben el modelo nuevo **al recompilar la app**: los JSON van dentro de ella "
                     "(`flutter build apk` o `flutter build web`). La paridad en **Dart** se comprueba con `flutter test`, "
@@ -11,7 +11,6 @@ AVISO_RECOMPILAR = ("Los teléfonos reciben el modelo nuevo **al recompilar la a
 
 def tabla_dos_modulos():
     """Qué significa «agregar uno más» en cada módulo."""
-    st.markdown("**Los dos módulos «suman uno», pero no es lo mismo**")
     st.dataframe(pd.DataFrame([
         ("Qué se agrega", "Una gestante atendida", "Un patrón para enseñarle al modelo"),
         ("Lleva la clase puesta", "No: la app la calcula", "Sí: la pone quien lo registra (o el sistema)"),
@@ -23,7 +22,6 @@ def tabla_dos_modulos():
 
 
 def seccion_publicar(usuario, permitido):
-    st.markdown("#### Publicar al Módulo 2")
     actual = publicacion.publicado()
     st.info(f"La app usa hoy el modelo **{actual['version']}** ({actual['origen']}) · SHA-256 `{actual['sha256'][:16]}…`")
     st.caption("Solo se publica el **Random Forest**, con las 4 reglas críticas y el catálogo 3280: la app solo tiene motor de "
@@ -32,7 +30,7 @@ def seccion_publicar(usuario, permitido):
     registro = experimentos.tabla_registro()
     candidatas = registro[registro["algoritmo"] == publicacion.ALGORITMO_PUBLICABLE] if not registro.empty else registro
     if candidatas.empty:
-        st.caption("No hay versiones de Random Forest para publicar. Entrene una en la pestaña 08.")
+        st.caption(f"No hay versiones de Random Forest para publicar. Entrene una en {lab.nombre_fase('08')}.")
     else:
         mejor = experimentos.mejor_version(candidatas)
         filas = candidatas.set_index("version")
@@ -50,7 +48,8 @@ def seccion_publicar(usuario, permitido):
         if st.button("Publicar al Módulo 2", type="primary", icon=":material/publish:", disabled=not (permitido and confirmado)):
             with st.spinner("Exportando y comprobando la paridad en Python…"):
                 try:
-                    st.session_state["publicacion"] = publicacion.publicar(elegida, usuario["usuario"])
+                    resultado = st.session_state["publicacion"] = publicacion.publicar(elegida, usuario["usuario"])
+                    lab.anotar(f"Publicado al Módulo 2 como {resultado['version']} (sale de {elegida}) · paridad en Python comprobada")
                 except ValueError as error:
                     st.session_state.pop("publicacion", None)
                     st.error(str(error))
@@ -71,6 +70,7 @@ def seccion_publicar(usuario, permitido):
         if st.button("Comprobar la paridad en Dart (flutter test)", icon=":material/rule:"):
             with st.spinner("Corriendo las pruebas de paridad en Dart…"):
                 st.session_state["paridad_dart"] = publicacion.paridad_dart()
+            lab.anotar("Paridad en Dart: " + ("pasa" if st.session_state["paridad_dart"][0] else "FALLA"))
         if "paridad_dart" in st.session_state:
             paso, salida = st.session_state["paridad_dart"]
             (st.success if paso else st.error)("Paridad en Dart: " + ("todas las pruebas pasaron." if paso else "hay pruebas que fallan."))
@@ -89,4 +89,5 @@ def seccion_publicar(usuario, permitido):
                 publicacion.restablecer_oficial(usuario["usuario"])
             st.session_state.pop("publicacion", None)
             st.session_state.pop("paridad_dart", None)
+            lab.anotar("Se volvió al modelo oficial v1")
             st.rerun()

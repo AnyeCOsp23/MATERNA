@@ -1,10 +1,10 @@
-"""Fase 3 — Secciones del laboratorio para los patrones nuevos: formulario (pestaña 02) y reentrenamiento (pestaña 08)."""
+"""Fase 3 — Secciones del laboratorio para los patrones nuevos: formulario (fase 02) y reentrenamiento (fase 08)."""
 import pandas as pd
 import streamlit as st
 
-from src import experimentos, patrones
+from src import experimentos, patrones, ui_laboratorio as lab, ui_theme as ui
 from src.config import MAPA_TARGET, VARS_CON_NULOS
-from src.ui_datos import miles
+from src.ui_theme import miles
 
 OPCION_PROXY = "Que la calcule el sistema (proxy por reglas)"
 ATIENDE = {"Medico": "Médico", "Auxiliar de enfermeria": "Auxiliar de enfermería"}
@@ -24,16 +24,15 @@ def _campo(columna, v):
 
 
 def seccion_formulario(usuario, puede_agregar, puede_retirar, datos, nombre_datos):
-    """Pestaña 02: agrega un patrón a mano, con contador, validación y bitácora."""
-    st.markdown("#### Nuevo patrón manual")
+    """Fase 02: agrega un patrón a mano, con contador, validación y bitácora."""
     vigentes = patrones.vigentes()
     total = len(datos) + len(vigentes)
+    if len(vigentes):
+        st.markdown(ui.cifra(miles(len(datos)), miles(total), "patrones"), unsafe_allow_html=True)
+    else:
+        st.markdown(ui.cifra(miles(total), etiqueta="patrones · aún sin patrones nuevos"), unsafe_allow_html=True)
     st.markdown(f"Registre una gestante con su clase. Se valida contra los rangos del catálogo de la Resolución 3280, no puede "
                 f"repetir un registro existente y queda en la bitácora. Se suma a: **{nombre_datos}**.")
-    c = st.columns(3)
-    c[0].metric("Registros del conjunto", miles(len(datos)))
-    c[1].metric("Patrones nuevos vigentes", len(vigentes))
-    c[2].metric("Total", miles(total))
 
     with st.form("formulario_patron"):
         catalogo = patrones.catalogo_modelo()
@@ -49,17 +48,21 @@ def seccion_formulario(usuario, puede_agregar, puede_retirar, datos, nombre_dato
     if enviado:
         try:
             proxy = clase == OPCION_PROXY
-            st.session_state["patron_evento"] = patrones.agregar(
+            evento = st.session_state["patron_evento"] = patrones.agregar(
                 registro, None if proxy else clase, usuario["usuario"], datos, patrones.PROXY if proxy else patrones.ASIGNADA)
         except ValueError as error:
             st.session_state.pop("patron_evento", None)
             st.error(f"**Patrón rechazado.** {error}")
+            lab.anotar("Patrón rechazado por la validación")
+        else:
+            lab.anotar(f"Patrón {evento['id']} agregado · {miles(evento['contador_antes'])} → {miles(evento['contador_despues'])}")
     evento = st.session_state.get("patron_evento")
     if evento:
         st.success(f"Patrón **{evento['id']}** agregado como **{evento['clase']}** "
                    f"({patrones.ETIQUETAS_ORIGEN[evento[patrones.COLUMNA_ETIQUETA]].lower()}). Registros: "
                    f"**{miles(evento['contador_antes'])} → {miles(evento['contador_despues'])}**. Para que el modelo lo use, "
-                   "reentrene en la pestaña 08.")
+                   f"reentrene en {lab.nombre_fase('08')}.")
+        lab.boton_ir("08", "Reentrenar y comparar en la fase 08")
 
     bitacora = patrones.tabla_eventos()
     if not bitacora.empty:
@@ -74,19 +77,19 @@ def seccion_formulario(usuario, puede_agregar, puede_retirar, datos, nombre_dato
         if r[1].button("Retirar", icon=":material/delete:", disabled=not puede_retirar):
             patrones.retirar(elegido, usuario["usuario"], len(datos))
             st.session_state.pop("patron_evento", None)
+            lab.anotar(f"Patrón {elegido} retirado")
             st.rerun()
 
 
 def seccion_reentrenar(permitido, huella_datos, entrenar):
-    """Pestaña 08: reentrena una versión con los patrones nuevos y compara antes y después.
+    """Fase 08: reentrena una versión con los patrones nuevos y compara antes y después.
 
     `entrenar(algoritmo, hiperparametros, proporciones, semilla, patrones)` es la función del laboratorio
     que entrena mostrando el avance.
     """
-    st.markdown("#### Reentrenar con los patrones nuevos")
     vigentes = patrones.vigentes()
     if vigentes.empty:
-        st.caption("Aún no hay patrones nuevos. Agregue uno en la pestaña 02.")
+        st.caption(f"Aún no hay patrones nuevos. Agregue uno en {lab.nombre_fase('02')}.")
         return
     referencias = {r["version"]: r for r in experimentos.leer_registro() if r.get("datos_huella") == huella_datos}
     if not referencias:
@@ -112,6 +115,8 @@ def seccion_reentrenar(permitido, huella_datos, entrenar):
     if comparacion:
         a, d = comparacion["antes"], comparacion["despues"]
         st.success(f"Versión **{d['version']}** creada con {len(d['patrones'])} patrón(es) nuevo(s) en el entrenamiento.")
+        st.markdown(ui.cifra(miles(a["n_entrenamiento"]), miles(d["n_entrenamiento"]), "registros de entrenamiento"),
+                    unsafe_allow_html=True)
         st.dataframe(pd.DataFrame([
             {"": etiqueta, "Versión": r["version"], "Patrones nuevos": len(r.get("patrones") or []),
              "n entrenamiento": r["n_entrenamiento"], "F1-macro validación": r["val_f1_macro"],
