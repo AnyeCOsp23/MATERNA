@@ -137,6 +137,6 @@ with st.sidebar:
     html(ui.tarjeta_usuario(usuario["nombre"], ROLES[usuario["rol"]]))
     if st.button("Cerrar sesión", icon=":material/logout:", width="stretch"):
         for clave in ("usuario", "entrenamiento", "experimento_hp", "curvas_exp", "archivo_ips", "ingesta_ips", "crudo",
-                      "depurado", "lote_eval", "patron_evento", "reentrenamiento"):
+                      "depurado", "lote_eval", "patron_evento", "reentrenamiento", "publicacion", "paridad_dart"):
             st.session_state.pop(clave, None)
         st.rerun()

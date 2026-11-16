@@ -52,6 +52,14 @@ def test_generador_reproducible_con_la_misma_semilla():
         generar(0)
 
 
+def test_n_generados_son_n_registros_distintos_y_limpios():
+    """10.000 generados dan 10.000 limpios: el generador nunca entrega dos registros iguales."""
+    datos = generar(10000)
+    assert not datos.drop(columns="id_gestante").duplicated().any()
+    limpio, pasos = depurar(datos)
+    assert len(limpio) == 10000 and all(p["Filas después"] == 10000 for p in pasos)
+
+
 def test_generador_marca_el_origen_y_conserva_las_columnas(base, generados):
     assert list(generados.columns) == list(base.columns) + [COLUMNA_ORIGEN]
     assert (generados[COLUMNA_ORIGEN] == ORIGEN).all() and ORIGEN == "sintetico_generado"

@@ -14,15 +14,21 @@ Genera en flutter_app/assets/:
 Antes de escribir, verifica con src/inferencia_json.py (Python puro, sin scikit-learn) que los JSON
 reproducen las probabilidades del pipeline. Carga el modelo .joblib existente: no reentrena.
 
+Por defecto exporta el modelo oficial de la Fase 2 (v1). «Publicar al Módulo 2» (src/publicacion.py) llama
+a exportar() con otra versión del Random Forest y su número de versión.
+
 Uso:  python -m src.exportar_a_dart                 (todo)
       python -m src.exportar_a_dart --solo-catalogo  (solo catálogo y casos de alertas: no toca el modelo)
       python -m src.exportar_a_dart --solo-carga     (solo casos_carga.json: no toca el modelo)
 """
 import datetime as dt
+import os
 import shutil
 import sys
 import hashlib
 import json
+
+from pathlib import Path
 
 import joblib
 import numpy as np
@@ -42,6 +48,7 @@ from src.seudonimizacion import seudonimizar
 
 RUTA_MODELO = DIR_MODELOS / "modelo_random_forest.joblib"
 DIR_ASSETS = RAIZ / "flutter_app" / "assets"
+VARIABLE_ASSETS = "MATERNA_ASSETS"  # otra carpeta de destino (la usan las pruebas)
 TOLERANCIA = 1e-6
 N_CASOS = 200
 N_CASOS_ALERTAS = 160
@@ -49,6 +56,11 @@ VERSION_MODELO = "v1"
 # Sal pública, SOLO para las pruebas de paridad: la de la IPS es secreta y nunca se exporta
 SAL_PRUEBA = "sal-solo-para-pruebas-0123456789"
 EJEMPLO_IPS = DIR_EJEMPLOS / "ips_ficticio_3280.csv"
+
+
+def dir_assets():
+    """Carpeta de los JSON que consume la app: flutter_app/assets, salvo que MATERNA_ASSETS indique otra."""
+    return Path(os.environ.get(VARIABLE_ASSETS) or DIR_ASSETS)
 
 
 def _sha256(ruta):
@@ -105,15 +117,17 @@ def exportar_arbol(estimador):
     return {"variable": variable, "umbral": umbral, "izquierda": izquierda, "derecha": derecha, "hojas": hojas}
 
 
-def exportar_modelo(pipeline):
+def exportar_modelo(pipeline, version=VERSION_MODELO, ruta=RUTA_MODELO, exportado=None):
     rf = pipeline.named_steps["modelo"]
+    if not hasattr(rf, "estimators_"):
+        raise ValueError("Solo se exporta un Random Forest: la app solo tiene motor de árboles.")
     return {
-        "version": VERSION_MODELO,
+        "version": version,
         "tipo": "RandomForestClassifier",
-        "origen": RUTA_MODELO.name,
-        "sha256_joblib": _sha256(RUTA_MODELO),
+        "origen": Path(ruta).name,
+        "sha256_joblib": _sha256(Path(ruta)),
         "scikit_learn": sklearn.__version__,
-        "exportado": dt.date.today().isoformat(),
+        "exportado": exportado or dt.date.today().isoformat(),
         "clases": NOMBRES_CLASES,
         "n_arboles": len(rf.estimators_),
         "n_variables": int(rf.n_features_in_),
@@ -258,8 +272,8 @@ def generar_casos_alertas(n=N_CASOS_ALERTAS, semilla=SEMILLA):
 
 
 def exportar_catalogo_y_alertas():
-    DIR_ASSETS.mkdir(parents=True, exist_ok=True)
-    destino = DIR_ASSETS / "variables_3280.json"
+    dir_assets().mkdir(parents=True, exist_ok=True)
+    destino = dir_assets() / "variables_3280.json"
     shutil.copyfile(RUTA_CATALOGO, destino)  # copia byte a byte: una sola fuente de verdad
     casos = generar_casos_alertas()
     return [destino, _escribir("casos_alertas.json", {"casos": casos})]
@@ -295,12 +309,12 @@ def generar_casos_carga(pipeline):
 
 def exportar_casos_carga(pipeline=None):
     pipeline = pipeline if pipeline is not None else joblib.load(RUTA_MODELO)
-    DIR_ASSETS.mkdir(parents=True, exist_ok=True)
+    dir_assets().mkdir(parents=True, exist_ok=True)
     return _escribir("casos_carga.json", generar_casos_carga(pipeline))
 
 
 def _escribir(nombre, datos, compacto=False):
-    ruta = DIR_ASSETS / nombre
+    ruta = dir_assets() / nombre
     with open(ruta, "w", encoding="utf-8") as f:
         if compacto:
             json.dump(datos, f, ensure_ascii=False, separators=(",", ":"))
@@ -309,19 +323,22 @@ def _escribir(nombre, datos, compacto=False):
     return ruta
 
 
-def exportar():
-    pipeline = joblib.load(RUTA_MODELO)
-    preproceso, modelo, reglas = exportar_preproceso(pipeline), exportar_modelo(pipeline), exportar_reglas()
+def exportar(ruta_modelo=RUTA_MODELO, version=VERSION_MODELO, exportado=None):
+    """Exporta el modelo de `ruta_modelo` con el número de versión dado. Primero comprueba la paridad en Python
+    (si falla, lanza AssertionError y no escribe nada). Devuelve la versión, la huella, la paridad y los archivos."""
+    pipeline = joblib.load(ruta_modelo)
+    preproceso, reglas = exportar_preproceso(pipeline), exportar_reglas()
+    modelo = exportar_modelo(pipeline, version, ruta_modelo, exportado)
     casos = generar_casos(pipeline)
     dif_x, dif_p = verificar(preproceso, modelo, reglas, casos)
-    DIR_ASSETS.mkdir(parents=True, exist_ok=True)
+    dir_assets().mkdir(parents=True, exist_ok=True)
     rutas = [_escribir("preproceso.json", preproceso), _escribir("modelo_rf.json", modelo, compacto=True),
              _escribir("reglas.json", reglas), _escribir("casos_paridad.json", {"tolerancia": TOLERANCIA, "casos": casos})]
     rutas += exportar_catalogo_y_alertas()
     rutas.append(exportar_casos_carga(pipeline))
-    print(f"Paridad JSON vs scikit-learn en {len(casos)} casos: variables {dif_x:.1e}, probabilidades {dif_p:.1e}")
-    for r in rutas:
-        print(f"  {r.relative_to(RAIZ)}  {r.stat().st_size / 1024:,.0f} KB")
+    return {"version": version, "sha256": modelo["sha256_joblib"], "n_arboles": modelo["n_arboles"],
+            "casos_paridad": len(casos), "dif_variables": dif_x, "dif_probabilidades": dif_p,
+            "archivos": [{"Archivo": r.name, "Tamaño (KB)": round(r.stat().st_size / 1024)} for r in rutas]}
 
 
 if __name__ == "__main__":
@@ -332,4 +349,8 @@ if __name__ == "__main__":
         for ruta in exportar_catalogo_y_alertas():
             print(f"  {ruta.relative_to(RAIZ)}  {ruta.stat().st_size / 1024:,.0f} KB")
     else:
-        exportar()
+        info = exportar()
+        print(f"Paridad JSON vs scikit-learn en {info['casos_paridad']} casos: variables {info['dif_variables']:.1e}, "
+              f"probabilidades {info['dif_probabilidades']:.1e}")
+        for archivo in info["archivos"]:
+            print(f"  {archivo['Archivo']}  {archivo['Tamaño (KB)']:,} KB")

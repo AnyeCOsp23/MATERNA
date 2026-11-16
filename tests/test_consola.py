@@ -1,4 +1,6 @@
 """Fase 3, bloque 3: Módulo 1 (Laboratorio de ML). Inicio de sesión, permisos, ingesta auditable y pestañas."""
+import json
+import shutil
 import sqlite3
 
 import pytest
@@ -9,7 +11,8 @@ from src.autenticacion import (
     INTENTOS_MAXIMOS, PERMISOS, ROLES, autenticar, bloque_toml, generar_hash, puede, verificar_hash,
 )
 from src.consolidado_ips import datos_consolidados, guardar_carga, resumen_consolidado
-from src import conjunto_trabajo, patrones
+from src import conjunto_trabajo, patrones, publicacion
+from src.exportar_a_dart import DIR_ASSETS
 from src.experimentos import leer_registro
 from src.generar_ejemplo_ips import DIR_EJEMPLOS
 from src.inspeccionar_ips import inspeccionar
@@ -35,6 +38,10 @@ def entorno(tmp_path, monkeypatch):
     monkeypatch.setenv("MATERNA_BD", str(tmp_path / "triaje.sqlite"))
     monkeypatch.setenv("MATERNA_BD_IPS", str(tmp_path / "laboratorio.sqlite"))
     monkeypatch.setenv("MATERNA_EXPERIMENTOS", str(tmp_path / "experimentos"))
+    # publicar desde una prueba nunca toca los JSON de la app ni los modelos del repositorio
+    shutil.copytree(DIR_ASSETS, tmp_path / "assets", ignore=shutil.ignore_patterns("fonts", "*.webp"))
+    monkeypatch.setenv("MATERNA_ASSETS", str(tmp_path / "assets"))
+    monkeypatch.setenv("MATERNA_PUBLICACION", str(tmp_path / "publicados"))
     return tmp_path
 
 
@@ -338,6 +345,42 @@ def test_medico_auditor_agrega_patrones_pero_no_los_retira_ni_reentrena(entorno)
     (evento,) = patrones.eventos()
     assert evento["etiqueta_origen"] == "proxy_reglas" and evento["usuario"] == "medico_auditor"
     assert boton(at, "Retirar").disabled
+
+
+def test_publicar_al_modulo_2_solo_el_administrador_y_solo_random_forest(entorno):
+    oficial = (entorno / "assets" / "modelo_rf.json").read_bytes()
+    at = pagina("laboratorio", "administrador")
+    assert any("La app usa hoy el modelo **v1**" in i.value for i in at.info)
+    assert any("No hay versiones de Random Forest para publicar" in c.value for c in at.caption)
+    assert any("al recompilar la app" in w.value for w in at.warning)
+    # una Regresión Logística no aparece como publicable
+    next(s for s in at.selectbox if s.key == "entrenar_algoritmo").set_value("Regresión Logística").run()
+    boton(at, "Entrenar en vivo").click().run()
+    assert any("No hay versiones de Random Forest para publicar" in c.value for c in at.caption)
+    # un Random Forest sí; hay que confirmar antes de publicar
+    next(s for s in at.selectbox if s.key == "hp_algoritmo").set_value("Random Forest").run()
+    next(n for n in at.number_input if n.key == "hp_rf_arboles").set_value(20).run()
+    boton(at, "Entrenar esta configuración").click().run()
+    assert not at.exception
+    assert boton(at, "Publicar al Módulo 2").disabled
+    next(c for c in at.checkbox if c.key == "publicar_confirmar").check().run()
+    boton(at, "Publicar al Módulo 2").click().run()
+    assert not at.exception
+    assert any("Publicado como **v2** (sale de exp-0002)" in s.value and "200 casos" in s.value for s in at.success)
+    assert any("La app usa hoy el modelo **v2**" in i.value for i in at.info)
+    modelo_json = json.loads((entorno / "assets" / "modelo_rf.json").read_text(encoding="utf-8"))
+    assert modelo_json["version"] == "v2" and modelo_json["n_arboles"] == 20 and publicacion.assets_vigentes()
+    assert publicacion.manifiesto()["actual"]["usuario"] == "administrador"
+    # y se puede volver al oficial: los JSON quedan como estaban
+    boton(at, "Volver al modelo oficial v1").click().run()
+    assert not at.exception and publicacion.publicado()["oficial"]
+    assert (entorno / "assets" / "modelo_rf.json").read_bytes() == oficial
+
+
+def test_medico_auditor_no_publica(entorno):
+    at = pagina("laboratorio", "medico_auditor")
+    assert any("Solo el administrador publica" in c.value for c in at.caption)
+    assert not any(b.label.startswith("Publicar al Módulo 2") for b in at.button)  # sin versiones no hay botón
 
 
 def test_interpretacion_de_metricas_y_avisos_fijos(entorno):

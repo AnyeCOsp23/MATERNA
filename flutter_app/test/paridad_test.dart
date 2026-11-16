@@ -14,8 +14,14 @@ void main() {
   final tolerancia = (paridad['tolerancia'] as num).toDouble();
   final casos = (paridad['casos'] as List).cast<Map<String, dynamic>>();
 
+  // Lo que declara el modelo publicado (v1 oficial u otra versión): las pruebas no dependen de cuál sea
+  final modeloJson = jsonDecode(leer('modelo_rf.json')) as Map<String, dynamic>;
+  final imputacion = (jsonDecode(leer('preproceso.json')) as Map<String, dynamic>)['imputacion'] as Map<String, dynamic>;
+
   test('los JSON corresponden al modelo exportado', () {
-    expect(clf.arboles.length, 300);
+    expect(clf.arboles.length, modeloJson['n_arboles']);
+    expect(clf.arboles, isNotEmpty);
+    expect(clf.version, modeloJson['version']);
     expect(clf.clases, ['Bajo Riesgo', 'Riesgo Medio', 'Alto Riesgo']);
     expect(clf.sha256Joblib.length, 64);
     expect(casos.length, 200);
@@ -69,7 +75,11 @@ void main() {
 
     test('glucosa faltante se imputa con la mediana del estrato', () {
       final (valores, faltantes) = clf.imputar({...sana(), 'area_residencia': 'Rural disperso', 'semanas_gestacion': 10, 'glucosa_mgdl': null});
-      expect(valores['glucosa_mgdl'], closeTo(101.3, 1e-9));
+      // la mediana que aprendió el modelo publicado: estrato área × trimestre o, si tenía pocos datos, área o global
+      final esperada = ((imputacion['mediana_estrato'] as Map)['glucosa_mgdl'] as Map)['Rural disperso']?['T1'] ??
+          ((imputacion['mediana_area'] as Map)['glucosa_mgdl'] as Map)['Rural disperso'] ??
+          (imputacion['mediana_global'] as Map)['glucosa_mgdl'];
+      expect(valores['glucosa_mgdl'], closeTo((esperada as num).toDouble(), 1e-9));
       expect(faltantes['glucosa_mgdl'], isTrue);
     });
 
