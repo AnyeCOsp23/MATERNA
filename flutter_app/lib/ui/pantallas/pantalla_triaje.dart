@@ -29,13 +29,18 @@ const atiende = {
 const _departamentos = {'La Guajira': 'La Guajira', 'Cesar': 'Cesar'};
 const _seccionesOpcionales = ['Anamnesis', 'Examen físico', 'Paraclínicos', 'Escalas de riesgo', 'Plan de cuidado'];
 const _conSinDato = {'glucosa_mgdl', 'fcf_bpm'};
+// El rojo del nivel Alto (tema_materna.dart), para el triángulo de alerta del paso «Signos de alarma»
+const _rojoAlerta = Color(0xFFC62828);
 
 class _Paso {
-  const _Paso(this.titulo, this.descripcion, this.icono, this.variables);
+  const _Paso(this.titulo, this.descripcion, this.icono, this.variables, {this.colorIcono = ColoresMaterna.ciruela900});
 
   final String titulo;
   final String descripcion;
   final IconData icono;
+
+  /// Color del ícono del encabezado (rojo de alerta en «Signos de alarma»).
+  final Color colorIcono;
 
   /// Variables que se validan al intentar avanzar.
   final List<String> variables;
@@ -73,8 +78,9 @@ class _EstadoTriaje extends State<PantallaTriaje> {
         Icons.monitor_heart_rounded, ['pas_mmhg', 'pad_mmhg', 'fcf_bpm', 'glucosa_mgdl', 'proteinuria', 'convulsiones']),
     const _Paso('Contexto y atención', 'Dónde vive la gestante y quién la atiende.', Icons.location_on_rounded,
         ['area_residencia', 'atendido_por']),
-    _Paso('Signos de alarma', 'Pregúntelos siempre: cualquiera exige valoración médica inmediata.', Icons.emergency_rounded,
-        [for (final v in _catalogo.porDecision('capturar_alertar')) if (v.seccion == 'Signos de alarma') v.nombre]),
+    _Paso('Signos de alarma', 'Pregúntelos siempre: cualquiera exige valoración médica inmediata.', Icons.warning_rounded,
+        [for (final v in _catalogo.porDecision('capturar_alertar')) if (v.seccion == 'Signos de alarma') v.nombre],
+        colorIcono: _rojoAlerta),
     _Paso('Valoración de la ruta', 'Opcional: antecedentes, examen físico, paraclínicos, escalas y plan de cuidado.',
         Icons.fact_check_rounded, [
       for (final v in [..._catalogo.porDecision('capturar_alertar'), ..._catalogo.porDecision('auditoria')])
@@ -477,7 +483,7 @@ class _Cabecera extends StatelessWidget {
             width: 50,
             height: 50,
             decoration: BoxDecoration(color: ColoresMaterna.ciruela100, borderRadius: BorderRadius.circular(15)),
-            child: Icon(paso.icono, color: ColoresMaterna.ciruela900),
+            child: Icon(paso.icono, key: const Key('icono-paso'), color: paso.colorIcono),
           ),
           const SizedBox(width: 12),
           Expanded(
