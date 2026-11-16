@@ -139,6 +139,14 @@ def _particiones(datos, proporciones, semilla):
     return particionar(X, y, semilla, proporciones)
 
 
+def sumar_patrones(X_train, y_train, patrones):
+    """Agrega los patrones nuevos SOLO al entrenamiento (validación y prueba no cambian)."""
+    Xp, yp = separar_xy(patrones.drop(columns=["origen", "etiqueta_origen"], errors="ignore"))
+    Xp, yp = Xp.reindex(columns=X_train.columns), yp.copy()
+    Xp.index = yp.index = list(patrones["id_gestante"])
+    return pd.concat([X_train, Xp]), pd.concat([y_train, yp])
+
+
 def limitar_svm(algoritmo, X_train, y_train, semilla=SEMILLA):
     """Con SVM y más de MAX_SVM registros, una muestra estratificada. Devuelve (X, y, nota o None)."""
     if algoritmo != "SVM" or len(X_train) <= MAX_SVM:
@@ -158,7 +166,8 @@ def _siguiente_version(carpeta):
 
 
 def entrenar(algoritmo, hiperparametros=None, proporciones=PARTICION_OFICIAL, semilla=SEMILLA, usuario="terminal",
-             datos=None, nombre_datos=DATOS_BASE, huella_datos=None, al_avanzar=lambda etapa, detalle: None):
+             datos=None, nombre_datos=DATOS_BASE, huella_datos=None, patrones=None,
+             al_avanzar=lambda etapa, detalle: None):
     """Entrena, evalúa y guarda una versión nueva. al_avanzar(etapa, detalle) informa cada paso a la interfaz.
 
     Devuelve {'registro': fila del registro, 'modelo': modelo ajustado, 'cv_f1_por_particion': [...],
@@ -168,6 +177,10 @@ def entrenar(algoritmo, hiperparametros=None, proporciones=PARTICION_OFICIAL, se
     hiperparametros = dict(hiperparametros_base(algoritmo) if hiperparametros is None else hiperparametros)
     base = construir(algoritmo, hiperparametros, semilla)
     X_train, X_val, X_test, y_train, y_val, y_test = _particiones(datos, proporciones, semilla)
+    ids_patrones = []
+    if patrones is not None and len(patrones):
+        X_train, y_train = sumar_patrones(X_train, y_train, patrones)
+        ids_patrones = list(patrones["id_gestante"])
     X_train, y_train, nota = limitar_svm(algoritmo, X_train, y_train, semilla)
     cv = _validacion_cruzada(semilla)
 
@@ -199,7 +212,7 @@ def entrenar(algoritmo, hiperparametros=None, proporciones=PARTICION_OFICIAL, se
         "version": None, "fecha": datetime.now().isoformat(timespec="seconds"), "usuario": usuario,
         "algoritmo": algoritmo, "hiperparametros": hiperparametros,
         "particion": "/".join(str(p) for p in proporciones), "semilla": int(semilla), "datos": nombre_datos,
-        "datos_huella": huella_datos, "nota": nota,
+        "datos_huella": huella_datos, "patrones": ids_patrones, "nota": nota,
         "n_entrenamiento": len(X_train), "n_validacion": len(X_val), "n_prueba": len(X_test),
         "cv_f1_macro": float(np.mean(f1_cv)), "cv_f1_macro_std": float(np.std(f1_cv)),
         "cv_recall_alto": float(np.mean(recall_cv)),
@@ -241,6 +254,7 @@ def tabla_registro():
         return pd.DataFrame()
     tabla = pd.DataFrame(filas)
     tabla.insert(4, "balanceo", [h["balanceo"] for h in tabla["hiperparametros"]])
+    tabla["n_patrones"] = [len(f.get("patrones") or []) for f in filas]
     tabla["hiperparametros"] = [", ".join(f"{k}={v}" for k, v in h.items() if k != "balanceo") for h in tabla["hiperparametros"]]
     return tabla
 
@@ -278,6 +292,15 @@ def conjuntos_de(version):
         datos = conjunto_trabajo.datos()
     proporciones = tuple(int(p) for p in registro["particion"].split("/"))
     X_train, X_val, X_test, y_train, y_val, y_test = _particiones(datos, proporciones, registro["semilla"])
+    if registro.get("patrones"):
+        from src import patrones
+
+        vigentes = patrones.vigentes()
+        usados = vigentes[vigentes["id_gestante"].isin(registro["patrones"])] if not vigentes.empty else vigentes
+        if len(usados) != len(registro["patrones"]):
+            raise ValueError(f"La versión {version} se entrenó con patrones nuevos que ya fueron retirados: no se pueden "
+                             "rehacer sus conjuntos.")
+        X_train, y_train = sumar_patrones(X_train, y_train, usados)
     X_train, y_train, _ = limitar_svm(registro["algoritmo"], X_train, y_train, registro["semilla"])
     return registro, {"Entrenamiento": (X_train, y_train), "Validación": (X_val, y_val), "Prueba": (X_test, y_test)}
 

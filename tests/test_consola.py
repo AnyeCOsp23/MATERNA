@@ -9,7 +9,7 @@ from src.autenticacion import (
     INTENTOS_MAXIMOS, PERMISOS, ROLES, autenticar, bloque_toml, generar_hash, puede, verificar_hash,
 )
 from src.consolidado_ips import datos_consolidados, guardar_carga, resumen_consolidado
-from src import conjunto_trabajo
+from src import conjunto_trabajo, patrones
 from src.experimentos import leer_registro
 from src.generar_ejemplo_ips import DIR_EJEMPLOS
 from src.inspeccionar_ips import inspeccionar
@@ -279,6 +279,65 @@ def test_generar_depurar_usar_como_conjunto_de_trabajo_y_medir_el_lote(entorno):
     # y se puede volver al dataset base
     boton(at, "Volver al dataset base").click().run()
     assert conjunto_trabajo.meta() is None
+
+
+def llenar_patron(at, **valores):
+    for nombre, valor in valores.items():
+        campo = next(c for c in [*at.number_input, *at.selectbox] if c.key == f"patron_{nombre}")
+        campo.set_value(valor)
+    return at
+
+
+PATRON = dict(edad=31, semanas_gestacion=30, n_controles_prenatales=2, pas_mmhg=150, pad_mmhg=96, glucosa_mgdl=130.5,
+              proteinuria=1, convulsiones="No", area_residencia="Rural disperso", atendido_por="Partera tradicional")
+
+
+def test_nuevo_patron_manual_contador_rechazos_y_reentrenamiento(entorno):
+    at = pagina("laboratorio", "administrador")
+    # fuera de rango y sin un dato obligatorio: se rechaza y se explica; no queda nada guardado
+    llenar_patron(at, **{**PATRON, "edad": 99, "pad_mmhg": None})
+    boton(at, "Agregar el patrón").click().run()
+    rechazo = next(e.value for e in at.error if "Patrón rechazado" in e.value)
+    assert "fuera del rango del catálogo 3280 (10 a 55)" in rechazo and "Presión arterial diastólica: es obligatoria" in rechazo
+    assert patrones.vigentes().empty and not patrones.eventos()
+    # válido: contador 1.200 -> 1.201 y bitácora con usuario y valores
+    llenar_patron(at, **PATRON)
+    next(r for r in at.radio if r.key == "patron_clase").set_value("Alto Riesgo")
+    boton(at, "Agregar el patrón").click().run()
+    assert not at.exception
+    assert any("NP0001" in s.value and "1.200 → 1.201" in s.value for s in at.success)
+    (evento,) = patrones.eventos()
+    assert evento["usuario"] == "administrador" and evento["valores"]["pas_mmhg"] == 150 and evento["valores"]["fcf_bpm"] is None
+    assert (evento["contador_antes"], evento["contador_despues"], evento["clase"]) == (1200, 1201, "Alto Riesgo")
+    # el mismo otra vez: duplicado
+    boton(at, "Agregar el patrón").click().run()
+    assert any("Duplicado" in e.value and "NP0001" in e.value for e in at.error) and len(patrones.vigentes()) == 1
+    # el modelo en uso no lo usó: aparece como «Registros nuevos» en la interpretación
+    usados = next(d.value for d in at.dataframe if "¿Lo usó el modelo?" in d.value)
+    assert list(usados["Conjunto"])[-1] == "Registros nuevos" and usados["Registros"].iloc[-1] == 1
+    # reentrenar: primero el «antes», luego la versión con el patrón sumado solo al entrenamiento
+    assert any("Entrene primero una versión" in c.value for c in at.caption)
+    next(s for s in at.selectbox if s.key == "entrenar_algoritmo").set_value("Regresión Logística").run()
+    boton(at, "Entrenar en vivo").click().run()
+    boton(at, "Reentrenar con el nuevo patrón").click().run()
+    assert not at.exception
+    antes, despues = leer_registro()
+    assert (antes["patrones"], despues["patrones"]) == ([], ["NP0001"])
+    assert (antes["n_entrenamiento"], despues["n_entrenamiento"]) == (840, 841)
+    assert (despues["n_validacion"], despues["n_prueba"], despues["hiperparametros"]) == (180, 180, antes["hiperparametros"])
+    comparacion = next(d.value for d in at.dataframe if "Patrones nuevos" in d.value and "Costo prueba" in d.value)
+    assert list(comparacion["Versión"]) == ["exp-0001", "exp-0002"] and list(comparacion["Patrones nuevos"]) == [0, 1]
+
+
+def test_medico_auditor_agrega_patrones_pero_no_los_retira_ni_reentrena(entorno):
+    at = pagina("laboratorio", "medico_auditor")
+    llenar_patron(at, **PATRON)
+    next(r for r in at.radio if r.key == "patron_clase").set_value("Que la calcule el sistema (proxy por reglas)")
+    boton(at, "Agregar el patrón").click().run()
+    assert not at.exception
+    (evento,) = patrones.eventos()
+    assert evento["etiqueta_origen"] == "proxy_reglas" and evento["usuario"] == "medico_auditor"
+    assert boton(at, "Retirar").disabled
 
 
 def test_interpretacion_de_metricas_y_avisos_fijos(entorno):
