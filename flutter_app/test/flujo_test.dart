@@ -273,7 +273,7 @@ void main() {
     await tocar(tester, find.byKey(const Key('pestana-3')));
     expect(find.text('Herramienta de apoyo al diagnóstico maternal; no reemplaza el criterio médico profesional.'), findsOneWidget);
     expect(find.textContaining('Versión 1.0.0'), findsOneWidget);
-    expect(find.text('v1'), findsOneWidget);
+    expect(find.text(recursos.clasificador.version), findsOneWidget); // v1 oficial o la versión publicada
     expect(find.textContaining(' ms'), findsWidgets);
     expect(find.text('ESE Valledupar'), findsOneWidget);
   });

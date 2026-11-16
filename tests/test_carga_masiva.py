@@ -6,7 +6,8 @@ import pytest
 
 from src.carga_masiva import evaluar_archivo, obligatorias
 from src.clinical_rules import evaluar_riesgo_hibrido, evaluar_riesgo_hibrido_lote
-from src.exportar_a_dart import DIR_ASSETS, EJEMPLO_IPS, RUTA_MODELO, SAL_PRUEBA, generar_casos_carga
+from src import publicacion
+from src.exportar_a_dart import DIR_ASSETS, EJEMPLO_IPS, SAL_PRUEBA, generar_casos_carga
 from src.inspeccionar_ips import COLUMNA_FILA, inspeccionar
 from src.seudonimizacion import seudonimizar
 
@@ -15,7 +16,7 @@ EJEMPLO_XLSX = EJEMPLO_IPS.with_suffix(".xlsx")
 
 @pytest.fixture(scope="module")
 def pipeline():
-    return joblib.load(RUTA_MODELO)
+    return joblib.load(publicacion.ruta_publicada())  # el modelo que usa la app: el oficial o el publicado
 
 
 @pytest.fixture(scope="module")

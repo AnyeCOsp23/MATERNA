@@ -23,7 +23,8 @@ import pandas as pd
 import streamlit as st
 
 from src import (
-    conjunto_trabajo, experimentos, graficos, interpretacion, ui_datos, ui_metricas, ui_patrones, ui_theme as ui,
+    conjunto_trabajo, experimentos, graficos, interpretacion, publicacion, ui_datos, ui_metricas, ui_patrones,
+    ui_publicacion, ui_theme as ui,
 )
 from src.autenticacion import ROLES, puede
 from src.clinical_rules import evaluar_reglas, mascara_reglas
@@ -35,7 +36,7 @@ from src.data_preprocessing import (
     particionar, pasos_preprocesamiento, separar_xy,
 )
 from src.evaluate import MATRIZ_COSTO, calcular_metricas, intervalo_bootstrap
-from src.exportar_a_dart import DIR_ASSETS, RUTA_MODELO
+from src.exportar_a_dart import RUTA_MODELO, dir_assets
 from src.filtro_3280 import tabla_decisiones, variables_modelo
 from src.generar_ejemplo_ips import DIR_EJEMPLOS, DIR_PLANTILLAS
 from src.inspeccionar_ips import CENTINELAS, inspeccionar, reemplazar_centinelas
@@ -337,9 +338,11 @@ def modelo_en_uso():
 
 
 @st.cache_data
-def artefactos():
+def artefactos(huella_publicada):
+    """Modelos y JSON entregados; la huella del modelo publicado es la clave de la caché."""
     filas = []
-    for ruta in sorted(DIR_MODELOS.glob("*.joblib")) + sorted(DIR_ASSETS.glob("*.json")):
+    for ruta in (sorted(DIR_MODELOS.glob("*.joblib")) + sorted(publicacion.carpeta().glob("*.joblib"))
+                 + sorted(dir_assets().glob("*.json"))):
         filas.append({"Archivo": f"{ruta.parent.name}/{ruta.name}", "Tamaño (KB)": round(ruta.stat().st_size / 1024),
                       "SHA-256 (inicio)": hashlib.sha256(ruta.read_bytes()).hexdigest()[:16]})
     return pd.DataFrame(filas)
@@ -465,7 +468,7 @@ with pestanas[3]:
 # ---------------------------------------------------------------- 05
 with pestanas[4]:
     html(ui.titulo_seccion("05", "Ingeniería de variables"))
-    pre = json.loads((DIR_ASSETS / "preproceso.json").read_text(encoding="utf-8"))
+    pre = json.loads((dir_assets() / "preproceso.json").read_text(encoding="utf-8"))
     tipo = {**{c: "Continua · RobustScaler" for c in pre["escalado"]["columnas"]},
             **{c: "Discreta · sin escalar" for c in pre["discretas"]},
             **{c: "Indicador de dato faltante" for c in pre["indicadores"]}}
@@ -675,8 +678,8 @@ with pestanas[10]:
 # ---------------------------------------------------------------- 12
 with pestanas[11]:
     html(ui.titulo_seccion("12", "Entrega al Módulo 2 (despliegue)"))
-    modelo_json = json.loads((DIR_ASSETS / "modelo_rf.json").read_text(encoding="utf-8"))
-    vigente = modelo_json["sha256_joblib"] == hashlib.sha256(RUTA_MODELO.read_bytes()).hexdigest()
+    modelo_json = json.loads((dir_assets() / "modelo_rf.json").read_text(encoding="utf-8"))
+    vigente = publicacion.assets_vigentes()
     st.markdown(
         "El despliegue es el **Módulo 2**: la app de usuario final (Flutter, **web y móvil**) para el personal de salud en "
         "territorio, con captura manual, carga masiva de archivos de la IPS y semáforo de riesgo. Los dos módulos son "
@@ -685,10 +688,12 @@ with pestanas[11]:
         "con la huella SHA-256 del `.joblib` del que salió.\n"
         "- `preproceso.json` y `reglas.json`: imputación, escalado, One-Hot y los 4 signos críticos.\n"
         "- `casos_paridad.json`: 200 casos con la respuesta exacta de scikit-learn, que la app debe reproducir.\n\n"
-        f"Estado de la entrega: **{'vigente' if vigente else 'ANTIGUA: vuelva a exportar con python -m src.exportar_a_dart'}** "
-        "respecto del modelo en uso. La inferencia desde JSON reproduce a scikit-learn con diferencia 0 en las 1.200 gestantes."
+        f"Estado de la entrega: **{'vigente' if vigente else 'ANTIGUA: vuelva a publicar'}** respecto del modelo publicado. "
+        "Con el modelo oficial v1, la inferencia desde JSON reproduce a scikit-learn con diferencia 0 en las 1.200 gestantes."
     )
-    st.dataframe(artefactos(), hide_index=True, width="stretch")
+    st.dataframe(artefactos(publicacion.publicado()["sha256"]), hide_index=True, width="stretch")
+    ui_publicacion.seccion_publicar(usuario, permitido)
+    ui_publicacion.tabla_dos_modulos()
     st.markdown("**Motor de reglas clínicas: sensibilidad en signos críticos**")
     X, y = separar_xy(marcar_fuera_de_rango(df))
     mascara = mascara_reglas(X)

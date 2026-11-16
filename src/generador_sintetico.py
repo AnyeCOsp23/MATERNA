@@ -11,6 +11,8 @@ Método (nada de cifras inventadas: todo sale de las 1.200):
   3. Las variables continuas (edad, semanas, controles, presión, FCF, glucosa) se interpolan entre los dos,
      como hace SMOTE; las demás (proteinuria, convulsiones, territorio, etnia, quién atiende) se copian del base.
   4. Si al registro base le faltaba glucosa o FCF, al generado también: se conserva la tasa de datos faltantes.
+  5. Nunca entrega dos registros iguales: los que salen repetidos se vuelven a sortear. Así N registros
+     generados son N registros distintos (10.000 generados dan 10.000 limpios, y con un patrón manual, 10.001).
 
 Etiqueta: el script que etiquetó el dataset de la Fase 1 no existe y sus criterios no se pueden reconstruir
 completos, así que cada registro generado CONSERVA LA CLASE de su registro base. Como se interpola entre dos
@@ -33,6 +35,7 @@ from src.data_preprocessing import cargar_dataset
 ORIGEN = "sintetico_generado"
 COLUMNA_ORIGEN = "origen"
 K_VECINOS = 5
+MAX_REINTENTOS = 200
 SEPARADOR = "|"
 # Tasas de los errores de captura simulados (solo para la demostración de la depuración)
 SUCIEDAD = {
@@ -65,18 +68,34 @@ def generar(n, semilla=SEMILLA, base=None):
         raise ValueError("El número de registros debe ser al menos 1.")
     base = (cargar_dataset() if base is None else base).reset_index(drop=True)
     rng = np.random.default_rng(semilla)
+    vecinos = _vecinos(base)
     elegidos = rng.integers(0, len(base), n)
-    vecino = _vecinos(base)[elegidos, rng.integers(0, K_VECINOS, n)]
+    vecino = vecinos[elegidos, rng.integers(0, K_VECINOS, n)]
     paso = rng.random(n)
 
-    nuevo = base.iloc[elegidos].reset_index(drop=True).copy()
-    for col in VARS_CONTINUAS:
-        a, b = base[col].to_numpy(float)[elegidos], base[col].to_numpy(float)[vecino]
-        valor = a + paso * (np.where(np.isnan(b), a, b) - a)  # si al base le falta el dato, sigue faltando
-        if col in VARS_CON_NULOS:
-            nuevo[col] = np.round(valor, 1)
-        else:
-            nuevo[col] = np.rint(valor).astype(base[col].dtype)
+    def interpolar():
+        nuevo = base.iloc[elegidos].reset_index(drop=True).copy()
+        for col in VARS_CONTINUAS:
+            a, b = base[col].to_numpy(float)[elegidos], base[col].to_numpy(float)[vecino]
+            valor = a + paso * (np.where(np.isnan(b), a, b) - a)  # si al base le falta el dato, sigue faltando
+            if col in VARS_CON_NULOS:
+                nuevo[col] = np.round(valor, 1)
+            else:
+                nuevo[col] = np.rint(valor).astype(base[col].dtype)
+        return nuevo
+
+    sin_id = [c for c in base.columns if c != "id_gestante"]
+    for _ in range(MAX_REINTENTOS):
+        nuevo = interpolar()
+        repetidos = nuevo.duplicated(subset=sin_id).to_numpy()
+        if not repetidos.any():
+            break
+        k = int(repetidos.sum())  # se vuelven a sortear solo los repetidos
+        elegidos[repetidos] = rng.integers(0, len(base), k)
+        vecino[repetidos] = vecinos[elegidos[repetidos], rng.integers(0, K_VECINOS, k)]
+        paso[repetidos] = rng.random(k)
+    else:
+        raise ValueError(f"No se pudieron generar {n} registros distintos a partir de {len(base)}: pida menos.")
     nuevo["id_gestante"] = [f"SG{i:06d}" for i in range(1, n + 1)]
     nuevo[COLUMNA_ORIGEN] = ORIGEN
     return nuevo

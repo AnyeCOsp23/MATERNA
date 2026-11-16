@@ -6,6 +6,7 @@ import pytest
 from src import experimentos, interpretacion, patrones
 from src.config import DIR_MODELOS
 from src.data_preprocessing import cargar_dataset
+from src.depuracion import depurar
 from src.generador_sintetico import generar
 
 REGISTRO = dict(edad=31, semanas_gestacion=30, n_controles_prenatales=2, pas_mmhg=150, pad_mmhg=96, fcf_bpm=None,
@@ -26,7 +27,7 @@ def carpeta(tmp_path, monkeypatch):
 
 
 def test_el_contador_pasa_de_10000_a_10001_y_queda_el_evento(carpeta):
-    datos = generar(10000)
+    datos, _ = depurar(generar(10000))  # generar, depurar y agregar uno: exactamente 10.000 -> 10.001
     evento = patrones.agregar(REGISTRO, "Riesgo Medio", "ana", datos)
     assert (evento["contador_antes"], evento["contador_despues"]) == (10000, 10001)
     assert evento["id"] == "NP0001" and evento["usuario"] == "ana" and evento["valores"] == REGISTRO
