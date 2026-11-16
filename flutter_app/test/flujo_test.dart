@@ -86,6 +86,10 @@ Future<void> llenarRutina(WidgetTester tester) async {
   await siguiente(tester);
   await elegir(tester, 'area_residencia', 'Cabecera'); // quién atiende ya viene del perfil del operador
   await siguiente(tester); // ahora en el paso 4: signos de alarma
+  // el paso de signos de alarma se reconoce por el triángulo de alerta, en rojo
+  final icono = tester.widget<Icon>(find.byKey(const Key('icono-paso')));
+  expect(icono.icon, Icons.warning_rounded);
+  expect(icono.color, const Color(0xFFC62828));
 }
 
 /// Desde los signos de alarma (paso 4) hasta el resultado, sin la valoración opcional.
