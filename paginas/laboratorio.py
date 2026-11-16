@@ -22,7 +22,7 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 
-from src import conjunto_trabajo, experimentos, graficos, ui_datos, ui_theme as ui
+from src import conjunto_trabajo, experimentos, graficos, interpretacion, ui_datos, ui_metricas, ui_theme as ui
 from src.autenticacion import ROLES, puede
 from src.clinical_rules import evaluar_reglas, mascara_reglas
 from src.config import CLASE_ALTO, DIR_METRICAS, DIR_MODELOS, NOMBRES_CLASES, SEMILLA, VARS_CON_NULOS
@@ -249,6 +249,7 @@ def mostrar_entrenamiento(resultado, clave):
                 "idénticas al modelo en uso.")
     st.caption(f"Datos: {r['datos']}. Métricas del sistema híbrido (modelo + reglas clínicas). La versión quedó guardada "
                "aparte; el modelo en uso no cambió.")
+    ui_metricas.aviso()
 
 
 COLUMNAS_REGISTRO = {
@@ -276,6 +277,7 @@ def mostrar_registro():
                f"Con ese criterio, la mejor de {len(registro)} versión(es) es **{mejor.name}**: {mejor['algoritmo']}, partición "
                f"{mejor['particion']}, F1-macro {mejor['val_f1_macro']:.4f} y recall de Alto {mejor['val_recall_alto']:.4f}.")
     tabla_versiones(registro)
+    ui_metricas.aviso()
     st.download_button("Descargar el registro de experimentos (CSV)", registro.to_csv(index=False).encode("utf-8-sig"),
                        "materna_registro_experimentos.csv", "text/csv", icon=":material/download:")
     st.caption("Cada fila es una versión guardada (modelo y parámetros); ninguna reemplaza al modelo en uso. "
@@ -527,6 +529,7 @@ with pestanas[6]:
     st.markdown("**Selección del sistema híbrido en el conjunto de validación**")
     val = metricas("metricas_validacion.csv")
     st.dataframe(val[["sistema", "f1_macro", "recall_alto", "costo_clinico_total", "roc_auc_ovr_macro"]], hide_index=True, width="stretch")
+    ui_metricas.aviso()
     zona_registro = st.container()  # se llena al final: así incluye lo que se entrene en esta misma ejecución
     st.info("**Por qué Random Forest y no la SVM de la Fase 1:** además de su mejor F1-macro, las pruebas de coherencia clínica "
             "cambian una sola variable de una gestante sana (presión 145/95, glucosa 145, FCF 165, edad 36 o cero controles). "
@@ -599,14 +602,16 @@ with pestanas[9]:
         "f1_macro": "F1-macro", "f1_macro_ic95": "IC 95 % F1", "recall_alto": "Recall Alto", "recall_alto_ic95": "IC 95 % recall",
         "roc_auc_ovr_macro": "ROC-AUC", "falsos_negativos_alto": "Graves no detectadas", "costo_clinico_total": "Costo clínico"}),
         width="stretch")
+    ui_metricas.aviso()
     c1, c2 = st.columns(2, gap="large")
     c1.image(str(DIR_METRICAS.parent / "figures" / "matrices_confusion_test.png"), caption="Matrices de confusión (prueba)")
     c2.image(str(DIR_METRICAS.parent / "figures" / "curvas_roc_test.png"), caption="Curvas ROC (prueba)")
     st.markdown("**Sin signos críticos** (lo que el modelo resuelve solo, sin las reglas)")
     st.dataframe(metricas("metricas_test_sin_signos_criticos.csv")[["sistema", "n", "f1_macro", "recall_alto", "costo_clinico_total"]],
                  hide_index=True, width="stretch")
+    ui_metricas.seccion_interpretacion(trabajo)
     ui_datos.seccion_lote(trabajo)
-    codigo(calcular_metricas, intervalo_bootstrap, conjunto_trabajo.establecer)
+    codigo(calcular_metricas, intervalo_bootstrap, interpretacion.paneles, conjunto_trabajo.establecer)
 
 # ---------------------------------------------------------------- 11
 with pestanas[10]:
@@ -619,6 +624,7 @@ with pestanas[10]:
             grafico(graficos.curva_aprendizaje(curvas, modelo))
     st.dataframe(brecha.rename(columns={"modelo": "Modelo", "f1_entrenamiento": "F1 entrenamiento", "f1_cv": "F1 validación cruzada",
                                         "f1_cv_std": "± desv.", "brecha": "Brecha"}), hide_index=True, width="stretch")
+    ui_metricas.aviso()
     st.markdown(
         "- **Regresión Logística: subajusta.** Entrenamiento y validación quedan bajos y juntos: el modelo es demasiado simple.\n"
         "- **SVM: sobreajusta.** Memoriza el entrenamiento (1,000) pero valida en 0,861: la brecha es la mayor.\n"
@@ -682,7 +688,8 @@ with pestanas[11]:
     c = st.columns(2)
     c[0].metric("Prueba: signos críticos detectados como Alto", f"{int((y_test[mascara_test] == CLASE_ALTO).sum())}/{int(mascara_test.sum())}")
     c[1].metric("Dataset completo", f"{int((y[mascara] == CLASE_ALTO).sum())}/{int(mascara.sum())}")
-    st.caption("100 % de sensibilidad en los casos con signo crítico. Aviso: las etiquetas sintéticas se generaron con estos mismos "
+    st.caption("100 % de sensibilidad **solo** en los casos con signo crítico; el recall global de Alto Riesgo en prueba es "
+               f"{principal['recall_alto']:.3f}, con intervalo de confianza del 95 % {principal['recall_alto_ic95']}. Aviso: las etiquetas sintéticas se generaron con estos mismos "
                "umbrales, así que esto demuestra que el sistema no deja escapar un caso crítico, no que las reglas sean clínicamente mejores.")
     st.markdown("**Pruebe el motor de reglas**")
     r = st.columns(4)
