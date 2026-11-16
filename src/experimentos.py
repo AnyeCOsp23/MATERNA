@@ -258,11 +258,11 @@ def cargar_modelo(version):
     return joblib.load(directorio() / "modelos" / f"{version}.joblib")
 
 
-def curva_aprendizaje(version):
-    """Curva de aprendizaje de una versión, con su misma partición, semilla e hiperparámetros.
+def conjuntos_de(version):
+    """Los conjuntos con que se entrenó y midió una versión: (registro, {'Entrenamiento' | 'Validación' | 'Prueba': (X, y)}).
 
-    Mismas columnas que reports/metrics/curvas_aprendizaje.csv. Necesita los mismos datos con que se entrenó:
-    el dataset base, o el conjunto de trabajo si sigue siendo el mismo (se comprueba por su huella).
+    Se rehacen con su misma partición y semilla. Necesita los mismos datos: el dataset base, o el conjunto de
+    trabajo si sigue siendo el mismo (se comprueba por su huella).
     """
     registro = next((r for r in leer_registro() if r["version"] == version), None)
     if registro is None:
@@ -274,12 +274,23 @@ def curva_aprendizaje(version):
         activo = conjunto_trabajo.meta()
         if not activo or activo["huella"] != registro["datos_huella"]:
             raise ValueError(f"La versión {version} se entrenó con «{registro['datos']}», que ya no es el conjunto de "
-                             "trabajo activo: no se puede recalcular su curva.")
+                             "trabajo activo: no se pueden rehacer sus conjuntos.")
         datos = conjunto_trabajo.datos()
-    semilla = registro["semilla"]
     proporciones = tuple(int(p) for p in registro["particion"].split("/"))
-    X_train, _, _, y_train, _, _ = _particiones(datos, proporciones, semilla)
-    X_train, y_train, _ = limitar_svm(registro["algoritmo"], X_train, y_train, semilla)
+    X_train, X_val, X_test, y_train, y_val, y_test = _particiones(datos, proporciones, registro["semilla"])
+    X_train, y_train, _ = limitar_svm(registro["algoritmo"], X_train, y_train, registro["semilla"])
+    return registro, {"Entrenamiento": (X_train, y_train), "Validación": (X_val, y_val), "Prueba": (X_test, y_test)}
+
+
+def curva_aprendizaje(version):
+    """Curva de aprendizaje de una versión, con su misma partición, semilla e hiperparámetros.
+
+    Mismas columnas que reports/metrics/curvas_aprendizaje.csv. Necesita los mismos datos con que se entrenó:
+    el dataset base, o el conjunto de trabajo si sigue siendo el mismo (se comprueba por su huella).
+    """
+    registro, conjuntos = conjuntos_de(version)
+    semilla = registro["semilla"]
+    X_train, y_train = conjuntos["Entrenamiento"]
     tamanos, entrenamiento, validacion = learning_curve(
         construir(registro["algoritmo"], registro["hiperparametros"], semilla), X_train, y_train,
         cv=_validacion_cruzada(semilla), scoring="f1_macro", train_sizes=TAMANOS_CURVA, n_jobs=-1, shuffle=True,

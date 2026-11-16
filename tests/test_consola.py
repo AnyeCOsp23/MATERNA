@@ -269,11 +269,33 @@ def test_generar_depurar_usar_como_conjunto_de_trabajo_y_medir_el_lote(entorno):
     # pestaña 10: se carga el lote de demostración y se mide la versión sobre él
     boton(at, "Cargar el lote de demostración").click().run()
     assert not at.exception
-    comparacion = next(d.value for d in at.dataframe if "Registros" in d.value and "Conjunto" in d.value)
+    comparacion = next(d.value for d in at.dataframe if "Registros" in d.value and "¿Lo usó el modelo?" not in d.value)
     assert list(comparacion["Registros"]) == [fila["n_prueba"], 200]
+    # y la interpretación de esa versión incluye el lote como patrones no usados
+    next(s for s in at.selectbox if s.key == "interp_sistema").set_value("exp-0001").run()
+    usados = next(d.value for d in at.dataframe if "¿Lo usó el modelo?" in d.value)
+    assert list(usados["Conjunto"]) == ["Entrenamiento", "Validación", "Prueba", "Lote de demostración"]
+    assert usados["Registros"].iloc[-1] == 200
     # y se puede volver al dataset base
     boton(at, "Volver al dataset base").click().run()
     assert conjunto_trabajo.meta() is None
+
+
+def test_interpretacion_de_metricas_y_avisos_fijos(entorno):
+    at = pagina("laboratorio", "medico_auditor")
+    assert not at.exception
+    # el aviso fijo acompaña las tablas de métricas oficiales (pestañas 07, 10, 11 y la interpretación)
+    assert sum("reproduce el sistema el etiquetado sintético" in w.value for w in at.warning) >= 4
+    etiquetas = [e.label for e in at.expander]
+    for metrica in ("Accuracy", "Precisión", "Recall de Alto Riesgo", "F1-macro", "ROC-AUC", "Matriz de confusión", "Costo clínico"):
+        assert any(e.startswith(metrica) for e in etiquetas), metrica
+    assert any(e.startswith("Explicación para la sustentación") for e in etiquetas)
+    textos = " ".join(m.value for m in at.markdown)
+    assert "No es 100 %" in textos and "22 de 23" in textos and "¿Qué es?" in textos and "¿Cómo se lee?" in textos
+    assert any("En prueba:" in i.value and "Acertó 175 de 180" in i.value for i in at.info)
+    # al cambiar de conjunto, las frases cambian con los números
+    next(r for r in at.radio if r.key == "interp_conjunto").set_value("Entrenamiento").run()
+    assert any("En entrenamiento:" in i.value and "Acertó 840 de 840" in i.value for i in at.info)
 
 
 def test_motor_de_reglas_interactivo(entorno):
