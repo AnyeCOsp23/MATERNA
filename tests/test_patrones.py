@@ -51,6 +51,8 @@ def test_el_contador_pasa_de_10000_a_10001_y_queda_el_evento(carpeta):
     ({"edad": 30.5}, "Edad materna: debe ser un número entero"),
     ({"area_residencia": "Luna"}, "«Luna» no es un valor del catálogo"),
     ({"convulsiones": 3}, "Convulsiones: debe ser Sí o No"),
+    ({"pas_mmhg": 80, "pad_mmhg": 100}, "Presión arterial diastólica: 100 mmHg no puede ser mayor ni igual que la sistólica (80 mmHg)"),
+    ({"pas_mmhg": 90, "pad_mmhg": 90}, "no puede ser mayor ni igual que la sistólica"),
 ])
 def test_rechaza_valores_fuera_del_catalogo_3280_y_explica_por_que(carpeta, base, cambio, motivo):
     with pytest.raises(ValueError) as error:
@@ -62,10 +64,13 @@ def test_rechaza_valores_fuera_del_catalogo_3280_y_explica_por_que(carpeta, base
 def test_los_rangos_son_los_del_catalogo_y_glucosa_y_fcf_son_opcionales(carpeta, base):
     assert patrones.validar(REGISTRO) == []
     assert patrones.validar({**REGISTRO, "glucosa_mgdl": None, "fcf_bpm": None}) == []
+    # en los extremos de una presión, la otra se acomoda para que la diastólica siga por debajo de la sistólica
+    coherente = {("pas_mmhg", "lo"): {"pad_mmhg": 30}, ("pad_mmhg", "hi"): {"pas_mmhg": 250}}
     for v in patrones.catalogo_modelo():
         if "rango" in v:  # los extremos del catálogo se aceptan; un paso más allá, no
             lo, hi = v["rango"]
-            assert patrones.validar({**REGISTRO, v["nombre"]: lo}) == [] and patrones.validar({**REGISTRO, v["nombre"]: hi}) == []
+            assert patrones.validar({**REGISTRO, **coherente.get((v["nombre"], "lo"), {}), v["nombre"]: lo}) == []
+            assert patrones.validar({**REGISTRO, **coherente.get((v["nombre"], "hi"), {}), v["nombre"]: hi}) == []
             assert patrones.validar({**REGISTRO, v["nombre"]: hi + 1}) and patrones.validar({**REGISTRO, v["nombre"]: lo - 1})
     # varios errores a la vez se explican todos
     assert len(patrones.validar({**REGISTRO, "edad": 99, "pas_mmhg": None, "atendido_por": "Nadie"})) == 3

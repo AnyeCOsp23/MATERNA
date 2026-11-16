@@ -129,6 +129,25 @@ void main() {
     expect(pasoActual(tester), 'Paso 1 de 6');
   });
 
+  testWidgets('la diastólica no puede ser mayor ni igual que la sistólica, aunque cada una esté en su rango', (tester) async {
+    await abrir(tester);
+    for (final (campo, valor) in [('edad', '15'), ('semanas_gestacion', '20'), ('n_controles_prenatales', '1')]) {
+      await escribir(tester, campo, valor);
+    }
+    await siguiente(tester);
+    for (final (campo, valor) in [('pas_mmhg', '80'), ('pad_mmhg', '100'), ('fcf_bpm', '142'), ('glucosa_mgdl', '88')]) {
+      await escribir(tester, campo, valor);
+    }
+    await elegir(tester, 'proteinuria', 'Negativa');
+    await elegir(tester, 'convulsiones', 'No');
+    await siguiente(tester);
+    expect(pasoActual(tester), 'Paso 2 de 6');
+    expect(find.text('Debe ser menor que la sistólica (PAS 80).'), findsOneWidget);
+    await escribir(tester, 'pad_mmhg', '60');
+    await siguiente(tester);
+    expect(pasoActual(tester), 'Paso 3 de 6');
+  });
+
   testWidgets('emergencia: Alto Riesgo por regla clínica, con el motivo', (tester) async {
     await abrir(tester);
     for (final (campo, valor) in [('edad', '26'), ('semanas_gestacion', '31'), ('n_controles_prenatales', '1')]) {
@@ -257,6 +276,9 @@ void main() {
     expect(find.text('1 evaluación(es)'), findsOneWidget);
     expect(find.text('Triaje individual'), findsOneWidget);
     expect(find.byKey(const Key('nivel-0')), findsOneWidget);
+    // un Bajo Riesgo no «tiene factores de riesgo»: no tuvo signos
+    expect(find.textContaining('sin signos de alarma'), findsOneWidget);
+    expect(find.textContaining('factores de riesgo'), findsNothing);
     await tocar(tester, find.descendant(of: find.byKey(const Key('filtro-riesgo')), matching: find.text('Rojo')));
     expect(find.byKey(const Key('historial-vacio')), findsOneWidget);
     await tocar(tester, find.descendant(of: find.byKey(const Key('filtro-riesgo')), matching: find.text('Todas')));

@@ -155,6 +155,12 @@ class _EstadoTriaje extends State<PantallaTriaje> {
         }
       }
     }
+    // Cada presión puede estar en su rango y aun así ser un error de digitación: la diastólica nunca es
+    // mayor ni igual que la sistólica.
+    final pas = registro['pas_mmhg'], pad = registro['pad_mmhg'];
+    if (pas is num && pad is num && pad >= pas && !errores.containsKey('pas_mmhg') && !errores.containsKey('pad_mmhg')) {
+      errores['pad_mmhg'] = 'Debe ser menor que la sistólica (PAS ${pas.round()}).';
+    }
     return errores;
   }
 

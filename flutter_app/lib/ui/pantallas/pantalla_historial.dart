@@ -17,7 +17,12 @@ import '../widgets/iconos_trazo.dart';
 import 'pantalla_resultado.dart';
 import 'pantalla_triaje.dart' show atiende;
 
-const origenLegible = {'regla_clinica': 'regla clínica', 'signo_alarma_3280': 'signo de alarma', 'modelo_ml': 'factores de riesgo'};
+/// Por qué quedó en ese nivel, en pocas palabras. Un Bajo Riesgo no «tiene factores de riesgo»: no tuvo signos.
+String origenLegible(String origen, int clase) => switch (origen) {
+      'regla_clinica' => 'signo crítico',
+      'signo_alarma_3280' => 'signo de alarma',
+      _ => clase == 0 ? 'sin signos de alarma' : 'factores de riesgo',
+    };
 
 String fechaLegible(DateTime f) {
   String dos(int n) => n.toString().padLeft(2, '0');
@@ -195,7 +200,7 @@ class _EstadoHistorial extends State<PantallaHistorial> {
                 const SizedBox(height: 2),
                 Text(
                   '${edadYSemanas(r.registro)} · ${fechaLegible(r.fecha)}\n'
-                  '${atiende[r.atendidoPor] ?? r.atendidoPor} · ${origenLegible[r.origen] ?? r.origen}'
+                  '${atiende[r.atendidoPor] ?? r.atendidoPor} · ${origenLegible(r.origen, r.clase)}'
                   '${r.alertas.isEmpty ? '' : ' · ${r.alertas.length} alerta(s)'}'
                   '${r.idCarga == null ? '' : ' · carga IPS'}',
                   style: const TextStyle(color: ColoresMaterna.tintaSuave, fontSize: 12.5, height: 1.35),
