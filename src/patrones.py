@@ -67,6 +67,10 @@ def validar(registro):
                                f"({lo} a {hi}).")
             elif v["tipo"] == "entero" and float(valor) != int(valor):
                 errores.append(f"{etiqueta}: debe ser un número entero.")
+    # Cada presión puede estar en su rango y aun así ser un error de digitación
+    pas, pad = registro.get("pas_mmhg"), registro.get("pad_mmhg")
+    if not errores and pas is not None and pad is not None and pad >= pas:
+        errores.append(f"Presión arterial diastólica: {pad:g} mmHg no puede ser mayor ni igual que la sistólica ({pas:g} mmHg).")
     return errores
 
 
