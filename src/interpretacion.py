@@ -4,7 +4,7 @@ Las frases se arman con plantillas a partir de los números del sistema elegido 
 cambian el modelo, la partición o los datos, cambian las frases.
 
 Se mide el sistema híbrido (modelo + reglas clínicas) sobre patrones USADOS (entrenamiento, validación y
-prueba) y NO USADOS (el lote de demostración), y se comparan.
+prueba) y NO USADOS (el lote de demostración y los registros nuevos agregados a mano), y se comparan.
 
 Avisos que acompañan toda métrica (decisión del equipo):
 - miden cuánto reproduce el sistema el etiquetado sintético, no el desempeño clínico;
@@ -23,12 +23,14 @@ from src.evaluate import MATRIZ_COSTO, calcular_metricas, intervalo_bootstrap
 
 MODELO_EN_USO = "Modelo en uso (v1, oficial de la Fase 2)"
 LOTE = "Lote de demostración"
+NUEVOS = "Registros nuevos"
 # Qué hizo el modelo con cada conjunto
 USO = {
     "Entrenamiento": "Usado: el modelo se ajustó con él",
     "Validación": "Usado: sirvió para elegir el modelo",
     "Prueba": "Usado solo para medir, al final",
     LOTE: "No usado: se apartó antes de partir",
+    NUEVOS: "No usado: se agregó a mano después de entrenar",
 }
 AVISO = ("Estas métricas miden **cuánto reproduce el sistema el etiquetado sintético**, no su desempeño clínico. "
          "No hay todavía datos reales de gestantes para validarlo.")
@@ -96,16 +98,26 @@ def evaluar_sistema(sistema=MODELO_EN_USO):
         modelo = joblib.load(DIR_MODELOS / "modelo_random_forest.joblib")
         particiones = experimentos._particiones(None, PARTICION_OFICIAL, SEMILLA)
         conjuntos = dict(zip(["Entrenamiento", "Validación", "Prueba"], zip(particiones[:3], particiones[3:])))
-        datos = experimentos.DATOS_BASE
+        datos, usados_por_el_sistema = experimentos.DATOS_BASE, []
     else:
         registro, conjuntos = experimentos.conjuntos_de(sistema)
         modelo, datos = experimentos.cargar_modelo(sistema), registro["datos"]
+        usados_por_el_sistema = registro.get("patrones") or []
         if registro.get("datos_huella"):
             from src import conjunto_trabajo
             from src.data_preprocessing import separar_xy
 
             if conjunto_trabajo.meta()["n_lote"]:
                 conjuntos[LOTE] = separar_xy(conjunto_trabajo.lote().drop(columns="origen", errors="ignore"))
+    from src import patrones
+    from src.data_preprocessing import separar_xy as _separar
+
+    nuevos = patrones.vigentes()
+    if not nuevos.empty:  # los patrones que este sistema no usó para entrenar
+        nuevos = nuevos[~nuevos["id_gestante"].isin(usados_por_el_sistema)]
+    if len(nuevos):
+        X, y = _separar(nuevos.drop(columns=["origen", "etiqueta_origen"], errors="ignore"))
+        conjuntos[NUEVOS] = (X.reindex(columns=conjuntos["Prueba"][0].columns), y)
     return {"sistema": sistema, "datos": datos,
             "conjuntos": {nombre: evaluar(modelo, X, y, con_intervalos=nombre in ("Prueba", LOTE))
                           for nombre, (X, y) in conjuntos.items()}}
@@ -132,6 +144,10 @@ def frase_comparacion(conjuntos):
         partes.append(f"En el lote de demostración, que el modelo nunca usó, es {_fmt(f1[LOTE])}: "
                       + ("prácticamente igual que en prueba." if abs(diferencia) < 0.01 else
                          f"{_fmt(abs(diferencia))} {'menos' if diferencia > 0 else 'más'} que en prueba."))
+    if NUEVOS in conjuntos:
+        matriz = np.array(conjuntos[NUEVOS]["matriz"])
+        partes.append(f"De los {int(matriz.sum())} registro(s) nuevo(s) agregados a mano, que el modelo tampoco usó, "
+                      f"acertó {int(np.trace(matriz))}.")
     return " ".join(partes)
 
 
@@ -139,13 +155,17 @@ def frase_criticos(evaluacion):
     """El 100 % vale solo para los signos críticos; el recall global de Alto va con su intervalo."""
     m, matriz = evaluacion["metricas"], np.array(evaluacion["matriz"])
     reales_alto = int(matriz[CLASE_ALTO].sum())
+    if not reales_alto:
+        return "**Signos críticos y recall de Alto Riesgo:** en este conjunto no hay gestantes de Alto Riesgo; no se pueden medir."
     frase = (f"**Signos críticos:** {evaluacion['criticos_alto']} de {evaluacion['criticos']} casos con signo crítico salen "
              f"Alto Riesgo, porque los decide la regla (100 % por construcción). **Recall global de Alto Riesgo:** "
              f"{_fmt(m['recall_alto'])} ({int(matriz[CLASE_ALTO, CLASE_ALTO])} de {reales_alto})")
     if "ic_recall_alto" in evaluacion:
         lo, hi = evaluacion["ic_recall_alto"]
         frase += f", con intervalo de confianza del 95 % de {_fmt(lo)} a {_fmt(hi)}"
-    return frase + ". No es 100 %: el sistema no detecta todos los casos graves."
+    if m["recall_alto"] < 1:
+        return frase + ". No es 100 %: el sistema no detecta todos los casos graves."
+    return frase + ". Aquí las detectó todas, pero eso vale solo para este conjunto: no es una garantía global."
 
 
 def _f1_por_clase(matriz):
@@ -209,7 +229,8 @@ def paneles(evaluacion):
          "por_que": "Es la métrica de seguridad: una grave no detectada puede costar una vida. Importa más que el accuracy.",
          "como_se_lee": "De 0 a 1; más alto es mejor. Lo que le falta para 1 son las graves que se escaparon.",
          "frase": (f"De {int(reales[CLASE_ALTO])} gestantes de Alto Riesgo detectó {tp_alto} ({_pct(m['recall_alto'])}) y dejó pasar "
-                   f"{fn_alto}; de esas, {int(matriz[CLASE_ALTO, 0])} como Bajo Riesgo.{ic_recall}")},
+                   f"{fn_alto}; de esas, {int(matriz[CLASE_ALTO, 0])} como Bajo Riesgo.{ic_recall}" if reales[CLASE_ALTO] else
+                   "En este conjunto no hay gestantes de Alto Riesgo: el recall no se puede medir.")},
         {"nombre": "F1-macro", "valor": _fmt(m["f1_macro"]),
          "que_es": "El F1 combina precisión y recall de una clase; el macro promedia las tres clases dándoles el mismo peso.",
          "por_que": "Es la métrica con que se elige el modelo: no deja que la clase más numerosa tape a la de Alto Riesgo.",

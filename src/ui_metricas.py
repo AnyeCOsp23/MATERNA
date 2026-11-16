@@ -2,7 +2,7 @@
 import pandas as pd
 import streamlit as st
 
-from src import experimentos, interpretacion
+from src import experimentos, interpretacion, patrones
 from src.config import NOMBRES_CLASES
 
 
@@ -12,8 +12,8 @@ def aviso():
 
 
 @st.cache_data(show_spinner="Midiendo el sistema en cada conjunto (con 2.000 remuestreos bootstrap)…")
-def _evaluacion(sistema, huella_trabajo):
-    """La huella del conjunto de trabajo es parte de la clave: si cambia, se vuelve a medir."""
+def _evaluacion(sistema, huella_trabajo, patrones_vigentes):
+    """La huella del conjunto de trabajo y los patrones vigentes son parte de la clave: si cambian, se vuelve a medir."""
     return interpretacion.evaluar_sistema(sistema)
 
 
@@ -28,7 +28,9 @@ def seccion_interpretacion(trabajo):
         "Sistema que se interpreta", [interpretacion.MODELO_EN_USO, *sorted(versiones, reverse=True)], key="interp_sistema",
         format_func=lambda s: s if s not in versiones else f"{s} · {versiones[s]['algoritmo']} · partición {versiones[s]['particion']}")
     try:
-        evaluacion = _evaluacion(sistema, trabajo["huella"] if trabajo else None)
+        vigentes = patrones.vigentes()
+        evaluacion = _evaluacion(sistema, trabajo["huella"] if trabajo else None,
+                                 tuple(vigentes["id_gestante"]) if not vigentes.empty else ())
     except ValueError as error:
         st.error(str(error))
         return
@@ -41,6 +43,8 @@ def seccion_interpretacion(trabajo):
     if interpretacion.LOTE not in conjuntos:
         st.caption("Sin lote de demostración para este sistema: el conjunto de patrones no usados se aparta al establecer un "
                    "conjunto de trabajo (pestaña 04) y vale para las versiones entrenadas con él.")
+    if interpretacion.NUEVOS in conjuntos:
+        st.caption("Los registros nuevos son muy pocos: sus métricas muestran el procedimiento, no una medida estable.")
 
     nombres = list(conjuntos)
     conjunto = st.radio("Conjunto que se explica", nombres, index=nombres.index("Prueba"), horizontal=True, key="interp_conjunto")

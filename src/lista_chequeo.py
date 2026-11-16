@@ -51,7 +51,8 @@ ACTIVIDADES = [
     ("02", "Lote de demostración reservado, que nunca entra al entrenamiento", "Hecho",
      "Pestaña 04 · «Usar como conjunto de trabajo» y pestaña 10 · «Cargar el lote de demostración»",
      ["src/conjunto_trabajo.py", "tests/test_datos_trabajo.py"], None),
-    ("02", "Agregar un patrón nuevo a mano (10.000 → 10.001) con registro del evento", "Falta", "—", [], 6),
+    ("02", "Agregar un patrón nuevo a mano (10.000 → 10.001): validación con el catálogo 3280, duplicados y bitácora", "Hecho",
+     "Pestaña 02 · «Nuevo patrón manual»", ["src/patrones.py", "tests/test_patrones.py"], None),
 
     ("03", "Datos faltantes, presión por clase y distribución de clases del dataset base", "Hecho",
      "Pestañas 02 y 03", ["src/graficos.py", "notebooks/EDA_Riesgo_Materno_Guajira_Cesar.ipynb"], None),
@@ -91,7 +92,8 @@ ACTIVIDADES = [
     ("08", "Cada entrenamiento crea una versión nueva, sin tocar el modelo en uso", "Hecho",
      "Pestañas 08 y 09: «Versión exp-000N creada»; quedan en la carpeta experimentos/",
      ["src/experimentos.py", "tests/test_experimentos.py"], None),
-    ("08", "Reentrenar con un patrón nuevo y comparar antes y después", "Falta", "—", [], 6),
+    ("08", "Reentrenar con un patrón nuevo y comparar antes y después", "Hecho",
+     "Pestaña 08 · «Reentrenar con los patrones nuevos»", ["src/patrones.py", "src/experimentos.py"], None),
 
     ("09", "Búsqueda en grilla ya ejecutada: 166 configuraciones × 5 particiones, con SMOTE y pesos comparados", "Hecho",
      "Pestaña 09", ["src/train_models.py", "reports/metrics/experimentos_cv_completo.csv"], None),
@@ -112,7 +114,8 @@ ACTIVIDADES = [
      "Pestaña 10 · «Interpretación de las métricas» (7 paneles)", ["src/interpretacion.py", "tests/test_interpretacion.py"], None),
     ("10", "Métricas sobre patrones usados (entrenamiento, validación, prueba) y no usados (lote de demostración), comparadas",
      "Hecho", "Pestaña 10 · «Patrones usados y no usados»", ["src/interpretacion.py", "src/conjunto_trabajo.py"], None),
-    ("10", "Métricas sobre los registros nuevos agregados a mano", "Falta", "—", [], 6),
+    ("10", "Métricas sobre los registros nuevos agregados a mano", "Hecho",
+     "Pestaña 10 · «Patrones usados y no usados», fila «Registros nuevos»", ["src/interpretacion.py"], None),
 
     ("11", "Curvas de aprendizaje y brecha entre entrenamiento y validación de los tres modelos", "Hecho",
      "Pestaña 11", ["src/curvas_aprendizaje.py", "reports/metrics/curvas_aprendizaje.csv",

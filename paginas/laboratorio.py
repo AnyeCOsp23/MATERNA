@@ -22,7 +22,9 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 
-from src import conjunto_trabajo, experimentos, graficos, interpretacion, ui_datos, ui_metricas, ui_theme as ui
+from src import (
+    conjunto_trabajo, experimentos, graficos, interpretacion, ui_datos, ui_metricas, ui_patrones, ui_theme as ui,
+)
 from src.autenticacion import ROLES, puede
 from src.clinical_rules import evaluar_reglas, mascara_reglas
 from src.config import CLASE_ALTO, DIR_METRICAS, DIR_MODELOS, NOMBRES_CLASES, SEMILLA, VARS_CON_NULOS
@@ -204,8 +206,10 @@ def seccion_ingesta():
         st.dataframe(cargas, hide_index=True, width="stretch")
 
 
-def entrenar_con_avance(algoritmo, hiperparametros, proporciones, semilla):
-    """Entrena una versión nueva mostrando el avance. Devuelve el resultado, o None si la configuración falla."""
+def entrenar_con_avance(algoritmo, hiperparametros, proporciones, semilla, patrones=None):
+    """Entrena una versión nueva mostrando el avance. Devuelve el resultado, o None si la configuración falla.
+
+    `patrones`: patrones nuevos que se suman solo al entrenamiento (reentrenamiento de la pestaña 08)."""
     progreso = st.progress(0.0, text="Validación cruzada…")
     zona = st.empty()
     folds = []
@@ -223,7 +227,8 @@ def entrenar_con_avance(algoritmo, hiperparametros, proporciones, semilla):
     try:
         resultado = experimentos.entrenar(
             algoritmo, hiperparametros, proporciones, semilla, usuario["usuario"], datos=datos_trabajo,
-            nombre_datos=nombre_datos, huella_datos=trabajo["huella"] if trabajo else None, al_avanzar=al_avanzar)
+            nombre_datos=nombre_datos, huella_datos=trabajo["huella"] if trabajo else None, patrones=patrones,
+            al_avanzar=al_avanzar)
         resultado.pop("modelo")  # ya quedó guardado como versión; no hace falta en la sesión
     except ValueError as error:
         st.error(f"No se pudo entrenar: {error}")
@@ -254,7 +259,8 @@ def mostrar_entrenamiento(resultado, clave):
 
 COLUMNAS_REGISTRO = {
     "version": "Versión", "fecha": "Fecha", "usuario": "Usuario", "datos": "Datos", "algoritmo": "Algoritmo", "balanceo": "Balanceo",
-    "hiperparametros": "Hiperparámetros", "particion": "Partición", "semilla": "Semilla", "n_entrenamiento": "n entrenamiento",
+    "hiperparametros": "Hiperparámetros", "particion": "Partición", "semilla": "Semilla", "n_patrones": "Patrones nuevos",
+    "n_entrenamiento": "n entrenamiento",
     "cv_f1_macro": "F1-macro CV", "val_f1_macro": "F1-macro validación", "val_recall_alto": "Recall Alto validación",
     "val_costo_clinico_total": "Costo validación", "prueba_f1_macro": "F1-macro prueba", "prueba_recall_alto": "Recall Alto prueba",
     "tiempo_s": "Tiempo (s)",
@@ -389,6 +395,8 @@ with pestanas[1]:
                "no son aptos para el modelo y, por tener datos personales reales, no se cargan en el laboratorio.")
     seccion_ingesta()
     ui_datos.seccion_conjunto(usuario, permitido, trabajo)
+    ui_patrones.seccion_formulario(usuario, puede(usuario, "ingesta_archivos"), permitido,
+                                   df if datos_trabajo is None else datos_trabajo, nombre_datos)
 
 # ---------------------------------------------------------------- 03
 with pestanas[2]:
@@ -554,6 +562,7 @@ with pestanas[7]:
     if st.session_state.get("entrenamiento"):
         mostrar_entrenamiento(st.session_state["entrenamiento"], "vivo")
     st.caption("Para cambiar los hiperparámetros, use «Probar otra configuración» en la pestaña 09.")
+    ui_patrones.seccion_reentrenar(permitido, trabajo["huella"] if trabajo else None, entrenar_con_avance)
     codigo(experimentos.entrenar)
 
 # ---------------------------------------------------------------- 09
