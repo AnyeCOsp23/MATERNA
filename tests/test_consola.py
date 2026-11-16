@@ -231,12 +231,41 @@ def test_entrenar_en_vivo_reproduce_el_modelo_y_crea_una_version(entorno):
     assert any("Criterio de selección" in s.value and "exp-0001" in s.value for s in at.success)
 
 
-def numero(at, etiqueta):
-    return next(n for n in at.number_input if n.label == etiqueta)
-
-
 def radio(at, clave):
     return next(r for r in at.radio if r.key == clave)
+
+
+def test_ver_el_recorrido_de_una_gestante(entorno):
+    at = pagina("laboratorio", "medico_auditor", "07")
+    assert not [e for e in at.main if getattr(e, "type", None) == "bidi_component"]  # opcional: no carga hasta pedirlo
+    radio(at, "recorrido_caso").set_value("Caso 1 · Emergencia (Uribia)").run()
+    boton(at, "Ver el recorrido").click().run()
+    assert not at.exception and at.session_state["recorrido_visible"]
+    assert len([e for e in at.main if getattr(e, "type", None) == "bidi_component"]) == 1  # la animación
+    textos = " ".join(m.value for m in at.markdown)
+    assert "La regla prevalece sobre el modelo" in textos and "Los 11 datos de la gestante se convierten en 17 variables" in textos
+    assert any("Recorrido de «Caso 1 · Emergencia»: Alto Riesgo" in texto for _, texto in at.session_state["registro_ejecucion"])
+    # la gestante evaluada en el triaje llega como una opción más, ya elegida y con el recorrido abierto
+    at2 = AppTest.from_file(PAGINA("laboratorio"), default_timeout=180)
+    at2.session_state["usuario"] = sesion("medico_auditor")
+    at2.session_state["vista"] = "07"
+    at2.session_state["recorrido_registro"] = dict(PATRON_TRIAJE)
+    at2.session_state["recorrido_caso"] = "Última evaluación del triaje"
+    at2.session_state["recorrido_visible"] = True
+    at2.run()
+    assert not at2.exception and radio(at2, "recorrido_caso").value == "Última evaluación del triaje"
+    assert any("decide el modelo" in m.value for m in at2.markdown)
+    boton(at2, "Ocultar").click().run()
+    assert not at2.session_state["recorrido_visible"]
+
+
+PATRON_TRIAJE = dict(edad=30, departamento="Cesar", municipio="Valledupar", pertenencia_etnica="Mestiza", area_residencia="Cabecera",
+                     semanas_gestacion=20, n_controles_prenatales=3, atendido_por="Medico", pas_mmhg=118, pad_mmhg=76,
+                     fcf_bpm=None, glucosa_mgdl=90.0, proteinuria=0, convulsiones=0)
+
+
+def numero(at, etiqueta):
+    return next(n for n in at.number_input if n.label == etiqueta)
 
 
 def test_particion_parametrizable(entorno):

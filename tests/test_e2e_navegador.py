@@ -182,6 +182,25 @@ def test_navegar_al_laboratorio(pagina):
     ir_al_triaje(pagina)
 
 
+def test_ver_como_decidio_el_sistema_anima_el_recorrido(pagina):
+    """Del triaje al recorrido animado: el brillo corre, y «Ver el final» deja el resultado real en pantalla."""
+    cargar_caso(pagina, "Caso 1")
+    pagina.get_by_role("button", name="Evaluar riesgo materno").click()
+    pagina.get_by_role("button", name="Ver cómo decidió el sistema").click(timeout=30000)
+    pagina.locator(".mt-h1", has_text="Selección del algoritmo").wait_for(timeout=60000)
+    recorrido = pagina.locator(".rec")
+    recorrido.locator("svg").wait_for(timeout=30000)
+    # el componente está en un shadow DOM: se consulta con localizadores, que lo atraviesan
+    recorrido.locator(".brillo").first.wait_for(state="attached", timeout=15000)  # el brillo recorre las líneas
+    assert "1 de 5" in recorrido.locator(".paso").inner_text() or "2 de 5" in recorrido.locator(".paso").inner_text()
+    recorrido.get_by_role("button", name="Ver el final").click()
+    recorrido.locator(".paso", has_text="5 de 5").wait_for(timeout=10000)
+    texto = recorrido.locator(".paso").inner_text()
+    assert "Alto Riesgo" in texto and "por regla clínica" in texto
+    assert recorrido.locator(".puerta.activa").count() == 1 and recorrido.locator(".punto").count() == 300
+    ir_al_triaje(pagina)
+
+
 def test_nada_de_la_app_asoma_antes_del_logo(pagina):
     """Regresión: antes, el login se veía una fracción de segundo antes de la capa del logo."""
     assert pagina.evaluate("window.__mt.contenidoAntesDelLogo") == []

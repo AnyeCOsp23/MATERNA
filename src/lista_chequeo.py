@@ -82,6 +82,9 @@ ACTIVIDADES = [
      "Fase 07", ["reports/metrics/comparacion_cv_por_estrategia.csv", "reports/metrics/metricas_validacion.csv"], None),
     ("07", "Justificación del Random Forest con las pruebas de coherencia clínica", "Hecho",
      "Fase 07", ["tests/test_coherencia_clinica.py"], None),
+    ("07", "Recorrido animado de una gestante por el sistema: variables, árboles del bosque, promedio, reglas y resultado", "Hecho",
+     "Fase 07 · «Ver el recorrido» (y «Ver cómo decidió el sistema» en la página de triaje)",
+     ["src/recorrido.py", "src/ui_recorrido.py", "tests/test_recorrido.py"], None),
     ("07", "Tabla comparativa de los experimentos propios y criterio explícito de selección", "Hecho",
      "Fase 07 · «Experimentos del conjunto de trabajo»", ["src/experimentos.py"], None),
 

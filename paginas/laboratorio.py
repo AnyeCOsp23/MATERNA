@@ -23,8 +23,8 @@ import pandas as pd
 import streamlit as st
 
 from src import (
-    conjunto_trabajo, experimentos, graficos, interpretacion, publicacion, ui_datos, ui_laboratorio as lab, ui_metricas,
-    ui_patrones, ui_publicacion, ui_theme as ui,
+    conjunto_trabajo, experimentos, graficos, interpretacion, publicacion, recorrido, ui_datos, ui_laboratorio as lab,
+    ui_metricas, ui_patrones, ui_publicacion, ui_recorrido, ui_theme as ui,
 )
 from src.autenticacion import puede
 from src.clinical_rules import evaluar_reglas, mascara_reglas
@@ -614,7 +614,40 @@ def fase_division():
 
 
 # ---------------------------------------------------------------- 07
+def seccion_recorrido():
+    """«Ver el recorrido»: el camino real de una gestante por el modelo en uso y las reglas, animado."""
+    st.markdown("Elija una gestante y vea, paso a paso, cómo llega el sistema a su resultado: sus datos se convierten en "
+                "variables, cada árbol le hace sus preguntas, se promedian las 300 hojas y las reglas clínicas tienen la "
+                "última palabra. Es el **Random Forest en uso**, no un esquema: los umbrales y las respuestas son los reales.")
+    casos = dict(recorrido.CASOS)
+    if st.session_state.get("recorrido_registro"):
+        casos = {recorrido.ULTIMA: st.session_state["recorrido_registro"], **casos}
+    if st.session_state.get("recorrido_caso") not in casos:
+        st.session_state.pop("recorrido_caso", None)
+    visible = st.session_state.get("recorrido_visible", False)
+    c = st.columns([4, 1], vertical_alignment="bottom")
+    nombre = c[0].radio("Gestante", list(casos), horizontal=True, key="recorrido_caso")
+    if c[1].button("Ocultar" if visible else "Ver el recorrido", type="secondary" if visible else "primary",
+                   icon=":material/visibility_off:" if visible else ":material/account_tree:", key="recorrido_boton"):
+        st.session_state["recorrido_visible"] = visible = not visible
+        st.rerun()
+    if not visible:
+        return
+    datos = recorrido.recorrido(casos[nombre], modelo_en_uso())
+    if st.session_state.get("recorrido_anotado") != nombre:
+        st.session_state["recorrido_anotado"] = nombre
+        lab.anotar(f"Recorrido de «{nombre.split(' (')[0]}»: {datos['categoria']}")
+    ui_recorrido.mostrar(datos, clave=f"recorrido-{list(casos).index(nombre)}")
+    st.caption(f"Se dibujan {len(datos['arboles'])} de los {datos['n_arboles']} árboles; el promedio y los puntos salen de los "
+               f"{datos['n_arboles']}. Para otra gestante, evalúela en la página «Triaje (Fase 2)» y pulse «Ver cómo decidió el sistema».")
+    with st.expander("El recorrido en texto"):
+        for frase in recorrido.en_texto(datos):
+            st.markdown(frase)
+
+
 def fase_algoritmo():
+    with lab.tarjeta("recorrido", "Cómo decide el sistema", "el recorrido de una gestante, paso a paso"):
+        seccion_recorrido()
     with lab.tarjeta("cv", "Validación cruzada de los tres modelos", "5 particiones · mejor ajuste por modelo y balanceo"):
         comp = metricas("comparacion_cv_por_estrategia.csv")
         st.dataframe(comp[["modelo", "balanceo", "hiperparametros", "cv_f1_macro_media", "cv_f1_macro_std", "cv_recall_alto_media"]]

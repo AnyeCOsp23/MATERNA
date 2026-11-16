@@ -17,7 +17,7 @@ import streamlit as st
 from src.clinical_rules import ETIQUETAS_PROTEINURIA, PROTOCOLO, evaluar_riesgo_hibrido
 from src.config import DIR_METRICAS, DIR_MODELOS, RAIZ, RUTA_DATASET
 from src.data_preprocessing import cargar_dataset
-from src import ui_theme as ui
+from src import recorrido, ui_laboratorio as lab, ui_theme as ui
 
 # MATERNA_BD permite a las pruebas usar una base temporal sin tocar la del dispositivo
 RUTA_BD_LOCAL = Path(os.environ.get("MATERNA_BD", RAIZ / "data" / "registros_locales.sqlite"))
@@ -30,20 +30,15 @@ ARCHIVOS_MODELO = {
 NOMBRE_UI = {"Random Forest": "Random Forest", "SVM": "SVM (calibrado)", "Regresión Logística": "Regresión Logística"}
 
 # Casos precargados para la demostración en vivo
-CASOS_DEMO = {
-    "Caso 1 · Emergencia (Uribia)": dict(
-        edad=26, municipio="Uribia", area_residencia="Rural disperso", pertenencia_etnica="Wayuu",
-        semanas_gestacion=31, n_controles_prenatales=1, atendido_por="Partera tradicional",
-        pas_mmhg=165, pad_mmhg=108, fcf_bpm=None, glucosa_mgdl=110.5, proteinuria=2, convulsiones=1),
-    "Caso 2 · Sin controles previos (Manaure)": dict(
-        edad=17, municipio="Manaure", area_residencia="Rural disperso", pertenencia_etnica="Wayuu",
-        semanas_gestacion=24, n_controles_prenatales=0, atendido_por="Auxiliar de enfermeria",
-        pas_mmhg=128, pad_mmhg=82, fcf_bpm=150.0, glucosa_mgdl=None, proteinuria=0, convulsiones=0),
-    "Caso 3 · Control de rutina (Valledupar)": dict(
-        edad=27, municipio="Valledupar", area_residencia="Cabecera", pertenencia_etnica="Mestiza",
-        semanas_gestacion=28, n_controles_prenatales=5, atendido_por="Medico",
-        pas_mmhg=110, pad_mmhg=70, fcf_bpm=142.0, glucosa_mgdl=88.0, proteinuria=0, convulsiones=0),
-}
+CASOS_DEMO = recorrido.CASOS
+
+
+def ver_recorrido():
+    """Lleva a la fase 07 del laboratorio con la gestante recién evaluada lista para «Ver el recorrido»."""
+    st.session_state["recorrido_registro"] = st.session_state.get("ultimo_registro_triaje")
+    st.session_state["recorrido_caso"] = recorrido.ULTIMA
+    st.session_state["recorrido_visible"] = True
+    lab.ir_a("07")
 
 
 @st.cache_resource
@@ -186,6 +181,7 @@ if evaluar:
     with st.spinner("Evaluando riesgo…"):
         resultado = evaluar_riesgo_hibrido(registro, cargar_modelo(ARCHIVOS_MODELO[nombre_modelo]))
         guardar_local(registro, resultado, nombre_modelo)
+    st.session_state["ultimo_registro_triaje"] = registro
 
     # ------------------------------------------------------------ módulo 2
     html(ui.titulo_seccion("02", "Diagnóstico e inferencia híbrida"))
@@ -200,6 +196,9 @@ if evaluar:
                       "Interpretar con cautela.", "warn", "Dato no disponible", orden=2))
     html(ui.panel_probabilidades(resultado.probabilidades_modelo, resultado.categoria_modelo,
                                  nombre_modelo, resultado.origen))
+    # Opcional: el recorrido animado de esta gestante por el Random Forest en uso y las reglas (fase 07 del laboratorio)
+    st.button("Ver cómo decidió el sistema", icon=":material/account_tree:", on_click=ver_recorrido,
+              help="Abre la fase 07 del laboratorio con el recorrido de esta gestante por el Random Forest en uso y las reglas.")
 
     # ------------------------------------------------------------ módulo 3
     html(ui.titulo_seccion("03", "Acciones orientadoras"))
