@@ -54,7 +54,7 @@ class PantallaResultado extends StatelessWidget {
                 ),
                 const SizedBox(height: 10),
                 if (nota != null) ...[
-                  Text(nota!, key: const Key('nota-resultado'), style: const TextStyle(color: ColoresMaterna.tintaSuave)),
+                  Text(nota!, key: const Key('nota-resultado'), style: TextStyle(color: ColoresMaterna.tintaSuave)),
                   const SizedBox(height: 12),
                 ],
                 if (urgentes.isNotEmpty) ...[
@@ -63,7 +63,7 @@ class PantallaResultado extends StatelessWidget {
                 ],
                 _TarjetaNivel(estilo: estilo, evaluacion: evaluacion, recursos: recursos),
                 const SizedBox(height: 10),
-                const Row(key: Key('aviso-apoyo'), children: [
+                Row(key: Key('aviso-apoyo'), children: [
                   Icon(Icons.info_outline_rounded, size: 18, color: ColoresMaterna.tintaSuave),
                   SizedBox(width: 8),
                   Expanded(
@@ -128,7 +128,7 @@ class _AlertasUrgentes extends StatelessWidget {
         key: const Key('alertas-urgentes'),
         padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
-          gradient: const LinearGradient(colors: [ColoresMaterna.ciruela900, ColoresMaterna.ciruelaNoche]),
+          gradient: LinearGradient(colors: [ColoresMaterna.vino, ColoresMaterna.ciruelaNoche]),
           borderRadius: BorderRadius.circular(22),
         ),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -141,7 +141,7 @@ class _AlertasUrgentes extends StatelessWidget {
             ),
           ]),
           if (nivelNoEsAlto)
-            const Padding(
+            Padding(
               padding: EdgeInsets.only(top: 6),
               child: Text('Aunque el nivel no es Alto Riesgo, estas alertas requieren atención inmediata.',
                   style: TextStyle(color: ColoresMaterna.ciruela100, fontSize: 13)),
@@ -259,24 +259,24 @@ class _Detalle extends StatelessWidget {
     final probabilidades = evaluacion.triaje.probabilidades;
     final clases = recursos.clasificador.clases;
     final estimado = evaluacion.triaje.claseModelo;
-    const nota = TextStyle(color: ColoresMaterna.tintaSuave, fontSize: 12.5, height: 1.35);
+    final nota = TextStyle(color: ColoresMaterna.tintaSuave, fontSize: 12.5, height: 1.35);
     return Card(
       key: const Key('detalle'),
       clipBehavior: Clip.antiAlias,
       child: Theme(
         data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
         child: ExpansionTile(
-          title: const Text('Ver detalle', style: TextStyle(fontWeight: FontWeight.w800, color: ColoresMaterna.tinta)),
+          title: Text('Ver detalle', style: TextStyle(fontWeight: FontWeight.w800, color: ColoresMaterna.tinta)),
           tilePadding: const EdgeInsets.symmetric(horizontal: 18),
           childrenPadding: const EdgeInsets.fromLTRB(18, 0, 18, 14),
           expandedCrossAxisAlignment: CrossAxisAlignment.start,
           expandedAlignment: Alignment.centerLeft,
           children: [
-            const Text('Estimación del sistema para cada nivel', style: nota),
+            Text('Estimación del sistema para cada nivel', style: nota),
             const SizedBox(height: 12),
             for (var k = 0; k < clases.length; k++) ...[
               Row(children: [
-                SizedBox(width: 62, child: Text(estiloPorCategoria[clases[k]]!.corto, style: const TextStyle(color: ColoresMaterna.tinta))),
+                SizedBox(width: 62, child: Text(estiloPorCategoria[clases[k]]!.corto, style: TextStyle(color: ColoresMaterna.tinta))),
                 Expanded(
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(8),
@@ -291,7 +291,7 @@ class _Detalle extends StatelessWidget {
                 SizedBox(
                   width: 52,
                   child: Text(_pct(probabilidades[k]),
-                      textAlign: TextAlign.right, style: const TextStyle(fontWeight: FontWeight.w700, color: ColoresMaterna.tinta)),
+                      textAlign: TextAlign.right, style: TextStyle(fontWeight: FontWeight.w700, color: ColoresMaterna.tinta)),
                 ),
               ]),
               const SizedBox(height: 10),
@@ -346,9 +346,9 @@ class _OtrasAlertas extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.all(18),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            const Text('Alertas de la ruta 3280', style: TextStyle(fontWeight: FontWeight.w800, color: ColoresMaterna.tinta)),
+            Text('Alertas de la ruta 3280', style: TextStyle(fontWeight: FontWeight.w800, color: ColoresMaterna.tinta)),
             const SizedBox(height: 4),
-            const Text('No cambian el nivel de riesgo.', style: TextStyle(color: ColoresMaterna.tintaSuave, fontSize: 13)),
+            Text('No cambian el nivel de riesgo.', style: TextStyle(color: ColoresMaterna.tintaSuave, fontSize: 13)),
             for (final a in alertas)
               Padding(
                 padding: const EdgeInsets.only(top: 10),
@@ -360,7 +360,7 @@ class _OtrasAlertas extends StatelessWidget {
                     child: Text.rich(TextSpan(children: [
                       TextSpan(text: a.mensaje),
                       if (!a.verificada)
-                        const TextSpan(text: '  (corte por validar)', style: TextStyle(color: ColoresMaterna.tintaSuave, fontSize: 12)),
+                        TextSpan(text: '  (corte por validar)', style: TextStyle(color: ColoresMaterna.tintaSuave, fontSize: 12)),
                     ])),
                   ),
                 ]),
@@ -393,7 +393,7 @@ class _Conducta extends StatelessWidget {
               child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 CircleAvatar(
                   radius: 11,
-                  backgroundColor: Colors.white.withValues(alpha: .75),
+                  backgroundColor: ColoresMaterna.tarjeta.withValues(alpha: .75),
                   child: Text('${i + 1}', style: TextStyle(fontSize: 12, color: estilo.tinta, fontWeight: FontWeight.w700)),
                 ),
                 const SizedBox(width: 10),

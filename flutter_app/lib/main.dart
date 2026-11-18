@@ -6,6 +6,7 @@
 // dispositivo, cada una con su cuenta). Todo corre sin internet.
 // La sesión no se recuerda al cerrar la app: al volver a abrirla se pide el PIN de nuevo.
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import 'datos/base_local.dart';
 import 'datos/fabrica_bd.dart';
@@ -42,22 +43,53 @@ class _EstadoApp extends State<MaternaApp> {
   late final _inicio = widget.inicio ?? _iniciar();
   late final _cargaPreferencias = widget.preferencias ?? Preferencias.cargar();
   Preferencias? _preferencias;
+  var _oscuro = false;
 
   @override
   void initState() {
     super.initState();
     // se leen en paralelo con la pantalla de inicio: la animación del logo no espera por ellas
-    _cargaPreferencias.then((p) => mounted ? setState(() => _preferencias = p) : null,
-        onError: (Object e) => debugPrint('No se pudieron leer las preferencias: $e')); // sigue sin presentación
+    _cargaPreferencias.then((p) {
+      if (!mounted) return;
+      p.addListener(_alCambiarPreferencias);
+      setState(() => _preferencias = p);
+      _alCambiarPreferencias();
+    }, onError: (Object e) => debugPrint('No se pudieron leer las preferencias: $e')); // sigue sin presentación
+  }
+
+  @override
+  void dispose() {
+    _preferencias?.removeListener(_alCambiarPreferencias);
+    super.dispose();
+  }
+
+  /// Al cambiar el modo oscuro se cambia la paleta y se redibuja TODA la app (muchas pantallas leen los colores
+  /// directamente): el estado (sesión, pestaña, formularios) se conserva.
+  void _alCambiarPreferencias() {
+    final oscuro = _preferencias?.modoOscuro ?? false;
+    if (oscuro == _oscuro || !mounted) return;
+    setState(() => _oscuro = oscuro);
+    ColoresMaterna.usar(oscuro: oscuro);
+    void redibujar(Element e) {
+      e.markNeedsBuild();
+      e.visitChildren(redibujar);
+    }
+
+    (context as Element).visitChildren(redibujar);
   }
 
   @override
   Widget build(BuildContext context) {
+    ColoresMaterna.usar(oscuro: _oscuro);
     final app = MaterialApp(
       title: 'MATERNA',
       debugShowCheckedModeBanner: false,
       theme: temaMaterna(),
-      builder: (context, hijo) => AjustesGlobales(child: hijo!),
+      builder: (context, hijo) => AnnotatedRegion<SystemUiOverlayStyle>(
+        // íconos de la barra de estado claros sobre el fondo oscuro, y al revés
+        value: _oscuro ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark,
+        child: AjustesGlobales(child: hijo!),
+      ),
       home: _Arranque(inicio: _inicio, preferencias: _preferencias),
     );
     return AmbitoPreferencias(preferencias: _preferencias, child: app);
@@ -99,12 +131,16 @@ class _EstadoArranque extends State<_Arranque> {
     final listo = _listo;
     final Widget pantalla;
     if (!_animacionTerminada || (listo == null && _error == null)) {
-      pantalla = PantallaInicio(key: const ValueKey('inicio'), alTerminar: () => setState(() => _animacionTerminada = true));
+      pantalla = _SiempreClaro(
+          key: const ValueKey('claro-inicio'),
+          child: PantallaInicio(key: const ValueKey('inicio'), alTerminar: () => setState(() => _animacionTerminada = true)));
     } else if (listo == null) {
       pantalla = _Mensaje('No se pudo iniciar MATERNA: $_error');
     } else if (widget.preferencias case final p? when !p.presentacionVista) {
       // solo la primera vez: al terminar quedan guardadas (ya vista) y se redibuja para pasar al acceso
-      pantalla = PantallaPresentacion(key: const ValueKey('arranque-presentacion'), preferencias: p, alTerminar: () => setState(() {}));
+      pantalla = _SiempreClaro(
+          key: const ValueKey('claro-presentacion'),
+          child: PantallaPresentacion(key: const ValueKey('arranque-presentacion'), preferencias: p, alTerminar: () => setState(() {})));
     } else {
       pantalla = _Sesion(recursos: listo.$1, base: listo.$2);
     }
@@ -154,5 +190,21 @@ class _Mensaje extends StatelessWidget {
             Text(texto),
           ]),
         ),
+      );
+}
+
+/// La animación del logo y la presentación inicial son ilustraciones claras (como el arranque de Android): se ven
+/// igual en el modo oscuro, con el tema claro y los íconos oscuros en la barra de estado.
+class _SiempreClaro extends StatelessWidget {
+  const _SiempreClaro({super.key, required this.child});
+
+  final Widget child;
+
+  static final _tema = ColoresMaterna.con(Paleta.claro, temaMaterna);
+
+  @override
+  Widget build(BuildContext context) => AnnotatedRegion<SystemUiOverlayStyle>(
+        value: SystemUiOverlayStyle.dark,
+        child: Theme(data: _tema, child: child),
       );
 }

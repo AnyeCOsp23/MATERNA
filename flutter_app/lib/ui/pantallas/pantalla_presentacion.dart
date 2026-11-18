@@ -153,7 +153,7 @@ class _EstadoPresentacion extends State<PantallaPresentacion> with TickerProvide
                   child: TextButton(
                     key: const Key('omitir'),
                     onPressed: _omitir,
-                    child: const Text('Omitir', style: TextStyle(color: ColoresMaterna.ciruela900, fontWeight: FontWeight.w500, fontSize: 15)),
+                    child: const Text('Omitir', style: TextStyle(color: ColoresClaros.ciruela900, fontWeight: FontWeight.w500, fontSize: 15)),
                   ),
                 ),
               ),
@@ -176,7 +176,7 @@ class _EstadoPresentacion extends State<PantallaPresentacion> with TickerProvide
                       height: 56,
                       alignment: Alignment.center,
                       decoration: BoxDecoration(
-                        color: ColoresMaterna.ciruela900,
+                        color: ColoresClaros.ciruela900,
                         borderRadius: BorderRadius.circular(18),
                         boxShadow: const [BoxShadow(color: Color(0x4D7B2D5B), blurRadius: 24, offset: Offset(0, 10))],
                       ),
@@ -192,7 +192,7 @@ class _EstadoPresentacion extends State<PantallaPresentacion> with TickerProvide
                 if (_pagina == 1 && _rol == null)
                   const Padding(
                     padding: EdgeInsets.only(top: 8),
-                    child: Text('Elija quién atiende para continuar', style: TextStyle(color: ColoresMaterna.tintaSuave, fontSize: 12.5)),
+                    child: Text('Elija quién atiende para continuar', style: TextStyle(color: ColoresClaros.tintaSuave, fontSize: 12.5)),
                   ),
               ]),
             ),
@@ -222,7 +222,7 @@ class _Puntos extends StatelessWidget {
               width: k == pagina ? 28 : 8,
               height: 8,
               decoration: BoxDecoration(
-                color: k == pagina ? ColoresMaterna.ciruela900 : const Color(0x407B2D5B),
+                color: k == pagina ? ColoresClaros.ciruela900 : const Color(0x407B2D5B),
                 borderRadius: BorderRadius.circular(4),
               ),
             ),
@@ -279,13 +279,13 @@ class _Cabecera extends StatelessWidget {
             width: 56,
             height: 56,
             decoration: BoxDecoration(color: Colors.white.withValues(alpha: .75), borderRadius: BorderRadius.circular(18)),
-            child: Icon(icono, color: ColoresMaterna.ciruela900, size: 28),
+            child: Icon(icono, color: ColoresClaros.ciruela900, size: 28),
           ),
           const SizedBox(width: 14),
           Expanded(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(titulo, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w700, letterSpacing: -.5, color: ColoresMaterna.tinta)),
-              Text(subtitulo, style: const TextStyle(fontSize: 14, color: ColoresMaterna.tintaSuave)),
+              Text(titulo, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w700, letterSpacing: -.5, color: ColoresClaros.tinta)),
+              Text(subtitulo, style: const TextStyle(fontSize: 14, color: ColoresClaros.tintaSuave)),
             ]),
           ),
         ]),
@@ -373,7 +373,7 @@ class _Bienvenida extends StatelessWidget {
                 retraso: 200,
                 child: Text('Cuidar a tiempo\nsalva vidas',
                     textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 32, height: 1.1, fontWeight: FontWeight.w700, letterSpacing: -.8, color: ColoresMaterna.tinta)),
+                    style: TextStyle(fontSize: 32, height: 1.1, fontWeight: FontWeight.w700, letterSpacing: -.8, color: ColoresClaros.tinta)),
               ),
               const SizedBox(height: 12),
               const _Sube(
@@ -381,7 +381,7 @@ class _Bienvenida extends StatelessWidget {
                 child: SizedBox(
                   width: 290,
                   child: Text('Detecta a tiempo los riesgos del embarazo, incluso donde no hay internet.',
-                      textAlign: TextAlign.center, style: TextStyle(fontSize: 16, height: 1.4, color: ColoresMaterna.tintaSuave)),
+                      textAlign: TextAlign.center, style: TextStyle(fontSize: 16, height: 1.4, color: ColoresClaros.tintaSuave)),
                 ),
               ),
             ]),
@@ -463,21 +463,21 @@ class _Roles extends StatelessWidget {
             alTocar: () => alElegir(clave),
             child: _Cristal(
               opacidad: rol == clave ? 1 : .7,
-              borde: rol == clave ? ColoresMaterna.ciruela900 : null,
+              borde: rol == clave ? ColoresClaros.ciruela900 : null,
               child: Padding(
                 padding: const EdgeInsets.all(14),
                 child: Row(children: [
                   Container(
                     width: 48,
                     height: 48,
-                    decoration: BoxDecoration(color: ColoresMaterna.ciruela100, borderRadius: BorderRadius.circular(15)),
-                    child: Icon(icono, color: ColoresMaterna.ciruela900),
+                    decoration: BoxDecoration(color: ColoresClaros.ciruela100, borderRadius: BorderRadius.circular(15)),
+                    child: Icon(icono, color: ColoresClaros.ciruela900),
                   ),
                   const SizedBox(width: 14),
                   Expanded(
                     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      Text(atiende[clave]!, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: ColoresMaterna.tinta)),
-                      Text(descripcion, style: const TextStyle(fontSize: 13, color: ColoresMaterna.tintaSuave)),
+                      Text(atiende[clave]!, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: ColoresClaros.tinta)),
+                      Text(descripcion, style: const TextStyle(fontSize: 13, color: ColoresClaros.tintaSuave)),
                     ]),
                   ),
                   Casilla(marcada: rol == clave),
@@ -551,12 +551,12 @@ class _Territorio extends CustomPainter {
     }
 
     casa(118, 76, 44, 28, const Color(0xFFA24477));
-    casa(208, 82, 36, 22, ColoresMaterna.ciruela900);
+    casa(208, 82, 36, 22, ColoresClaros.ciruela900);
     // árbol que se mece (3 s)
     canvas.save();
     canvas.translate(287, 104);
     canvas.rotate((-4 + 8 * _vaivenDe(t, 6)) * math.pi / 180);
-    canvas.drawRRect(RRect.fromLTRBR(-3, -24, 3, 0, const Radius.circular(3)), pincel..color = ColoresMaterna.ciruela900);
+    canvas.drawRRect(RRect.fromLTRBR(-3, -24, 3, 0, const Radius.circular(3)), pincel..color = ColoresClaros.ciruela900);
     canvas.drawCircle(const Offset(0, -34), 16, pincel..color = const Color(0xFFC47A9F));
     canvas.drawCircle(const Offset(-9, -26), 10, pincel..color = const Color(0xFFD898B6));
     canvas.drawCircle(const Offset(9, -28), 9, pincel..color = const Color(0xFFA24477));
@@ -571,7 +571,7 @@ class _Territorio extends CustomPainter {
         Paint()
           ..style = PaintingStyle.stroke
           ..strokeWidth = 2.5 / (.4 + 1.2 * onda)
-          ..color = ColoresMaterna.ciruela900.withValues(alpha: .7 * (1 - onda)));
+          ..color = ColoresClaros.ciruela900.withValues(alpha: .7 * (1 - onda)));
     canvas.restore();
     // ubicación que salta (1,6 s)
     final salto = -9 * _vaivenDe(t, 1.6);
@@ -581,20 +581,20 @@ class _Territorio extends CustomPainter {
       ..arcToPoint(Offset(191, 77 + salto), radius: const Radius.circular(13))
       ..cubicTo(191, 84 + salto, 186, 91 + salto, 178, 98 + salto)
       ..close();
-    canvas.drawPath(pin, pincel..color = ColoresMaterna.ciruela900);
+    canvas.drawPath(pin, pincel..color = ColoresClaros.ciruela900);
     canvas.drawCircle(Offset(178, 77 + salto), 5, pincel..color = Colors.white);
     // señal que se enciende por arcos y se apaga (2,2 s)
     final senal = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = 4
       ..strokeCap = StrokeCap.round;
-    canvas.drawCircle(const Offset(56, 100), 6, pincel..color = ColoresMaterna.ciruela900);
+    canvas.drawCircle(const Offset(56, 100), 6, pincel..color = ColoresClaros.ciruela900);
     for (var k = 0; k < 3; k++) {
       final f = ((t * 36 / 2.2) - k * .16) % 1;
       final a = f < .3 ? f / .3 * .9 : .9 * (1 - (f - .3) / .7);
       final r = 10.0 + k * 10;
       canvas.drawArc(Rect.fromCircle(center: const Offset(56, 100), radius: r), -math.pi * .78, math.pi * .56, false,
-          senal..color = ColoresMaterna.ciruela900.withValues(alpha: a.clamp(0.0, 1.0)));
+          senal..color = ColoresClaros.ciruela900.withValues(alpha: a.clamp(0.0, 1.0)));
     }
   }
 
@@ -642,7 +642,7 @@ class _Avatares extends StatelessWidget {
                         height: 120,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          border: Border.all(color: ColoresMaterna.ciruela900.withValues(alpha: .45 * (1 - pulso)), width: 2),
+                          border: Border.all(color: ColoresClaros.ciruela900.withValues(alpha: .45 * (1 - pulso)), width: 2),
                         ),
                       ),
                     ),
@@ -692,8 +692,8 @@ class _Avatares extends StatelessWidget {
                 child: _Cristal(
                   radio: 38,
                   opacidad: .8,
-                  borde: k == avatar ? ColoresMaterna.ciruela900 : null,
-                  child: SizedBox(width: 72, height: 72, child: Icon(avatares[k].icono, color: ColoresMaterna.ciruela900, size: 34)),
+                  borde: k == avatar ? ColoresClaros.ciruela900 : null,
+                  child: SizedBox(width: 72, height: 72, child: Icon(avatares[k].icono, color: ColoresClaros.ciruela900, size: 34)),
                 ),
               ),
             ),
@@ -754,12 +754,12 @@ class _Ajustes extends StatelessWidget {
             child: Padding(
               padding: const EdgeInsets.all(14),
               child: Row(children: [
-                Icon(icono, color: ColoresMaterna.ciruela900),
+                Icon(icono, color: ColoresClaros.ciruela900),
                 const SizedBox(width: 14),
                 Expanded(
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Text(titulo, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: ColoresMaterna.tinta)),
-                    Text(descripcion, style: const TextStyle(fontSize: 13, color: ColoresMaterna.tintaSuave)),
+                    Text(titulo, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: ColoresClaros.tinta)),
+                    Text(descripcion, style: const TextStyle(fontSize: 13, color: ColoresClaros.tintaSuave)),
                   ]),
                 ),
                 Casilla(marcada: marcada, cuadrada: true),
@@ -770,7 +770,7 @@ class _Ajustes extends StatelessWidget {
         const SizedBox(height: 12),
       ],
       const Text('La pertenencia étnica y el municipio de la gestante nunca se usan para calcular su riesgo.',
-          textAlign: TextAlign.center, style: TextStyle(fontSize: 12.5, height: 1.4, color: ColoresMaterna.tintaSuave)),
+          textAlign: TextAlign.center, style: TextStyle(fontSize: 12.5, height: 1.4, color: ColoresClaros.tintaSuave)),
     ]);
   }
 }
@@ -804,7 +804,7 @@ class _Escudo extends CustomPainter {
           Paint()
             ..style = PaintingStyle.stroke
             ..strokeWidth = 2.5
-            ..color = ColoresMaterna.ciruela900.withValues(alpha: .7 * (1 - f)));
+            ..color = ColoresClaros.ciruela900.withValues(alpha: .7 * (1 - f)));
     }
     // escudo
     final escudo = Path()
@@ -855,7 +855,7 @@ class _Escudo extends CustomPainter {
       final icono = TextPainter(
         text: TextSpan(
           text: String.fromCharCode(_iconos[i].codePoint),
-          style: TextStyle(fontSize: 19, fontFamily: _iconos[i].fontFamily, package: _iconos[i].fontPackage, color: ColoresMaterna.ciruela900),
+          style: TextStyle(fontSize: 19, fontFamily: _iconos[i].fontFamily, package: _iconos[i].fontPackage, color: ColoresClaros.ciruela900),
         ),
         textDirection: TextDirection.ltr,
       )..layout();

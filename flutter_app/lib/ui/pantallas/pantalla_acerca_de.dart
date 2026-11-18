@@ -64,9 +64,9 @@ class _EstadoAcercaDe extends State<PantallaAcercaDe> {
           const SizedBox(width: 12),
           Expanded(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(titulo, style: const TextStyle(fontWeight: FontWeight.w700, color: ColoresMaterna.tinta)),
+              Text(titulo, style: TextStyle(fontWeight: FontWeight.w700, color: ColoresMaterna.tinta)),
               const SizedBox(height: 2),
-              Text(texto, style: const TextStyle(color: ColoresMaterna.tintaSuave, height: 1.4)),
+              Text(texto, style: TextStyle(color: ColoresMaterna.tintaSuave, height: 1.4)),
             ]),
           ),
         ]),
@@ -79,7 +79,7 @@ class _EstadoAcercaDe extends State<PantallaAcercaDe> {
             Row(children: [
               Icon(icono, color: ColoresMaterna.ciruela900, size: 20),
               const SizedBox(width: 8),
-              Text(titulo, style: const TextStyle(fontWeight: FontWeight.w800, color: ColoresMaterna.tinta)),
+              Text(titulo, style: TextStyle(fontWeight: FontWeight.w800, color: ColoresMaterna.tinta)),
             ]),
             const SizedBox(height: 10),
             ...hijos,
@@ -90,7 +90,7 @@ class _EstadoAcercaDe extends State<PantallaAcercaDe> {
   Widget _dato(String etiqueta, String valor, {Key? key}) => Padding(
         padding: const EdgeInsets.only(top: 6),
         child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Expanded(child: Text(etiqueta, style: const TextStyle(color: ColoresMaterna.tintaSuave))),
+          Expanded(child: Text(etiqueta, style: TextStyle(color: ColoresMaterna.tintaSuave))),
           const SizedBox(width: 12),
           Flexible(child: Text(valor, key: key, textAlign: TextAlign.right, style: const TextStyle(fontWeight: FontWeight.w600))),
         ]),
@@ -115,7 +115,7 @@ class _EstadoAcercaDe extends State<PantallaAcercaDe> {
           child: ListView(padding: const EdgeInsets.fromLTRB(16, 8, 16, BarraFlotante.espacioInferior), children: [
             const EncabezadoMaterna(etiqueta: 'Información'),
             const SizedBox(height: 14),
-            const TituloConIcono(
+            TituloConIcono(
               icono: IconoDeTrazo(IconoTrazo.informacion, color: ColoresMaterna.ciruela900, tamano: 26),
               titulo: 'Acerca de',
               subtitulo: 'Versión $versionApp · Apoyo al triaje del riesgo materno',
@@ -125,7 +125,7 @@ class _EstadoAcercaDe extends State<PantallaAcercaDe> {
               key: const Key('deslinde'),
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                gradient: const LinearGradient(colors: [ColoresMaterna.ciruela900, ColoresMaterna.ciruelaNoche]),
+                gradient: LinearGradient(colors: [ColoresMaterna.vino, ColoresMaterna.ciruelaNoche]),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: const Row(children: [
@@ -143,7 +143,7 @@ class _EstadoAcercaDe extends State<PantallaAcercaDe> {
               Row(children: [
                 AvatarCirculo(perfil.avatar, tamano: 44),
                 const SizedBox(width: 12),
-                Expanded(child: Text('Avatar: ${avatares[perfil.avatar.clamp(0, avatares.length - 1)].nombre}', style: const TextStyle(color: ColoresMaterna.tintaSuave))),
+                Expanded(child: Text('Avatar: ${avatares[perfil.avatar.clamp(0, avatares.length - 1)].nombre}', style: TextStyle(color: ColoresMaterna.tintaSuave))),
               ]),
               const SizedBox(height: 10),
               if (perfil.usuario != null) _dato('Usuario', perfil.usuario!, key: const Key('usuario-sesion')),
@@ -181,6 +181,15 @@ class _EstadoAcercaDe extends State<PantallaAcercaDe> {
                   title: const Text('Vibrar con Alto Riesgo'),
                   value: preferencias.vibrarAlto,
                   onChanged: preferencias.fijarVibrarAlto,
+                ),
+                SwitchListTile(
+                  key: const Key('ajuste-modo-oscuro'),
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('Modo oscuro'),
+                  subtitle: Text('Colores oscuros, más cómodos de noche', style: TextStyle(color: ColoresMaterna.tintaSuave)),
+                  secondary: Icon(ColoresMaterna.oscuro ? Icons.dark_mode_rounded : Icons.dark_mode_outlined, color: ColoresMaterna.ciruela900),
+                  value: preferencias.modoOscuro,
+                  onChanged: preferencias.fijarModoOscuro,
                 ),
                 const SizedBox(height: 6),
                 OutlinedButton.icon(

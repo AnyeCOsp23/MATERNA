@@ -53,7 +53,7 @@ class _EstadoAcceso extends State<PantallaAcceso> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        backgroundColor: Colors.white, // acceso en blanco, como la pantalla de inicio
+        backgroundColor: ColoresMaterna.tarjeta, // acceso en blanco (en oscuro, del color de las tarjetas)
         body: SafeArea(
           child: Center(
             child: SingleChildScrollView(
@@ -119,14 +119,16 @@ class _Marca extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Column(children: [
-        Image.asset('assets/logo_isotipo.webp', width: grande ? 104 : 64, height: grande ? 104 : 64),
-        const Text('MATERNA',
+        Image.asset('assets/logo_isotipo.webp', width: grande ? 104 : 64, height: grande ? 104 : 64,
+            // en oscuro, el logo en rosa claro (la madre es transparente: se sigue viendo)
+            color: ColoresMaterna.oscuro ? ColoresMaterna.vinoLogo : null, colorBlendMode: BlendMode.srcIn),
+        Text('MATERNA',
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.w400, color: ColoresMaterna.vinoLogo, letterSpacing: 4)),
         SizedBox(height: grande ? 26 : 16),
         Text(titulo, textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w800, color: ColoresMaterna.tinta)),
+            style: TextStyle(fontSize: 26, fontWeight: FontWeight.w800, color: ColoresMaterna.tinta)),
         const SizedBox(height: 4),
-        Text(subtitulo, textAlign: TextAlign.center, style: const TextStyle(color: ColoresMaterna.tintaSuave)),
+        Text(subtitulo, textAlign: TextAlign.center, style: TextStyle(color: ColoresMaterna.tintaSuave)),
       ]);
 }
 
@@ -190,7 +192,7 @@ Widget _enlace(String pregunta, String accion, Key clave, VoidCallback alTocar) 
       alignment: WrapAlignment.center,
       crossAxisAlignment: WrapCrossAlignment.center,
       children: [
-        Text(pregunta, style: const TextStyle(color: ColoresMaterna.tintaSuave)),
+        Text(pregunta, style: TextStyle(color: ColoresMaterna.tintaSuave)),
         TextButton(
           key: clave,
           onPressed: alTocar,
@@ -423,7 +425,7 @@ class _EstadoRegistrarse extends State<_Registrarse> {
         const SizedBox(height: 8),
         _enlace('¿Ya tiene cuenta?', 'Iniciar sesión', const Key('ir-entrar'), widget.alVolver),
         const SizedBox(height: 4),
-        const Text('Al crear la cuenta verá un código de recuperación: anótelo, sirve para poner un PIN nuevo si lo olvida.',
+        Text('Al crear la cuenta verá un código de recuperación: anótelo, sirve para poner un PIN nuevo si lo olvida.',
             textAlign: TextAlign.center, style: TextStyle(color: ColoresMaterna.tintaSuave, fontSize: 12.5)),
       ]);
 }
@@ -454,10 +456,10 @@ class _Codigo extends StatelessWidget {
           child: SelectableText(codigo,
               key: const Key('codigo-recuperacion'),
               textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 30, fontWeight: FontWeight.w800, letterSpacing: 4, color: ColoresMaterna.ciruela900)),
+              style: TextStyle(fontSize: 30, fontWeight: FontWeight.w800, letterSpacing: 4, color: ColoresMaterna.ciruela900)),
         ),
         const SizedBox(height: 12),
-        const Text('Si pierde el PIN y este código, el responsable de datos de la IPS puede ponerle uno nuevo con la clave de la IPS.',
+        Text('Si pierde el PIN y este código, el responsable de datos de la IPS puede ponerle uno nuevo con la clave de la IPS.',
             textAlign: TextAlign.center, style: TextStyle(color: ColoresMaterna.tintaSuave, fontSize: 12.5)),
         const SizedBox(height: 24),
         FilledButton(key: const Key('codigo-anotado'), onPressed: alContinuar, child: Text(textoBoton)),
@@ -591,7 +593,7 @@ class _EstadoRecuperar extends State<_Recuperar> {
               ? 'Para el responsable de datos de la IPS: la clave que se configuró en «Carga IPS».'
               : 'El código que le mostró la app al crear la cuenta (p. ej. K7M2-Q9XP).',
           textAlign: TextAlign.center,
-          style: const TextStyle(color: ColoresMaterna.tintaSuave, fontSize: 12.5),
+          style: TextStyle(color: ColoresMaterna.tintaSuave, fontSize: 12.5),
         ),
         const SizedBox(height: 16),
         Card(
@@ -620,7 +622,7 @@ class _EstadoRecuperar extends State<_Recuperar> {
         const SizedBox(height: 8),
         _enlace('¿Lo recordó?', 'Iniciar sesión', const Key('ir-entrar'), widget.alVolver),
         const Divider(height: 28),
-        const Text('¿Sin código ni clave de la IPS?',
+        Text('¿Sin código ni clave de la IPS?',
             textAlign: TextAlign.center, style: TextStyle(color: ColoresMaterna.tintaSuave, fontSize: 12.5)),
         TextButton(
           key: const Key('eliminar-cuenta'),

@@ -58,10 +58,34 @@ void main() {
     await tocar(tester, find.byKey(const Key('pestana-1')));
     expect(find.text('Carga masiva IPS'), findsOneWidget);
     expect(tester.widget<FilledButton>(find.byKey(const Key('elegir-archivo'))).onPressed, isNull);
+    // la explicación ya no ocupa el formulario: está en la ventana del botón ⓘ, junto al título
+    expect(find.textContaining('código anónimo'), findsNothing);
+    expect(find.text('Mínimo 16 caracteres'), findsNothing); // vacío y sin el foco: sin aviso
+    await tocar(tester, find.byKey(const Key('boton-info')));
+    expect(find.byKey(const Key('ventana-info')), findsOneWidget);
+    for (final texto in ['código anónimo', 'todos los dispositivos de la IPS', 'responsable de datos', 'Si cambia la clave']) {
+      expect(find.textContaining(texto), findsWidgets, reason: texto);
+    }
+    await tocar(tester, find.byKey(const Key('cerrar-info')));
+    expect(find.byKey(const Key('ventana-info')), findsNothing);
+
+    // «Mínimo 16 caracteres» en tiempo real: aparece al escribir, sigue al salir del campo si está incompleta,
+    // se pone en rojo con los caracteres que lleva si se intenta guardar, y desaparece al llegar a 16
     await tester.enterText(find.byKey(const Key('campo-clave')), 'corta');
+    await tester.pump();
+    expect(find.text('Mínimo 16 caracteres'), findsOneWidget);
     await tester.enterText(find.byKey(const Key('campo-clave-repetir')), 'corta');
+    await tester.pump();
+    expect(find.text('Mínimo 16 caracteres'), findsOneWidget);
     await tocar(tester, find.byKey(const Key('guardar-clave')));
-    expect(find.textContaining('al menos 16 caracteres'), findsOneWidget);
+    expect(find.text('Mínimo 16 caracteres (lleva 5)'), findsOneWidget);
+    expect(await tester.runAsync(base.claveIps), isNull);
+    await tester.enterText(find.byKey(const Key('campo-clave')), 'a' * 15);
+    await tester.pump();
+    expect(find.text('Mínimo 16 caracteres (lleva 15)'), findsOneWidget);
+    await tester.enterText(find.byKey(const Key('campo-clave')), 'a' * 16);
+    await tester.pump();
+    expect(find.textContaining('Mínimo 16 caracteres'), findsNothing);
     await configurarClave(tester, repetida: '${clave}x');
     expect(find.text('Las dos claves no coinciden.'), findsOneWidget);
     await configurarClave(tester);
@@ -99,7 +123,7 @@ void main() {
     await tocar(tester, find.byKey(const Key('filas-sin-evaluar')));
     expect(find.textContaining('Fila 122: falta edad'), findsOneWidget);
 
-    await tocar(tester, find.descendant(of: find.byKey(const Key('filtro-carga')), matching: find.textContaining('Verde')));
+    await tocar(tester, find.descendant(of: find.byKey(const Key('filtro-carga')), matching: find.text('Bajo')));
     expect(find.byKey(const Key('nivel-2')), findsNothing);
     expect(find.byKey(const Key('nivel-0')), findsWidgets);
     await tocar(tester, find.descendant(of: find.byKey(const Key('filtro-carga')), matching: find.textContaining('Todas')));

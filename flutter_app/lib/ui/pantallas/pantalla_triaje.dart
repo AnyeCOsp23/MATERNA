@@ -32,17 +32,17 @@ const _departamentos = {'La Guajira': 'La Guajira', 'Cesar': 'Cesar'};
 const _seccionesOpcionales = ['Anamnesis', 'Examen físico', 'Paraclínicos', 'Escalas de riesgo', 'Plan de cuidado'];
 const _conSinDato = {'glucosa_mgdl', 'fcf_bpm'};
 // El rojo del nivel Alto (tema_materna.dart), para el triángulo de alerta del paso «Signos de alarma»
-const _rojoAlerta = Color(0xFFC62828);
+Color get _rojoAlerta => estiloPorCategoria['Alto Riesgo']!.barra;
 
 class _Paso {
-  const _Paso(this.titulo, this.descripcion, this.icono, this.variables, {this.colorIcono = ColoresMaterna.ciruela900});
+  const _Paso(this.titulo, this.descripcion, this.icono, this.variables, {this.colorIcono});
 
   final String titulo;
   final String descripcion;
   final IconData icono;
 
   /// Color del ícono del encabezado (rojo de alerta en «Signos de alarma»).
-  final Color colorIcono;
+  final Color? colorIcono; // null = color de la marca del modo activo
 
   /// Variables que se validan al intentar avanzar.
   final List<String> variables;
@@ -332,7 +332,7 @@ class _EstadoTriaje extends State<PantallaTriaje> {
         leading: Icon(icono, color: ColoresMaterna.ciruela700),
         title: Text(titulo, style: const TextStyle(fontWeight: FontWeight.w700)),
         subtitle: Text('${nota ?? 'Opcional'} · $respondidas de ${variables.length} registradas',
-            style: const TextStyle(color: ColoresMaterna.tintaSuave, fontSize: 12.5)),
+            style: TextStyle(color: ColoresMaterna.tintaSuave, fontSize: 12.5)),
         childrenPadding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
         children: [for (final (i, v) in variables.indexed) ...[if (i > 0) const SizedBox(height: 16), _campo(v.nombre)]],
       ),
@@ -488,14 +488,14 @@ class _Cabecera extends StatelessWidget {
             width: 50,
             height: 50,
             decoration: BoxDecoration(color: ColoresMaterna.ciruela100, borderRadius: BorderRadius.circular(15)),
-            child: Icon(paso.icono, key: const Key('icono-paso'), color: paso.colorIcono),
+            child: Icon(paso.icono, key: const Key('icono-paso'), color: paso.colorIcono ?? ColoresMaterna.ciruela900),
           ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text(paso.titulo, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
               const SizedBox(height: 2),
-              Text(paso.descripcion, style: const TextStyle(color: ColoresMaterna.tintaSuave)),
+              Text(paso.descripcion, style: TextStyle(color: ColoresMaterna.tintaSuave)),
             ]),
           ),
         ]),
@@ -527,13 +527,13 @@ class _Revision extends StatelessWidget {
                   ),
                 ]),
                 if (!variables.any(valores.containsKey))
-                  const Text('Sin registrar', style: TextStyle(color: ColoresMaterna.tintaSuave))
+                  Text('Sin registrar', style: TextStyle(color: ColoresMaterna.tintaSuave))
                 else
                   for (final nombre in variables.where(valores.containsKey))
                     Padding(
                       padding: const EdgeInsets.only(top: 6, right: 10),
                       child: Row(children: [
-                        Expanded(child: Text(catalogo.variable(nombre)!.etiqueta, style: const TextStyle(color: ColoresMaterna.tintaSuave))),
+                        Expanded(child: Text(catalogo.variable(nombre)!.etiqueta, style: TextStyle(color: ColoresMaterna.tintaSuave))),
                         Text(valores[nombre]!, style: const TextStyle(fontWeight: FontWeight.w600)),
                       ]),
                     ),

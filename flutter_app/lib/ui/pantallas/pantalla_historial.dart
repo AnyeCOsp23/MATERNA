@@ -137,23 +137,13 @@ class _EstadoHistorial extends State<PantallaHistorial> {
   }
 
   Widget _filtros() => Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        SizedBox(
-          width: double.infinity,
-          child: SegmentedButton<int>(
-            key: const Key('filtro-riesgo'),
-            segments: const [
-              ButtonSegment(value: -1, label: Text('Todas')),
-              ButtonSegment(value: 2, label: Text('Rojo')),
-              ButtonSegment(value: 1, label: Text('Ámbar')),
-              ButtonSegment(value: 0, label: Text('Verde')),
-            ],
-            selected: {_clase ?? -1},
-            showSelectedIcon: false,
-            onSelectionChanged: (s) {
-              _clase = s.first == -1 ? null : s.first;
-              _recargar();
-            },
-          ),
+        FiltroNivel(
+          key: const Key('filtro-riesgo'),
+          seleccion: _clase,
+          alCambiar: (clase) {
+            _clase = clase;
+            _recargar();
+          },
         ),
         const SizedBox(height: 10),
         Wrap(spacing: 8, runSpacing: 8, children: [
@@ -196,7 +186,7 @@ class _EstadoHistorial extends State<PantallaHistorial> {
         if (_avisoBusqueda != null)
           Padding(
             padding: const EdgeInsets.only(top: 6),
-            child: Text(_avisoBusqueda!, key: const Key('aviso-busqueda'), style: const TextStyle(color: Color(0xFF6B1832))),
+            child: Text(_avisoBusqueda!, key: const Key('aviso-busqueda'), style: TextStyle(color: estiloPorCategoria['Alto Riesgo']!.tinta)),
           ),
       ]);
 
@@ -213,19 +203,19 @@ class _EstadoHistorial extends State<PantallaHistorial> {
             Expanded(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Text(edadYSemanas(r.registro, largo: true),
-                    style: const TextStyle(fontWeight: FontWeight.w800, color: ColoresMaterna.tinta, fontSize: 15)),
+                    style: TextStyle(fontWeight: FontWeight.w800, color: ColoresMaterna.tinta, fontSize: 15)),
                 const SizedBox(height: 2),
                 Text(
                   '${r.idCarga == null ? 'Triaje individual' : 'Carga IPS'} · ${fechaLegible(r.fecha)}\n'
                   '${atiende[r.atendidoPor] ?? r.atendidoPor} · ${origenLegible(r.origen, r.clase)}'
                   '${r.alertas.isEmpty ? '' : ' · ${r.alertas.length} alerta(s)'}',
-                  style: const TextStyle(color: ColoresMaterna.tintaSuave, fontSize: 12.5, height: 1.35),
+                  style: TextStyle(color: ColoresMaterna.tintaSuave, fontSize: 12.5, height: 1.35),
                 ),
                 if (r.idSeudonimo != null) ...[
                   const SizedBox(height: 4),
                   Text(codigoGestante(r.idSeudonimo),
                       key: Key('codigo-${r.id}'),
-                      style: const TextStyle(color: ColoresMaterna.tintaSuave, fontSize: 11.5, letterSpacing: .6)),
+                      style: TextStyle(color: ColoresMaterna.tintaSuave, fontSize: 11.5, letterSpacing: .6)),
                 ],
               ]),
             ),
@@ -253,18 +243,14 @@ class _EstadoHistorial extends State<PantallaHistorial> {
                 return ListView(padding: const EdgeInsets.fromLTRB(16, 8, 16, BarraFlotante.espacioInferior), children: [
                   const EncabezadoMaterna(etiqueta: 'Registro local'),
                   const SizedBox(height: 14),
-                  const TituloConIcono(
+                  TituloConIcono(
                     icono: IconoDeTrazo(IconoTrazo.baseDatos, color: ColoresMaterna.ciruela900, tamano: 26),
                     titulo: 'Historial local',
                     subtitulo: 'Sus evaluaciones guardadas en este dispositivo',
                   ),
                   const SizedBox(height: 12),
-                  Row(children: [
-                    const Expanded(
-                      child: Text('La sincronización es una simulación: no se envía ningún dato.',
-                          style: TextStyle(color: ColoresMaterna.tintaSuave, fontSize: 12.5)),
-                    ),
-                    const SizedBox(width: 8),
+                  // que es una simulación se avisa al tocar el botón y en «Acerca de» › «Uso responsable»
+                  Row(mainAxisAlignment: MainAxisAlignment.end, children: [
                     FilledButton.tonalIcon(
                       key: const Key('sincronizar'),
                       // el tema da a los botones todo el ancho; dentro de una fila ese ancho sería infinito
@@ -284,14 +270,14 @@ class _EstadoHistorial extends State<PantallaHistorial> {
                   if (estado.connectionState != ConnectionState.done)
                     const Center(child: Padding(padding: EdgeInsets.all(24), child: CircularProgressIndicator()))
                   else if (lista.isEmpty)
-                    const Padding(
+                    Padding(
                       padding: EdgeInsets.all(28),
                       child: Text('No hay evaluaciones con estos filtros.',
                           key: Key('historial-vacio'), textAlign: TextAlign.center, style: TextStyle(color: ColoresMaterna.tintaSuave)),
                     )
                   else ...[
                     Text('${lista.length} evaluación(es)', key: const Key('historial-total'),
-                        style: const TextStyle(color: ColoresMaterna.tintaSuave)),
+                        style: TextStyle(color: ColoresMaterna.tintaSuave)),
                     const SizedBox(height: 8),
                     for (final r in lista) ...[_fila(r), const SizedBox(height: 8)],
                   ],
