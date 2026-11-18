@@ -92,6 +92,8 @@ void main() {
     final primera = find.byKey(Key('fila-${resultados.first['fila']}'));
     expect(primera, findsOneWidget);
     expect(find.descendant(of: primera, matching: find.byKey(const Key('nivel-2'))), findsOneWidget);
+    // se identifica por la fila del archivo de la IPS, no por el seudónimo
+    expect(find.descendant(of: primera, matching: find.text('Fila ${resultados.first['fila']} del archivo')), findsOneWidget);
     expect(find.descendant(of: primera, matching: find.text('Alto')), findsOneWidget);
 
     await tocar(tester, find.byKey(const Key('filas-sin-evaluar')));
@@ -104,7 +106,7 @@ void main() {
 
     await tocar(tester, primera);
     expect(find.text('Evaluación guardada'), findsOneWidget);
-    expect(find.text('Fila ${resultados.first['fila']} del registro'), findsOneWidget);
+    expect(find.text('Fila ${resultados.first['fila']} del archivo'), findsOneWidget);
     await tester.pageBack();
     await tester.pumpAndSettle();
     await subir(tester);
@@ -130,7 +132,24 @@ void main() {
     final mismas = resultados.where((r) => r['id_seudonimo'] == buscado).length;
     expect(mismas, greaterThan(0));
     expect(find.text('$mismas evaluación(es)'), findsOneWidget);
-    expect(find.textContaining('carga IPS'), findsWidgets);
+    expect(find.textContaining('Carga IPS'), findsWidgets);
+    // y también por el código que muestra la lista ('Código 14A2-88'), escrito de varias formas
+    final id = buscado;
+    final codigo = 'Código ${id.substring(0, 4).toUpperCase()}-${id.substring(id.length - 2).toUpperCase()}';
+    expect(find.text(codigo), findsWidgets);
+    await tocar(tester, find.byKey(const Key('buscar-por-codigo')));
+    for (final escrito in [codigo, id.substring(0, 4), '${id.substring(0, 4)}-${id.substring(id.length - 2)}']) {
+      await tester.enterText(find.byKey(const Key('buscar-seudonimo')), escrito);
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pumpAndSettle();
+      expect(find.text(codigo), findsWidgets, reason: escrito);
+      expect(find.textContaining('evaluación(es)'), findsOneWidget);
+      expect(find.text('300 evaluación(es)'), findsNothing, reason: escrito);
+    }
+    await tester.enterText(find.byKey(const Key('buscar-seudonimo')), 'María');
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('aviso-busqueda')), findsOneWidget);
   });
 
   testWidgets('el mismo archivo otra vez no duplica el historial, salvo que se pida', (tester) async {

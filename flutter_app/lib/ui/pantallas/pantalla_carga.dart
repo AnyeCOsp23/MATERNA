@@ -198,7 +198,7 @@ class _EstadoCarga extends State<PantallaCarga> {
         recursos: widget.recursos,
         evaluacion: r.evaluacion,
         soloLectura: true,
-        nota: 'Fila ${r.fila} del registro',
+        nota: 'Fila ${r.fila} del archivo',
       ),
     ));
   }
@@ -539,7 +539,7 @@ class _EstadoCarga extends State<PantallaCarga> {
             child: Row(children: [
               Expanded(
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text(seudonimoCorto(r.idSeudonimo),
+                  Text('Fila ${r.fila} del archivo',
                       style: const TextStyle(fontWeight: FontWeight.w800, color: ColoresMaterna.tinta, fontSize: 15)),
                   const SizedBox(height: 2),
                   Text(edadYSemanas(e.registro),

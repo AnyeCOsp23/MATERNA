@@ -64,7 +64,7 @@ void main() {
   testWidgets('primera vez: inicio de sesión, registro con código de recuperación y entrada directa', (tester) async {
     await arrancar(tester);
     expect(find.text('Iniciar sesión'), findsWidgets);
-    expect(find.byKey(const Key('sin-conexion')), findsOneWidget);
+    expect(find.textContaining('Funciona sin conexión'), findsNothing); // ya está en «Acerca de»
     await tocar(tester, find.byKey(const Key('ir-registro')));
     await tocar(tester, find.byKey(const Key('crear-acceso')));
     await esperar(tester);

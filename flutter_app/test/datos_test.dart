@@ -8,6 +8,7 @@ import 'package:materna/datos/seguridad.dart';
 import 'package:materna/motor/carga_masiva.dart';
 import 'package:materna/motor/recursos.dart' show medirInferencia;
 import 'package:materna/ui/pantallas/pantalla_acerca_de.dart';
+import 'package:materna/ui/widgets/encabezado.dart' show codigoGestante, leerCodigo;
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 import 'flujo_test.dart' show recursos;
@@ -19,6 +20,23 @@ Future<BaseLocal> baseNueva() => BaseLocal.abrir(databaseFactoryFfiNoIsolate, in
 String hex(String base64) => base64Decode(base64).map((b) => b.toRadixString(16).padLeft(2, '0')).join();
 
 void main() {
+  group('código de la gestante en pantalla', () {
+    const seudonimo = '14a2f0c9d8e7b6a5f4e3d2c1b0a9f8e7d6c5b4a3f2e1d0c9b8a7f6e5d4c3b288';
+    test('se muestra corto, en mayúsculas y con formato de código', () {
+      expect(codigoGestante(seudonimo), 'Código 14A2-88');
+      expect(codigoGestante(null), 'Sin documento');
+    });
+    test('se busca como se escriba', () {
+      for (final escrito in ['Código 14A2-88', 'codigo 14a2-88', '14A2-88', '14a2…88', ' 14A2 ']) {
+        final leido = leerCodigo(escrito)!;
+        expect(seudonimo.startsWith(leido.$1) && seudonimo.endsWith(leido.$2), isTrue, reason: escrito);
+      }
+      expect(leerCodigo('14A2'), ('14a2', ''));
+      expect(leerCodigo('María'), isNull);
+      expect(leerCodigo('CC 1065432'), isNull);
+    });
+  });
+
   group('PBKDF2-HMAC-SHA256', () {
     test('vectores de prueba conocidos (contraseña "password", sal "salt")', () {
       final sal = base64Encode(utf8.encode('salt'));

@@ -200,20 +200,6 @@ Widget _enlace(String pregunta, String accion, Key clave, VoidCallback alTocar) 
       ],
     );
 
-final _sinConexion = Container(
-  key: const Key('sin-conexion'),
-  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-  decoration: BoxDecoration(color: ColoresMaterna.sinConexionFondo, borderRadius: BorderRadius.circular(14)),
-  child: Row(children: [
-    Container(width: 8, height: 8, decoration: const BoxDecoration(color: ColoresMaterna.sinConexionPunto, shape: BoxShape.circle)),
-    const SizedBox(width: 10),
-    const Expanded(
-      child: Text('Funciona sin conexión · datos solo en este dispositivo',
-          style: TextStyle(color: ColoresMaterna.sinConexionTexto, fontSize: 12.5)),
-    ),
-  ]),
-);
-
 String? _errorPin(String pin) => pinValido(pin) ? null : 'El PIN debe tener 4 dígitos.';
 
 // ------------------------------------------------------------------ iniciar sesión
@@ -300,8 +286,6 @@ class _EstadoEntrar extends State<_Entrar> {
           onPressed: () => widget.alOlvidar(_usuario.text.trim()),
           child: const Text('¿Olvidó el PIN?'),
         ),
-        const SizedBox(height: 18),
-        _sinConexion,
       ]);
 }
 

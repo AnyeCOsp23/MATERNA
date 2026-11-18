@@ -279,7 +279,7 @@ void main() {
     await tocar(tester, find.byKey(const Key('nueva-evaluacion')));
     await tocar(tester, find.byKey(const Key('pestana-2')));
     expect(find.text('1 evaluación(es)'), findsOneWidget);
-    expect(find.text('Triaje individual'), findsOneWidget);
+    expect(find.textContaining('Triaje individual'), findsOneWidget);
     expect(find.byKey(const Key('nivel-0')), findsOneWidget);
     // un Bajo Riesgo no «tiene factores de riesgo»: no tuvo signos
     expect(find.textContaining('sin signos de alarma'), findsOneWidget);
@@ -289,7 +289,7 @@ void main() {
     await tocar(tester, find.descendant(of: find.byKey(const Key('filtro-riesgo')), matching: find.text('Todas')));
     await tocar(tester, find.byKey(const Key('sincronizar')));
     expect(find.textContaining('Simulación: no se envía ningún dato'), findsOneWidget);
-    await tocar(tester, find.text('Triaje individual'));
+    await tocar(tester, find.textContaining('Triaje individual'));
     expect(find.text('Evaluación guardada'), findsOneWidget);
     expect(find.textContaining('Médico · ESE Valledupar'), findsOneWidget);
     expect(find.byKey(const Key('nueva-evaluacion')), findsNothing);

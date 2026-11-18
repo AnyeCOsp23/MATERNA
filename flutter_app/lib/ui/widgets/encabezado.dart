@@ -109,14 +109,25 @@ class ChipDato extends StatelessWidget {
       );
 }
 
-/// Seudónimo abreviado: 'a3f9…c1'.
-String seudonimoCorto(String? seudonimo) =>
-    seudonimo == null ? 'Sin documento' : '${seudonimo.substring(0, 4)}…${seudonimo.substring(seudonimo.length - 2)}';
+/// Código corto de la gestante para la pantalla: 'Código 14A2-88' (los 4 primeros y los 2 últimos caracteres de su
+/// seudónimo). El documento nunca se guarda; para buscar a una gestante concreta se usa «Por documento».
+String codigoGestante(String? seudonimo) => seudonimo == null
+    ? 'Sin documento'
+    : 'Código ${seudonimo.substring(0, 4).toUpperCase()}-${seudonimo.substring(seudonimo.length - 2).toUpperCase()}';
 
-/// Edad y semanas de un registro: '17 años · 28 sem'.
-String edadYSemanas(Map<String, dynamic> registro) {
+/// Lo que se escribe en «Por código» ('14A2', '14a2-88', 'Código 14A2-88') -> (inicio, final) del seudónimo en
+/// minúsculas, o null si no parece un código (p. ej. un documento: eso va en «Por documento»).
+(String, String)? leerCodigo(String texto) {
+  if (RegExp(r'^[A-Za-z]{1,3}\s+\d').hasMatch(texto.trim())) return null; // 'CC 1065432' es un documento
+  final limpio = texto.toLowerCase().replaceAll(RegExp(r'c[oó]digo|\s'), '');
+  final m = RegExp(r'^([0-9a-f]+)(?:[-–…]+([0-9a-f]*))?$').firstMatch(limpio);
+  return m == null ? null : (m[1]!, m[2] ?? '');
+}
+
+/// Edad y semanas de un registro: '17 años · 28 sem' (o '28 semanas' con [largo]).
+String edadYSemanas(Map<String, dynamic> registro, {bool largo = false}) {
   String n(Object? v) => v is num ? v.round().toString() : '–';
-  return '${n(registro['edad'])} años · ${n(registro['semanas_gestacion'])} sem';
+  return '${n(registro['edad'])} años · ${n(registro['semanas_gestacion'])} ${largo ? 'semanas' : 'sem'}';
 }
 
 /// Tarjeta blanca con borde punteado (el archivo cargado en el mockup).
