@@ -304,7 +304,6 @@ class _Detalle extends StatelessWidget {
                     key: const Key('detalle-estimacion'),
                     style: nota),
               ),
-            Text('Versión del sistema: ${recursos.clasificador.version}', style: nota),
           ],
         ),
       ),

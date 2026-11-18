@@ -40,6 +40,7 @@ dependencies:
   file_picker: 13.3.0
   archive: 3.6.1
   xml: 6.6.1
+  shared_preferences: ^2.5.6
 
 dev_dependencies:
   flutter_test:
@@ -72,6 +73,19 @@ flutter:
     - assets/reglas.json
     - assets/variables_3280.json
     - assets/logo_isotipo.webp
+    # capas del logo para la pantalla de inicio (salen del video MATERNA_logo_reveal: 5 pétalos, trazos y palabra)
+    - assets/logo_petalo_exterior_izq.webp
+    - assets/logo_petalo_interior_izq.webp
+    - assets/logo_petalo_central.webp
+    - assets/logo_petalo_interior_der.webp
+    - assets/logo_petalo_exterior_der.webp
+    - assets/logo_sombra_exterior_izq.webp
+    - assets/logo_sombra_interior_izq.webp
+    - assets/logo_sombra_central.webp
+    - assets/logo_sombra_interior_der.webp
+    - assets/logo_sombra_exterior_der.webp
+    - assets/logo_trazos.webp
+    - assets/logo_palabra.webp
 
   # Tipografía incluida en la app (Roboto, licencia Apache 2.0, del SDK de Flutter): sin ella, la versión web
   # la descarga de fonts.gstatic.com al abrir y no funcionaría sin internet.

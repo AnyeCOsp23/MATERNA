@@ -9,10 +9,12 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../motor/catalogo_3280.dart';
 import '../../motor/recursos.dart';
 import '../tema/tema_materna.dart';
+import '../widgets/ambito_preferencias.dart';
 import '../widgets/barra_flotante.dart';
 import '../widgets/campos.dart';
 import '../widgets/encabezado.dart';
@@ -201,6 +203,9 @@ class _EstadoTriaje extends State<PantallaTriaje> {
     final evaluacion = widget.recursos.evaluar(registro);
     await widget.alGuardar?.call(evaluacion);
     if (!mounted) return;
+    // aviso adicional, si se eligió en los ajustes: el teléfono vibra cuando sale Alto Riesgo
+    final alto = widget.recursos.clasificador.clases[evaluacion.clase] == 'Alto Riesgo';
+    if (alto && (AmbitoPreferencias.de(context)?.vibrarAlto ?? false)) HapticFeedback.heavyImpact();
     final accion = await Navigator.of(context).push<String>(
       MaterialPageRoute(builder: (_) => PantallaResultado(recursos: widget.recursos, evaluacion: evaluacion)),
     );

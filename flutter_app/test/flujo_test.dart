@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:materna/datos/base_local.dart';
 import 'package:materna/motor/recursos.dart';
+import 'package:materna/ui/pantallas/pantalla_acerca_de.dart' show funciones;
 import 'package:materna/ui/pantallas/pantalla_carga.dart';
 import 'package:materna/ui/pantallas/pantalla_principal.dart';
 import 'package:materna/ui/tema/tema_materna.dart';
@@ -294,13 +295,21 @@ void main() {
     expect(find.byKey(const Key('nueva-evaluacion')), findsNothing);
   });
 
-  testWidgets('«Acerca de» muestra versión, modelo, velocidad y el deslinde', (tester) async {
+  testWidgets('«Acerca de» explica qué permite hacer la app, sin datos técnicos del modelo', (tester) async {
     await abrir(tester);
     await tocar(tester, find.byKey(const Key('pestana-3')));
     expect(find.text('Herramienta de apoyo al diagnóstico maternal; no reemplaza el criterio médico profesional.'), findsOneWidget);
     expect(find.textContaining('Versión 1.0.0'), findsOneWidget);
-    expect(find.text(recursos.clasificador.version), findsOneWidget); // v1 oficial o la versión publicada
-    expect(find.textContaining(' ms'), findsWidgets);
+    expect(find.text('Qué le permite hacer MATERNA'), findsOneWidget);
+    for (final (_, titulo, _) in funciones) {
+      expect(find.text(titulo), findsOneWidget);
+    }
+    expect(find.text('Uso responsable'), findsOneWidget);
     expect(find.text('ESE Valledupar'), findsOneWidget);
+    // la ficha técnica (versión del modelo, árboles, huella, velocidad) va en el Módulo 1, no aquí
+    for (final tecnico in ['Random Forest', 'SHA-256', 'Árboles', ' ms', 'scikit-learn', 'Módulo', 'Inferencia']) {
+      expect(find.textContaining(tecnico), findsNothing, reason: tecnico);
+    }
+    expect(find.text(recursos.clasificador.version), findsNothing);
   });
 }

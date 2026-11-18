@@ -234,7 +234,7 @@ class _EstadoCarga extends State<PantallaCarga> {
             Expanded(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 const Text('Clave de la IPS configurada', style: TextStyle(fontWeight: FontWeight.w700, color: ColoresMaterna.tinta)),
-                Text('Huella ${huellaSal(_clave!)} · la misma en todos los dispositivos de la IPS',
+                Text('Código de verificación ${huellaSal(_clave!)} · debe ser el mismo en todos los dispositivos de la IPS',
                     key: const Key('huella-clave'), style: const TextStyle(color: ColoresMaterna.tintaSuave, fontSize: 12.5)),
               ]),
             ),
@@ -255,7 +255,7 @@ class _EstadoCarga extends State<PantallaCarga> {
       ]),
       const SizedBox(height: 8),
       const Text(
-        'Con ella se reemplaza el documento de cada gestante por un seudónimo (HMAC-SHA256): el documento nunca se '
+        'Con ella el documento de cada gestante se reemplaza por un código anónimo: el documento nunca se '
         'guarda. Debe ser la misma en todos los dispositivos de la IPS; pídala al responsable de datos. '
         'Mínimo $longitudMinimaSal caracteres.',
         style: _suave,

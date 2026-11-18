@@ -11,6 +11,7 @@ import 'package:flutter/material.dart';
 import '../../datos/base_local.dart';
 import '../../motor/recursos.dart';
 import '../tema/tema_materna.dart';
+import '../widgets/avatar.dart';
 import '../widgets/barra_flotante.dart';
 import '../widgets/iconos_trazo.dart';
 import 'pantalla_acerca_de.dart';
@@ -70,7 +71,9 @@ class _EstadoPrincipal extends State<PantallaPrincipal> {
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
+  Widget build(BuildContext context) => AvatarSesion(
+        indice: widget.perfil.avatar,
+        child: Scaffold(
         extendBody: true, // el contenido pasa por detrás de la barra flotante
         body: DecoratedBox(
           decoration: fondoCrema,
@@ -93,5 +96,6 @@ class _EstadoPrincipal extends State<PantallaPrincipal> {
           indice: _pestana,
           alCambiar: (i) => setState(() => _pestana = i),
         ),
+      ),
       );
 }

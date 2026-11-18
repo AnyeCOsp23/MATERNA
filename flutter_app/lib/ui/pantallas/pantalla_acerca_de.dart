@@ -1,4 +1,7 @@
-/// Pestaña 4: acerca de MATERNA, el modelo que usa, sus límites y el deslinde médico.
+/// Pestaña 4: acerca de MATERNA, lo que permite hacer, el uso responsable y el deslinde médico.
+///
+/// Es para el personal de salud: no muestra datos técnicos del modelo (versión, árboles, huella, velocidad). Esa
+/// ficha está en el Módulo 1 («Publicar al Módulo 2») y en la documentación del sistema.
 library;
 
 import 'package:flutter/material.dart';
@@ -6,6 +9,8 @@ import 'package:flutter/material.dart';
 import '../../datos/base_local.dart';
 import '../../motor/recursos.dart';
 import '../tema/tema_materna.dart';
+import '../widgets/ambito_preferencias.dart';
+import '../widgets/avatar.dart';
 import '../widgets/barra_flotante.dart';
 import '../widgets/encabezado.dart';
 import '../widgets/iconos_trazo.dart';
@@ -16,22 +21,25 @@ const versionApp = '1.0.0';
 
 const deslinde = 'Herramienta de apoyo al diagnóstico maternal; no reemplaza el criterio médico profesional.';
 
-/// Gestante de control de rutina para medir la velocidad de la inferencia en este dispositivo.
-const _registroPrueba = {
-  'edad': 27, 'area_residencia': 'Cabecera', 'semanas_gestacion': 28, 'n_controles_prenatales': 5,
-  'atendido_por': 'Medico', 'pas_mmhg': 110, 'pad_mmhg': 70, 'fcf_bpm': 142.0, 'glucosa_mgdl': 88.0,
-  'proteinuria': 0, 'convulsiones': 0,
-};
-
-/// Milisegundos promedio de una evaluación completa (modelo, reglas y alertas).
-double medirInferencia(RecursosMaterna recursos, {int repeticiones = 50}) {
-  recursos.evaluar(_registroPrueba); // calentamiento
-  final reloj = Stopwatch()..start();
-  for (var i = 0; i < repeticiones; i++) {
-    recursos.evaluar(_registroPrueba);
-  }
-  return reloj.elapsedMicroseconds / repeticiones / 1000;
-}
+/// Lo que la app permite hacer al personal de salud (ícono, título, explicación).
+const funciones = [
+  (Icons.monitor_heart_outlined, 'Evaluar a la gestante',
+      'Registre los datos del control (edad, semanas, tensión arterial, frecuencia cardiaca fetal, glucosa y otros) '
+          'y obtenga en segundos el nivel de riesgo: Bajo, Medio o Alto.'),
+  (Icons.troubleshoot_rounded, 'Identificar factores de riesgo y signos de alarma',
+      'Señala los hallazgos que explican el nivel y los signos de alarma de la ruta materno-perinatal '
+          '(Resolución 3280 de 2018), como cefalea intensa, sangrado o disminución de los movimientos fetales.'),
+  (Icons.alt_route_rounded, 'Orientar la conducta',
+      'Para cada nivel sugiere qué hacer, desde el control prenatal de rutina hasta la remisión inmediata.'),
+  (Icons.upload_file_rounded, 'Priorizar los listados de la IPS',
+      'Cargue el archivo de la IPS y vea a todas las gestantes ordenadas de mayor a menor prioridad, sin guardar '
+          'sus documentos de identidad.'),
+  (Icons.history_rounded, 'Hacer seguimiento',
+      'Consulte las evaluaciones anteriores por fecha, nivel de riesgo o documento para acompañar la evolución de '
+          'cada gestante.'),
+  (Icons.wifi_off_rounded, 'Trabajar sin conexión',
+      'Funciona sin internet, pensada para zonas rurales y dispersas de La Guajira y el Cesar.'),
+];
 
 class PantallaAcercaDe extends StatefulWidget {
   const PantallaAcercaDe({super.key, required this.recursos, required this.perfil, required this.alCerrarSesion});
@@ -45,7 +53,24 @@ class PantallaAcercaDe extends StatefulWidget {
 }
 
 class _EstadoAcercaDe extends State<PantallaAcercaDe> {
-  late final double _milisegundos = medirInferencia(widget.recursos);
+  Widget _funcion(IconData icono, String titulo, String texto) => Padding(
+        padding: const EdgeInsets.only(top: 10),
+        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(color: ColoresMaterna.ciruela100, borderRadius: BorderRadius.circular(12)),
+            child: Icon(icono, color: ColoresMaterna.ciruela900, size: 20),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(titulo, style: const TextStyle(fontWeight: FontWeight.w700, color: ColoresMaterna.tinta)),
+              const SizedBox(height: 2),
+              Text(texto, style: const TextStyle(color: ColoresMaterna.tintaSuave, height: 1.4)),
+            ]),
+          ),
+        ]),
+      );
 
   Widget _seccion(String titulo, IconData icono, List<Widget> hijos) => Card(
         child: Padding(
@@ -81,7 +106,6 @@ class _EstadoAcercaDe extends State<PantallaAcercaDe> {
 
   @override
   Widget build(BuildContext context) {
-    final clasificador = widget.recursos.clasificador;
     final perfil = widget.perfil;
     return SafeArea(
       bottom: false,
@@ -94,7 +118,7 @@ class _EstadoAcercaDe extends State<PantallaAcercaDe> {
             const TituloConIcono(
               icono: IconoDeTrazo(IconoTrazo.informacion, color: ColoresMaterna.ciruela900, tamano: 26),
               titulo: 'Acerca de',
-              subtitulo: 'Versión $versionApp · Módulo 2, aplicación de usuario final',
+              subtitulo: 'Versión $versionApp · Apoyo al triaje del riesgo materno',
             ),
             const SizedBox(height: 16),
             Container(
@@ -111,7 +135,17 @@ class _EstadoAcercaDe extends State<PantallaAcercaDe> {
               ]),
             ),
             const SizedBox(height: 14),
+            _seccion('Qué le permite hacer MATERNA', Icons.volunteer_activism_outlined, [
+              for (final (icono, titulo, texto) in funciones) _funcion(icono, titulo, texto),
+            ]),
+            const SizedBox(height: 14),
             _seccion('Operador', Icons.badge_outlined, [
+              Row(children: [
+                AvatarCirculo(perfil.avatar, tamano: 44),
+                const SizedBox(width: 12),
+                Expanded(child: Text('Avatar: ${avatares[perfil.avatar.clamp(0, avatares.length - 1)].nombre}', style: const TextStyle(color: ColoresMaterna.tintaSuave))),
+              ]),
+              const SizedBox(height: 10),
               if (perfil.usuario != null) _dato('Usuario', perfil.usuario!, key: const Key('usuario-sesion')),
               _dato('Quién atiende', atiende[perfil.atendidoPor] ?? perfil.atendidoPor),
               _dato('IPS o puesto de salud', perfil.ips),
@@ -124,33 +158,58 @@ class _EstadoAcercaDe extends State<PantallaAcercaDe> {
                 label: const Text('Cerrar sesión'),
               ),
             ]),
+            if (AmbitoPreferencias.de(context) case final preferencias?) ...[
+              const SizedBox(height: 14),
+              _seccion('Ajustes de este dispositivo', Icons.tune_rounded, [
+                SwitchListTile(
+                  key: const Key('ajuste-letra-grande'),
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('Letra más grande'),
+                  value: preferencias.letraGrande,
+                  onChanged: preferencias.fijarLetraGrande,
+                ),
+                SwitchListTile(
+                  key: const Key('ajuste-reducir-animaciones'),
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('Reducir animaciones'),
+                  value: preferencias.reducirAnimaciones,
+                  onChanged: preferencias.fijarReducirAnimaciones,
+                ),
+                SwitchListTile(
+                  key: const Key('ajuste-vibrar'),
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('Vibrar con Alto Riesgo'),
+                  value: preferencias.vibrarAlto,
+                  onChanged: preferencias.fijarVibrarAlto,
+                ),
+                const SizedBox(height: 6),
+                OutlinedButton.icon(
+                  key: const Key('ver-presentacion'),
+                  onPressed: () async {
+                    await preferencias.verPresentacionDeNuevo();
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('La presentación se mostrará la próxima vez que abra MATERNA.')));
+                    }
+                  },
+                  icon: const Icon(Icons.slideshow_rounded),
+                  label: const Text('Ver la presentación otra vez'),
+                ),
+              ]),
+            ],
             const SizedBox(height: 14),
-            _seccion('Modelo', Icons.hub_outlined, [
-              _dato('Sistema', 'Random Forest + reglas clínicas'),
-              _dato('Versión del modelo', clasificador.version, key: const Key('version-modelo')),
-              _dato('Árboles', '${clasificador.arboles.length}'),
-              _dato('Huella SHA-256 del modelo', '${clasificador.sha256Joblib.substring(0, 16)}…'),
-              _dato('Inferencia en este dispositivo', '${_milisegundos.toStringAsFixed(2).replaceAll('.', ',')} ms',
-                  key: const Key('velocidad')),
-              const SizedBox(height: 10),
-              const Text(
-                'Entregado por el Módulo 1 (laboratorio de ML). La app reproduce a scikit-learn: 200 casos del modelo, '
-                '160 de las alertas de la Resolución 3280 y la carga masiva del archivo de ejemplo de la IPS (fila por '
-                'fila, con los mismos seudónimos) dan lo mismo en Python y en Dart (tolerancia 1e-6).',
-                style: TextStyle(color: ColoresMaterna.tintaSuave, height: 1.4),
-              ),
-            ]),
-            const SizedBox(height: 14),
-            _seccion('Limitaciones', Icons.warning_amber_rounded, [
-              _vineta('Entrenado con datos SINTÉTICOS calibrados con cifras del DANE y el INS: las métricas no son evidencia clínica.'),
-              _vineta('Las reglas clínicas, los signos de alarma que elevan el triaje y los textos de protocolo deben validarse '
-                  'con un especialista en ginecobstetricia.'),
-              _vineta('Los datos se guardan en el dispositivo sin cifrar. El PIN de 4 dígitos protege el acceso casual, no los '
-                  'archivos de la app.'),
-              _vineta('La clave de la IPS para seudonimizar los documentos también se guarda sin cifrar en el dispositivo.'),
-              _vineta('La sincronización es una simulación: no hay servidor y no se envía ningún dato.'),
-              _vineta('Si se olvida el PIN, se pone uno nuevo con el código de recuperación o, si también se perdió, con la '
-                  'clave de la IPS; solo como último recurso se elimina la cuenta con sus evaluaciones.'),
+            _seccion('Uso responsable', Icons.warning_amber_rounded, [
+              _vineta('MATERNA está en etapa de prueba: se construyó con datos simulados de la región y todavía no se ha '
+                  'validado en la atención real de gestantes.'),
+              _vineta('Los criterios de alerta y la conducta sugerida deben ser revisados por un especialista en '
+                  'ginecobstetricia. La decisión final siempre es del profesional de salud.'),
+              _vineta('La información se guarda solo en este dispositivo y sin cifrar. El PIN evita que otras personas que '
+                  'usan el dispositivo vean sus evaluaciones: proteja también el teléfono con su bloqueo y cierre sesión '
+                  'al terminar.'),
+              _vineta('La clave de la IPS también queda en el dispositivo; compártala solo con personal autorizado.'),
+              _vineta('«Sincronizar» todavía no envía datos a ningún servidor: es una función de demostración.'),
+              _vineta('Si olvida el PIN, puede crear uno nuevo con su código de recuperación o con la clave de la IPS; '
+                  'eliminar la cuenta es el último recurso y borra sus evaluaciones.'),
             ]),
           ]),
         ),

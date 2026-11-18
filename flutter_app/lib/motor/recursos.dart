@@ -103,3 +103,21 @@ class RecursosMaterna {
         imputadas: [for (final v in ['glucosa_mgdl', 'fcf_bpm']) if (registro[v] == null) v],
       );
 }
+
+/// Gestante de control de rutina para medir la velocidad de la inferencia (no se muestra en la app: la ficha
+/// técnica del modelo está en el Módulo 1; lo verifica `test/datos_test.dart`).
+const _registroPrueba = {
+  'edad': 27, 'area_residencia': 'Cabecera', 'semanas_gestacion': 28, 'n_controles_prenatales': 5,
+  'atendido_por': 'Medico', 'pas_mmhg': 110, 'pad_mmhg': 70, 'fcf_bpm': 142.0, 'glucosa_mgdl': 88.0,
+  'proteinuria': 0, 'convulsiones': 0,
+};
+
+/// Milisegundos promedio de una evaluación completa (modelo, reglas y alertas).
+double medirInferencia(RecursosMaterna recursos, {int repeticiones = 50}) {
+  recursos.evaluar(_registroPrueba); // calentamiento
+  final reloj = Stopwatch()..start();
+  for (var i = 0; i < repeticiones; i++) {
+    recursos.evaluar(_registroPrueba);
+  }
+  return reloj.elapsedMicroseconds / repeticiones / 1000;
+}

@@ -20,26 +20,31 @@ import '../motor/recursos.dart';
 import 'seguridad.dart';
 import 'seudonimizacion.dart';
 
-/// 1: perfil, PIN y evaluaciones (commit B) · 2: cargas masivas de la IPS · 3: varias cuentas de usuario.
-const _version = 3;
+/// 1: perfil, PIN y evaluaciones (commit B) · 2: cargas masivas de la IPS · 3: varias cuentas de usuario ·
+/// 4: avatar de cada cuenta.
+const _version = 4;
 
 /// Quién usa la app. `atendidoPor` es una de las 4 categorías que conoce el modelo. `id` y `usuario` son null
 /// solo en las pruebas que no pasan por el acceso.
 class Perfil {
-  const Perfil({this.id, this.usuario, required this.atendidoPor, required this.ips, this.municipio});
+  const Perfil({this.id, this.usuario, required this.atendidoPor, required this.ips, this.municipio, this.avatar = 0});
 
   Perfil.desdeFila(Map<String, Object?> f)
       : id = f['id'] as int,
         usuario = f['usuario'] as String,
         atendidoPor = f['atendido_por'] as String,
         ips = f['ips'] as String,
-        municipio = f['municipio'] as String?;
+        municipio = f['municipio'] as String?,
+        avatar = (f['avatar'] as int?) ?? 0;
 
   final int? id;
   final String? usuario;
   final String atendidoPor;
   final String ips;
   final String? municipio;
+
+  /// Avatar de la cuenta (índice en `avatares`, ui/widgets/avatar.dart).
+  final int avatar;
 }
 
 /// Una evaluación guardada (sin nombre ni documento).
@@ -133,6 +138,7 @@ class BaseLocal {
         options: OpenDatabaseOptions(version: _version, onUpgrade: (bd, anterior, _) async {
           if (anterior < 2) await _crearCargas(bd);
           if (anterior < 3) await _pasarACuentas(bd);
+          if (anterior < 4) await _agregarAvatar(bd);
         }, onCreate: (bd, _) async {
           await bd.execute('CREATE TABLE ajustes (clave TEXT PRIMARY KEY, valor TEXT NOT NULL)');
           await bd.execute('''CREATE TABLE evaluaciones (
@@ -147,6 +153,7 @@ class BaseLocal {
           await bd.execute('CREATE INDEX evaluaciones_seudonimo ON evaluaciones (id_seudonimo)');
           await _crearCargas(bd);
           await _pasarACuentas(bd);
+          await _agregarAvatar(bd);
         }));
     return BaseLocal._(bd);
   }
@@ -177,6 +184,10 @@ class BaseLocal {
     await bd.delete('cargas');
     await bd.delete('ajustes', where: 'clave <> ?', whereArgs: ['clave_ips']);
   }
+
+  /// Versión 4: cada cuenta tiene su avatar (las cuentas que ya existían quedan con el primero).
+  static Future<void> _agregarAvatar(Database bd) =>
+      bd.execute('ALTER TABLE usuarios ADD COLUMN avatar INTEGER NOT NULL DEFAULT 0');
 
   Future<void> cerrar() => _bd.close();
 
@@ -215,6 +226,7 @@ class BaseLocal {
       'atendido_por': perfil.atendidoPor,
       'ips': perfil.ips,
       'municipio': perfil.municipio,
+      'avatar': perfil.avatar,
       'pin_sal': pinSal,
       'pin_derivado': derivarPin(pin, pinSal),
       'codigo_sal': codigoSal,
