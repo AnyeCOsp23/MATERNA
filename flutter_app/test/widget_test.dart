@@ -11,7 +11,7 @@ void main() {
   testWidgets('si el modelo tarda, la pantalla de inicio sigue en pantalla sin pantallas intermedias', (tester) async {
     await tester.pumpWidget(MaternaApp(inicio: Completer<(RecursosMaterna, BaseLocal)>().future));
     expect(find.byKey(const Key('pantalla-inicio')), findsOneWidget);
-    expect(find.text('MATERNA'), findsOneWidget);
+    expect(find.byKey(const Key('inicio-texto')), findsOneWidget); // la palabra MATERNA, que se escribe letra por letra
     await tester.pump(duracionInicio * 3);
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('pantalla-inicio')), findsOneWidget);
