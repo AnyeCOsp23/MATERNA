@@ -1,6 +1,6 @@
 /// Pestaña 3: historial de las evaluaciones guardadas en el dispositivo (base local SQLite).
 ///
-/// Filtros por nivel de riesgo y por fecha, búsqueda por seudónimo o por documento (se calcula su seudónimo con la
+/// Filtros por nivel de riesgo y por fecha, búsqueda por código o por documento (se calcula su seudónimo con la
 /// clave de la IPS; el documento no se guarda) y sincronización SIMULADA: no hay servidor, así que solo se marcan
 /// como sincronizadas.
 library;
@@ -66,11 +66,25 @@ class _EstadoHistorial extends State<PantallaHistorial> {
     super.dispose();
   }
 
-  /// Seudónimo a buscar: el texto tal cual o, por documento, el HMAC del documento con la clave de la IPS.
+  /// Final del código escrito en «Por código» ('88' en '14A2-88'); se filtra después de consultar la base.
+  String _finalCodigo = '';
+
+  /// Inicio del seudónimo a buscar: por código, lo que se escribió ('14A2-88' -> '14a2'); por documento, el HMAC
+  /// del documento con la clave de la IPS. null = la búsqueda no es válida (lista vacía con aviso).
   Future<String?> _seudonimoBuscado() async {
     _avisoBusqueda = null;
+    _finalCodigo = '';
     final texto = _busqueda.text.trim();
-    if (!_porDocumento || texto.isEmpty) return texto;
+    if (texto.isEmpty) return texto;
+    if (!_porDocumento) {
+      final codigo = leerCodigo(texto);
+      if (codigo == null) {
+        _avisoBusqueda = 'Escriba el código como aparece en la lista, p. ej. 14A2-88. Para buscar por cédula, use «Por documento».';
+        return null;
+      }
+      _finalCodigo = codigo.$2;
+      return codigo.$1;
+    }
     final clave = await widget.base.claveIps();
     if (clave == null) {
       _avisoBusqueda = 'Configure primero la clave de la IPS en «Carga IPS».';
@@ -87,9 +101,12 @@ class _EstadoHistorial extends State<PantallaHistorial> {
   Future<(List<RegistroEvaluacion>, int)> _cargar() async {
     final desde = _dias == null ? null : DateTime.now().subtract(Duration(days: _dias!));
     final seudonimo = await _seudonimoBuscado();
-    final lista = seudonimo == null && _porDocumento
+    final lista = seudonimo == null
         ? <RegistroEvaluacion>[]
-        : await widget.base.listar(idUsuario: widget.idUsuario, clase: _clase, desde: desde, seudonimo: seudonimo);
+        : [
+            for (final r in await widget.base.listar(idUsuario: widget.idUsuario, clase: _clase, desde: desde, seudonimo: seudonimo))
+              if (_finalCodigo.isEmpty || (r.idSeudonimo ?? '').endsWith(_finalCodigo)) r,
+          ];
     return (lista, await widget.base.pendientesDeSincronizar(idUsuario: widget.idUsuario));
   }
 
@@ -120,23 +137,13 @@ class _EstadoHistorial extends State<PantallaHistorial> {
   }
 
   Widget _filtros() => Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        SizedBox(
-          width: double.infinity,
-          child: SegmentedButton<int>(
-            key: const Key('filtro-riesgo'),
-            segments: const [
-              ButtonSegment(value: -1, label: Text('Todas')),
-              ButtonSegment(value: 2, label: Text('Rojo')),
-              ButtonSegment(value: 1, label: Text('Ámbar')),
-              ButtonSegment(value: 0, label: Text('Verde')),
-            ],
-            selected: {_clase ?? -1},
-            showSelectedIcon: false,
-            onSelectionChanged: (s) {
-              _clase = s.first == -1 ? null : s.first;
-              _recargar();
-            },
-          ),
+        FiltroNivel(
+          key: const Key('filtro-riesgo'),
+          seleccion: _clase,
+          alCambiar: (clase) {
+            _clase = clase;
+            _recargar();
+          },
         ),
         const SizedBox(height: 10),
         Wrap(spacing: 8, runSpacing: 8, children: [
@@ -153,9 +160,9 @@ class _EstadoHistorial extends State<PantallaHistorial> {
         ]),
         const SizedBox(height: 10),
         Wrap(spacing: 8, children: [
-          for (final (documento, texto) in [(false, 'Por seudónimo'), (true, 'Por documento')])
+          for (final (documento, texto) in [(false, 'Por código'), (true, 'Por documento')])
             ChoiceChip(
-              key: Key(documento ? 'buscar-por-documento' : 'buscar-por-seudonimo'),
+              key: Key(documento ? 'buscar-por-documento' : 'buscar-por-codigo'),
               label: Text(texto),
               selected: _porDocumento == documento,
               onSelected: (_) {
@@ -172,14 +179,14 @@ class _EstadoHistorial extends State<PantallaHistorial> {
           onSubmitted: (_) => _recargar(),
           decoration: InputDecoration(
             prefixIcon: const Icon(Icons.search_rounded),
-            hintText: _porDocumento ? 'Tipo y número, p. ej. CC 1065432 (no se guarda)' : 'Primeros caracteres del seudónimo',
+            hintText: _porDocumento ? 'Tipo y número, p. ej. CC 1065432 (no se guarda)' : 'Código como aparece en la lista, p. ej. 14A2-88',
             suffixIcon: IconButton(icon: const Icon(Icons.arrow_forward_rounded), onPressed: _recargar, tooltip: 'Buscar'),
           ),
         ),
         if (_avisoBusqueda != null)
           Padding(
             padding: const EdgeInsets.only(top: 6),
-            child: Text(_avisoBusqueda!, key: const Key('aviso-busqueda'), style: const TextStyle(color: Color(0xFF6B1832))),
+            child: Text(_avisoBusqueda!, key: const Key('aviso-busqueda'), style: TextStyle(color: estiloPorCategoria['Alto Riesgo']!.tinta)),
           ),
       ]);
 
@@ -195,16 +202,21 @@ class _EstadoHistorial extends State<PantallaHistorial> {
           child: Row(children: [
             Expanded(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(r.idSeudonimo == null ? 'Triaje individual' : seudonimoCorto(r.idSeudonimo),
-                    style: const TextStyle(fontWeight: FontWeight.w800, color: ColoresMaterna.tinta, fontSize: 15)),
+                Text(edadYSemanas(r.registro, largo: true),
+                    style: TextStyle(fontWeight: FontWeight.w800, color: ColoresMaterna.tinta, fontSize: 15)),
                 const SizedBox(height: 2),
                 Text(
-                  '${edadYSemanas(r.registro)} · ${fechaLegible(r.fecha)}\n'
+                  '${r.idCarga == null ? 'Triaje individual' : 'Carga IPS'} · ${fechaLegible(r.fecha)}\n'
                   '${atiende[r.atendidoPor] ?? r.atendidoPor} · ${origenLegible(r.origen, r.clase)}'
-                  '${r.alertas.isEmpty ? '' : ' · ${r.alertas.length} alerta(s)'}'
-                  '${r.idCarga == null ? '' : ' · carga IPS'}',
-                  style: const TextStyle(color: ColoresMaterna.tintaSuave, fontSize: 12.5, height: 1.35),
+                  '${r.alertas.isEmpty ? '' : ' · ${r.alertas.length} alerta(s)'}',
+                  style: TextStyle(color: ColoresMaterna.tintaSuave, fontSize: 12.5, height: 1.35),
                 ),
+                if (r.idSeudonimo != null) ...[
+                  const SizedBox(height: 4),
+                  Text(codigoGestante(r.idSeudonimo),
+                      key: Key('codigo-${r.id}'),
+                      style: TextStyle(color: ColoresMaterna.tintaSuave, fontSize: 11.5, letterSpacing: .6)),
+                ],
               ]),
             ),
             const SizedBox(width: 8),
@@ -231,18 +243,14 @@ class _EstadoHistorial extends State<PantallaHistorial> {
                 return ListView(padding: const EdgeInsets.fromLTRB(16, 8, 16, BarraFlotante.espacioInferior), children: [
                   const EncabezadoMaterna(etiqueta: 'Registro local'),
                   const SizedBox(height: 14),
-                  const TituloConIcono(
+                  TituloConIcono(
                     icono: IconoDeTrazo(IconoTrazo.baseDatos, color: ColoresMaterna.ciruela900, tamano: 26),
                     titulo: 'Historial local',
                     subtitulo: 'Sus evaluaciones guardadas en este dispositivo',
                   ),
                   const SizedBox(height: 12),
-                  Row(children: [
-                    const Expanded(
-                      child: Text('La sincronización es una simulación: no se envía ningún dato.',
-                          style: TextStyle(color: ColoresMaterna.tintaSuave, fontSize: 12.5)),
-                    ),
-                    const SizedBox(width: 8),
+                  // que es una simulación se avisa al tocar el botón y en «Acerca de» › «Uso responsable»
+                  Row(mainAxisAlignment: MainAxisAlignment.end, children: [
                     FilledButton.tonalIcon(
                       key: const Key('sincronizar'),
                       // el tema da a los botones todo el ancho; dentro de una fila ese ancho sería infinito
@@ -262,14 +270,14 @@ class _EstadoHistorial extends State<PantallaHistorial> {
                   if (estado.connectionState != ConnectionState.done)
                     const Center(child: Padding(padding: EdgeInsets.all(24), child: CircularProgressIndicator()))
                   else if (lista.isEmpty)
-                    const Padding(
+                    Padding(
                       padding: EdgeInsets.all(28),
                       child: Text('No hay evaluaciones con estos filtros.',
                           key: Key('historial-vacio'), textAlign: TextAlign.center, style: TextStyle(color: ColoresMaterna.tintaSuave)),
                     )
                   else ...[
                     Text('${lista.length} evaluación(es)', key: const Key('historial-total'),
-                        style: const TextStyle(color: ColoresMaterna.tintaSuave)),
+                        style: TextStyle(color: ColoresMaterna.tintaSuave)),
                     const SizedBox(height: 8),
                     for (final r in lista) ...[_fila(r), const SizedBox(height: 8)],
                   ],

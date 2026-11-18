@@ -111,9 +111,9 @@ class Casilla extends StatelessWidget {
       width: lado,
       height: lado,
       decoration: BoxDecoration(
-        color: marcada ? ColoresMaterna.ciruela900 : Colors.transparent,
+        color: marcada ? ColoresMaterna.vino : Colors.transparent,
         borderRadius: BorderRadius.circular(cuadrada ? 9 : lado),
-        border: Border.all(color: marcada ? ColoresMaterna.ciruela900 : const Color(0xFFE0C5D3), width: 2),
+        border: Border.all(color: marcada ? ColoresMaterna.vino : ColoresMaterna.ciruela500.withValues(alpha: .45), width: 2),
       ),
       child: AnimatedScale(
         scale: marcada ? 1 : 0,

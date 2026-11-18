@@ -22,6 +22,7 @@ import '../../motor/carga_masiva.dart';
 import '../../motor/recursos.dart';
 import '../tema/tema_materna.dart';
 import '../widgets/barra_flotante.dart';
+import '../widgets/boton_info.dart';
 import '../widgets/encabezado.dart';
 import '../widgets/iconos_trazo.dart';
 import 'pantalla_historial.dart' show fechaLegible;
@@ -75,7 +76,11 @@ class _EstadoCarga extends State<PantallaCarga> {
   var _verClave = false;
   final _campoClave = TextEditingController();
   final _campoRepetir = TextEditingController();
+  final _focoClave = FocusNode();
   String? _errorClave;
+
+  /// Se intentó guardar una clave de menos de [longitudMinimaSal] caracteres: el aviso del campo pasa a rojo.
+  var _claveCorta = false;
 
   var _procesando = false;
   (int, int) _avance = (0, 0);
@@ -88,6 +93,9 @@ class _EstadoCarga extends State<PantallaCarga> {
   @override
   void initState() {
     super.initState();
+    // el aviso «Mínimo 16 caracteres» se recalcula al escribir y al entrar o salir del campo
+    _campoClave.addListener(_alCambiarClave);
+    _focoClave.addListener(_alCambiarClave);
     widget.base.claveIps().then((c) {
       if (mounted) {
         setState(() {
@@ -102,8 +110,43 @@ class _EstadoCarga extends State<PantallaCarga> {
   void dispose() {
     _campoClave.dispose();
     _campoRepetir.dispose();
+    _focoClave.dispose();
     super.dispose();
   }
+
+  void _alCambiarClave() {
+    if (!mounted) return;
+    setState(() {
+      if (salValida(_campoClave.text)) _claveCorta = false;
+    });
+  }
+
+  /// Aviso bajo el campo de la clave:
+  ///   · vacío y sin el foco: nada;
+  ///   · con el foco, o con algo escrito pero incompleto (también al salir del campo): «Mínimo 16 caracteres»;
+  ///   · si se intentó guardar incompleta: en rojo y con los caracteres que lleva;
+  ///   · con 16 o más: desaparece.
+  ({String? ayuda, String? error}) get _avisoLongitud {
+    final n = _campoClave.text.length;
+    if (n >= longitudMinimaSal || (n == 0 && !_focoClave.hasFocus && !_claveCorta)) return (ayuda: null, error: null);
+    if (_claveCorta) return (ayuda: null, error: 'Mínimo $longitudMinimaSal caracteres (lleva $n)');
+    return (ayuda: 'Mínimo $longitudMinimaSal caracteres', error: null);
+  }
+
+  /// Lo que antes ocupaba el formulario, ahora en la ventana del botón ⓘ.
+  void _infoClave() => mostrarInfo(context, titulo: 'Clave de la IPS', icono: Icons.key_rounded, puntos: const [
+        (Icons.shield_outlined, 'Protege la identidad de las gestantes',
+            'Con esta clave, el documento de cada gestante se reemplaza por un código anónimo. El documento nunca se '
+                'guarda en el dispositivo.', false),
+        (Icons.devices_outlined, 'La misma en todos los dispositivos',
+            'Debe ser la misma en todos los dispositivos de la IPS, para que cada gestante tenga siempre el mismo código y '
+                'se pueda hacer su seguimiento.', false),
+        (Icons.support_agent_outlined, 'Pídala al responsable de datos',
+            'No invente una clave nueva: solicítela al responsable de datos de su IPS.', false),
+        (Icons.warning_amber_rounded, 'Si cambia la clave',
+            'Las gestantes que ya se cargaron quedarán con otro código y no se podrán relacionar con las que se carguen '
+                'después.', true),
+      ]);
 
   void _aviso(String texto) => ScaffoldMessenger.of(context)
     ..hideCurrentSnackBar()
@@ -112,11 +155,16 @@ class _EstadoCarga extends State<PantallaCarga> {
   // ------------------------------------------------------------------ clave
   Future<void> _guardarClave() async {
     final clave = _campoClave.text;
-    final error = !salValida(clave)
-        ? 'La clave debe tener al menos $longitudMinimaSal caracteres.'
-        : (clave != _campoRepetir.text ? 'Las dos claves no coinciden.' : null);
-    if (error != null) {
-      setState(() => _errorClave = error);
+    if (!salValida(clave)) {
+      // el aviso del propio campo lo explica (en rojo y con los caracteres que lleva)
+      setState(() {
+        _claveCorta = true;
+        _errorClave = null;
+      });
+      return;
+    }
+    if (clave != _campoRepetir.text) {
+      setState(() => _errorClave = 'Las dos claves no coinciden.');
       return;
     }
     await widget.base.fijarClaveIps(clave);
@@ -125,6 +173,7 @@ class _EstadoCarga extends State<PantallaCarga> {
       _clave = clave;
       _editandoClave = false;
       _errorClave = null;
+      _claveCorta = false;
       _campoClave.clear();
       _campoRepetir.clear();
     });
@@ -198,13 +247,13 @@ class _EstadoCarga extends State<PantallaCarga> {
         recursos: widget.recursos,
         evaluacion: r.evaluacion,
         soloLectura: true,
-        nota: 'Fila ${r.fila} del registro',
+        nota: 'Fila ${r.fila} del archivo',
       ),
     ));
   }
 
   // ------------------------------------------------------------------ vista
-  static const _suave = TextStyle(color: ColoresMaterna.tintaSuave, height: 1.4);
+  static TextStyle get _suave => TextStyle(color: ColoresMaterna.tintaSuave, height: 1.4);
 
   Widget _tarjeta({required List<Widget> hijos, Key? key}) => Card(
         key: key,
@@ -214,7 +263,7 @@ class _EstadoCarga extends State<PantallaCarga> {
         ),
       );
 
-  static final _botonRosa = FilledButton.styleFrom(
+  static ButtonStyle get _botonRosa => FilledButton.styleFrom(
     backgroundColor: ColoresMaterna.ciruela100,
     foregroundColor: ColoresMaterna.ciruela900,
     minimumSize: const Size(0, 42),
@@ -229,13 +278,13 @@ class _EstadoCarga extends State<PantallaCarga> {
         child: Padding(
           padding: const EdgeInsets.fromLTRB(16, 12, 8, 12),
           child: Row(children: [
-            const Icon(Icons.key_rounded, color: ColoresMaterna.ciruela900),
+            Icon(Icons.key_rounded, color: ColoresMaterna.ciruela900),
             const SizedBox(width: 12),
             Expanded(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                const Text('Clave de la IPS configurada', style: TextStyle(fontWeight: FontWeight.w700, color: ColoresMaterna.tinta)),
+                Text('Clave de la IPS configurada', style: TextStyle(fontWeight: FontWeight.w700, color: ColoresMaterna.tinta)),
                 Text('Código de verificación ${huellaSal(_clave!)} · debe ser el mismo en todos los dispositivos de la IPS',
-                    key: const Key('huella-clave'), style: const TextStyle(color: ColoresMaterna.tintaSuave, fontSize: 12.5)),
+                    key: const Key('huella-clave'), style: TextStyle(color: ColoresMaterna.tintaSuave, fontSize: 12.5)),
               ]),
             ),
             TextButton(
@@ -248,34 +297,25 @@ class _EstadoCarga extends State<PantallaCarga> {
       );
     }
     return _tarjeta(key: const Key('configurar-clave'), hijos: [
-      const Row(children: [
+      Row(children: [
         Icon(Icons.key_rounded, color: ColoresMaterna.ciruela900),
-        SizedBox(width: 10),
+        const SizedBox(width: 10),
         Expanded(child: Text('Clave de la IPS', style: TextStyle(fontWeight: FontWeight.w800, color: ColoresMaterna.tinta))),
+        // la explicación (para qué sirve, la misma en toda la IPS, a quién pedirla, qué pasa si cambia) va aquí
+        BotonInfoPulso(key: const Key('info-clave'), tooltip: 'Qué es la clave de la IPS', alTocar: _infoClave),
       ]),
-      const SizedBox(height: 8),
-      const Text(
-        'Con ella el documento de cada gestante se reemplaza por un código anónimo: el documento nunca se '
-        'guarda. Debe ser la misma en todos los dispositivos de la IPS; pídala al responsable de datos. '
-        'Mínimo $longitudMinimaSal caracteres.',
-        style: _suave,
-      ),
-      if (_clave != null) ...[
-        const SizedBox(height: 8),
-        Text(
-          'Si cambia la clave, las gestantes ya cargadas tendrán otro seudónimo y no se podrán relacionar con las nuevas.',
-          style: TextStyle(color: estiloPorCategoria['Alto Riesgo']!.tinta, height: 1.4),
-        ),
-      ],
-      const SizedBox(height: 12),
+      const SizedBox(height: 10),
       TextField(
         key: const Key('campo-clave'),
         controller: _campoClave,
+        focusNode: _focoClave,
         obscureText: !_verClave,
         autocorrect: false,
         enableSuggestions: false,
         decoration: InputDecoration(
           labelText: 'Clave de la IPS',
+          helperText: _avisoLongitud.ayuda,
+          errorText: _avisoLongitud.error,
           suffixIcon: IconButton(
             tooltip: _verClave ? 'Ocultar' : 'Mostrar',
             icon: Icon(_verClave ? Icons.visibility_off_rounded : Icons.visibility_rounded),
@@ -323,9 +363,9 @@ class _EstadoCarga extends State<PantallaCarga> {
     if (carga == null) {
       return TarjetaPunteada(
         child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-          const Text('Archivo con la plantilla 3280', style: TextStyle(fontWeight: FontWeight.w800, color: ColoresMaterna.tinta)),
+          Text('Archivo con la plantilla 3280', style: TextStyle(fontWeight: FontWeight.w800, color: ColoresMaterna.tinta)),
           const SizedBox(height: 4),
-          const Text(
+          Text(
             'CSV, TXT separado por «|» o Excel (.xlsx). Los encabezados se reconocen por sus nombres habituales (TAS, '
             'Fetocardia, Glicemia…). Nombres, teléfono y datos administrativos se descartan.',
             style: _suave,
@@ -338,7 +378,7 @@ class _EstadoCarga extends State<PantallaCarga> {
             label: const Text('Elegir archivo'),
           ),
           if (_clave == null)
-            const Padding(
+            Padding(
               padding: EdgeInsets.only(top: 8),
               child: Text('Primero configure la clave de la IPS.', textAlign: TextAlign.center, style: _suave),
             ),
@@ -355,10 +395,10 @@ class _EstadoCarga extends State<PantallaCarga> {
         Expanded(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text(carga.archivo,
-                overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w800, color: ColoresMaterna.tinta)),
+                overflow: TextOverflow.ellipsis, style: TextStyle(fontWeight: FontWeight.w800, color: ColoresMaterna.tinta)),
             const SizedBox(height: 2),
             Text('${r.filasLeidas - r.filasDuplicadas} registros · $formato',
-                style: const TextStyle(color: ColoresMaterna.tintaSuave, fontSize: 12.5)),
+                style: TextStyle(color: ColoresMaterna.tintaSuave, fontSize: 12.5)),
           ]),
         ),
         const SizedBox(width: 8),
@@ -376,7 +416,7 @@ class _EstadoCarga extends State<PantallaCarga> {
     final (hechas, total) = _avance;
     return _tarjeta(key: const Key('procesando'), hijos: [
       Text(total == 0 ? 'Leyendo el archivo…' : 'Evaluando $hechas de $total registros…',
-          style: const TextStyle(color: ColoresMaterna.tinta)),
+          style: TextStyle(color: ColoresMaterna.tinta)),
       const SizedBox(height: 10),
       ClipRRect(
         borderRadius: BorderRadius.circular(6),
@@ -409,7 +449,7 @@ class _EstadoCarga extends State<PantallaCarga> {
           child: ExpansionTile(
             key: key,
             shape: const Border(),
-            title: Text(titulo, style: const TextStyle(fontWeight: FontWeight.w700, color: ColoresMaterna.tinta)),
+            title: Text(titulo, style: TextStyle(fontWeight: FontWeight.w700, color: ColoresMaterna.tinta)),
             childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
             expandedCrossAxisAlignment: CrossAxisAlignment.start,
             children: hijos,
@@ -429,7 +469,7 @@ class _EstadoCarga extends State<PantallaCarga> {
         '${carga.resultados.length} evaluadas · ${carga.rechazadas.length} sin evaluar',
         key: const Key('totales-carga'),
         textAlign: TextAlign.center,
-        style: const TextStyle(color: ColoresMaterna.tintaSuave, fontSize: 12.5),
+        style: TextStyle(color: ColoresMaterna.tintaSuave, fontSize: 12.5),
       ),
       const SizedBox(height: 10),
       if (_guardada)
@@ -437,7 +477,7 @@ class _EstadoCarga extends State<PantallaCarga> {
           key: const Key('carga-guardada'),
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
           decoration: BoxDecoration(color: ColoresMaterna.sinConexionFondo, borderRadius: BorderRadius.circular(14)),
-          child: const Row(children: [
+          child: Row(children: [
             Icon(Icons.check_circle_rounded, color: ColoresMaterna.sinConexionPunto, size: 20),
             SizedBox(width: 8),
             Expanded(child: Text('Guardadas en el historial de este dispositivo.', style: TextStyle(color: ColoresMaterna.sinConexionTexto))),
@@ -496,20 +536,10 @@ class _EstadoCarga extends State<PantallaCarga> {
     ]);
   }
 
-  Widget _filtros() => SizedBox(
-        width: double.infinity,
-        child: SegmentedButton<int>(
-          key: const Key('filtro-carga'),
-          segments: [
-            ButtonSegment(value: -1, label: Text('Todas')),
-            ButtonSegment(value: 2, label: Text('Rojo')),
-            ButtonSegment(value: 1, label: Text('Ámbar')),
-            ButtonSegment(value: 0, label: Text('Verde')),
-          ],
-          selected: {_filtro ?? -1},
-          showSelectedIcon: false,
-          onSelectionChanged: (s) => setState(() => _filtro = s.first == -1 ? null : s.first),
-        ),
+  Widget _filtros() => FiltroNivel(
+        key: const Key('filtro-carga'),
+        seleccion: _filtro,
+        alCambiar: (clase) => setState(() => _filtro = clase),
       );
 
   /// Lo que más pesó en el nivel, para la lista: la regla o el signo de alarma, o la presión arterial.
@@ -539,15 +569,15 @@ class _EstadoCarga extends State<PantallaCarga> {
             child: Row(children: [
               Expanded(
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text(seudonimoCorto(r.idSeudonimo),
-                      style: const TextStyle(fontWeight: FontWeight.w800, color: ColoresMaterna.tinta, fontSize: 15)),
+                  Text('Fila ${r.fila} del archivo',
+                      style: TextStyle(fontWeight: FontWeight.w800, color: ColoresMaterna.tinta, fontSize: 15)),
                   const SizedBox(height: 2),
                   Text(edadYSemanas(e.registro),
-                      style: const TextStyle(color: ColoresMaterna.tintaSuave, fontSize: 12.5)),
+                      style: TextStyle(color: ColoresMaterna.tintaSuave, fontSize: 12.5)),
                 ]),
               ),
               if (e.urgentesSinEscalar.isNotEmpty)
-                const Padding(
+                Padding(
                   padding: EdgeInsets.only(right: 6),
                   child: Icon(Icons.priority_high_rounded, color: ColoresMaterna.ciruela900, size: 18, semanticLabel: 'Alerta urgente'),
                 ),
@@ -556,7 +586,7 @@ class _EstadoCarga extends State<PantallaCarga> {
                 child: Text(_hallazgo(e),
                     textAlign: TextAlign.right,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(color: ColoresMaterna.tinta, fontSize: 12.5)),
+                    style: TextStyle(color: ColoresMaterna.tinta, fontSize: 12.5)),
               ),
               const SizedBox(width: 8),
               EtiquetaNivel(estilo, key: Key('nivel-${e.clase}')),
@@ -584,7 +614,7 @@ class _EstadoCarga extends State<PantallaCarga> {
               sliver: SliverList.list(children: [
                 const EncabezadoMaterna(etiqueta: 'Archivo IPS'),
                 const SizedBox(height: 14),
-                const TituloConIcono(
+                TituloConIcono(
                   icono: IconoDeTrazo(IconoTrazo.subirArchivo, color: ColoresMaterna.ciruela900, tamano: 26),
                   titulo: 'Carga masiva IPS',
                   subtitulo: 'Triaje ordenado por urgencia · sin internet',

@@ -17,8 +17,8 @@ class DestinoBarra {
   final String etiqueta;
 }
 
-const _gris = Color(0xFF8A8487);
-const _rosaActivo = ColoresMaterna.ciruela100;
+Color get _gris => ColoresMaterna.iconoInactivo;
+Color get _rosaActivo => ColoresMaterna.ciruela100;
 
 class BarraFlotante extends StatelessWidget {
   const BarraFlotante({super.key, required this.destinos, required this.indice, required this.alCambiar});
@@ -50,7 +50,7 @@ class BarraFlotante extends StatelessWidget {
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(30),
                   child: Material(
-                    color: Colors.white,
+                    color: ColoresMaterna.tarjeta,
                     child: Padding(
                       padding: const EdgeInsets.all(8),
                       child: Row(children: [

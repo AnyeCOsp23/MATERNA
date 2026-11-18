@@ -51,6 +51,7 @@ abstract final class ClavesPreferencias {
   static const letraGrande = 'letra_grande';
   static const reducirAnimaciones = 'reducir_animaciones';
   static const vibrarAlto = 'vibrar_alto_riesgo';
+  static const modoOscuro = 'modo_oscuro';
 }
 
 class Preferencias extends ChangeNotifier {
@@ -93,9 +94,13 @@ class Preferencias extends ChangeNotifier {
   /// Vibra el teléfono cuando una evaluación sale Alto Riesgo.
   bool get vibrarAlto => _valor(ClavesPreferencias.vibrarAlto, true);
 
+  /// Colores oscuros en toda la app (la animación del logo y la presentación inicial siguen en claro).
+  bool get modoOscuro => _valor(ClavesPreferencias.modoOscuro, false);
+
   Future<void> fijarLetraGrande(bool v) => _fijar(ClavesPreferencias.letraGrande, v);
   Future<void> fijarReducirAnimaciones(bool v) => _fijar(ClavesPreferencias.reducirAnimaciones, v);
   Future<void> fijarVibrarAlto(bool v) => _fijar(ClavesPreferencias.vibrarAlto, v);
+  Future<void> fijarModoOscuro(bool v) => _fijar(ClavesPreferencias.modoOscuro, v);
 
   /// Guarda todo lo elegido en la presentación y la marca como vista.
   Future<void> terminarPresentacion({String? rol, required int avatar, required bool letraGrande,

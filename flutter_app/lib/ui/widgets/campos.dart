@@ -17,8 +17,8 @@ class Etiqueta extends StatelessWidget {
   Widget build(BuildContext context) => Padding(
         padding: const EdgeInsets.only(bottom: 6),
         child: Text.rich(TextSpan(children: [
-          TextSpan(text: texto, style: const TextStyle(fontWeight: FontWeight.w600, color: ColoresMaterna.tinta)),
-          if (ayuda != null) TextSpan(text: '  $ayuda', style: const TextStyle(color: ColoresMaterna.tintaSuave, fontSize: 12.5)),
+          TextSpan(text: texto, style: TextStyle(fontWeight: FontWeight.w600, color: ColoresMaterna.tinta)),
+          if (ayuda != null) TextSpan(text: '  $ayuda', style: TextStyle(color: ColoresMaterna.tintaSuave, fontSize: 12.5)),
         ])),
       );
 }

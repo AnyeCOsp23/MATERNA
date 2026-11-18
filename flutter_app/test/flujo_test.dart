@@ -90,7 +90,7 @@ Future<void> llenarRutina(WidgetTester tester) async {
   // el paso de signos de alarma se reconoce por el triángulo de alerta, en rojo
   final icono = tester.widget<Icon>(find.byKey(const Key('icono-paso')));
   expect(icono.icon, Icons.warning_rounded);
-  expect(icono.color, const Color(0xFFC62828));
+  expect(icono.color, estiloPorCategoria['Alto Riesgo']!.barra); // #C62828 en el modo claro
 }
 
 /// Desde los signos de alarma (paso 4) hasta el resultado, sin la valoración opcional.
@@ -279,17 +279,18 @@ void main() {
     await tocar(tester, find.byKey(const Key('nueva-evaluacion')));
     await tocar(tester, find.byKey(const Key('pestana-2')));
     expect(find.text('1 evaluación(es)'), findsOneWidget);
-    expect(find.text('Triaje individual'), findsOneWidget);
+    expect(find.textContaining('Triaje individual'), findsOneWidget);
     expect(find.byKey(const Key('nivel-0')), findsOneWidget);
     // un Bajo Riesgo no «tiene factores de riesgo»: no tuvo signos
     expect(find.textContaining('sin signos de alarma'), findsOneWidget);
     expect(find.textContaining('factores de riesgo'), findsNothing);
-    await tocar(tester, find.descendant(of: find.byKey(const Key('filtro-riesgo')), matching: find.text('Rojo')));
+    await tocar(tester, find.descendant(of: find.byKey(const Key('filtro-riesgo')), matching: find.text('Alto')));
     expect(find.byKey(const Key('historial-vacio')), findsOneWidget);
     await tocar(tester, find.descendant(of: find.byKey(const Key('filtro-riesgo')), matching: find.text('Todas')));
+    expect(find.textContaining('La sincronización es una simulación'), findsNothing); // ya no queda fijo en pantalla
     await tocar(tester, find.byKey(const Key('sincronizar')));
     expect(find.textContaining('Simulación: no se envía ningún dato'), findsOneWidget);
-    await tocar(tester, find.text('Triaje individual'));
+    await tocar(tester, find.textContaining('Triaje individual'));
     expect(find.text('Evaluación guardada'), findsOneWidget);
     expect(find.textContaining('Médico · ESE Valledupar'), findsOneWidget);
     expect(find.byKey(const Key('nueva-evaluacion')), findsNothing);
