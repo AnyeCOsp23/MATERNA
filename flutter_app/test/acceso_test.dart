@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:materna/datos/base_local.dart';
+import 'package:materna/datos/preferencias.dart';
 import 'package:materna/datos/seguridad.dart';
 import 'package:materna/main.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
@@ -15,7 +16,7 @@ Future<BaseLocal> arrancar(WidgetTester tester) async {
   addTearDown(tester.view.reset);
   final base = (await tester.runAsync(() => BaseLocal.abrir(databaseFactoryFfiNoIsolate, inMemoryDatabasePath)))!;
   addTearDown(() => tester.runAsync(base.cerrar));
-  await tester.pumpWidget(MaternaApp(inicio: Future.value((recursos, base))));
+  await tester.pumpWidget(MaternaApp(inicio: Future.value((recursos, base)), preferencias: Future.value(Preferencias.enMemoria())));
   await tester.pumpAndSettle();
   return base;
 }

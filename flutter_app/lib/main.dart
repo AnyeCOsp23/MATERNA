@@ -1,18 +1,22 @@
 // MATERNA · Módulo 2: aplicación de usuario final (web y móvil) para el personal de salud en territorio.
 //
 // Carga una vez lo que entrega el Módulo 1 (modelo, preprocesamiento, reglas y catálogo 3280), abre la base
-// local del dispositivo mientras muestra la pantalla de inicio animada, y pide usuario y PIN antes de la pantalla
-// principal (varias personas pueden compartir el dispositivo, cada una con su cuenta). Todo corre sin internet.
+// local del dispositivo mientras muestra la pantalla de inicio animada; la primera vez muestra la presentación
+// (onboarding) y luego pide usuario y PIN antes de la pantalla principal (varias personas pueden compartir el
+// dispositivo, cada una con su cuenta). Todo corre sin internet.
 // La sesión no se recuerda al cerrar la app: al volver a abrirla se pide el PIN de nuevo.
 import 'package:flutter/material.dart';
 
 import 'datos/base_local.dart';
 import 'datos/fabrica_bd.dart';
+import 'datos/preferencias.dart';
 import 'motor/recursos.dart';
 import 'ui/pantallas/pantalla_acceso.dart';
 import 'ui/pantallas/pantalla_inicio.dart';
+import 'ui/pantallas/pantalla_presentacion.dart';
 import 'ui/pantallas/pantalla_principal.dart';
 import 'ui/tema/tema_materna.dart';
+import 'ui/widgets/ambito_preferencias.dart';
 
 void main() {
   runApp(const MaternaApp());
@@ -21,20 +25,42 @@ void main() {
 Future<(RecursosMaterna, BaseLocal)> _iniciar() async =>
     (await RecursosMaterna.cargar(), await BaseLocal.abrir(fabricaBaseLocal(), rutaBaseLocal));
 
-class MaternaApp extends StatelessWidget {
-  const MaternaApp({super.key, this.inicio});
+class MaternaApp extends StatefulWidget {
+  const MaternaApp({super.key, this.inicio, this.preferencias});
 
   /// Permite inyectar los recursos y la base (las pruebas usan los archivos y una base en memoria).
   final Future<(RecursosMaterna, BaseLocal)>? inicio;
 
+  /// Permite inyectar las preferencias (las pruebas usan unas en memoria).
+  final Future<Preferencias>? preferencias;
+
+  @override
+  State<MaternaApp> createState() => _EstadoApp();
+}
+
+class _EstadoApp extends State<MaternaApp> {
+  late final _inicio = widget.inicio ?? _iniciar();
+  late final _cargaPreferencias = widget.preferencias ?? Preferencias.cargar();
+  Preferencias? _preferencias;
+
+  @override
+  void initState() {
+    super.initState();
+    // se leen en paralelo con la pantalla de inicio: la animación del logo no espera por ellas
+    _cargaPreferencias.then((p) => mounted ? setState(() => _preferencias = p) : null,
+        onError: (Object e) => debugPrint('No se pudieron leer las preferencias: $e')); // sigue sin presentación
+  }
+
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    final app = MaterialApp(
       title: 'MATERNA',
       debugShowCheckedModeBanner: false,
       theme: temaMaterna(),
-      home: _Arranque(inicio: inicio ?? _iniciar()),
+      builder: (context, hijo) => AjustesGlobales(child: hijo!),
+      home: _Arranque(inicio: _inicio, preferencias: _preferencias),
     );
+    return AmbitoPreferencias(preferencias: _preferencias, child: app);
   }
 }
 
@@ -43,9 +69,12 @@ class MaternaApp extends StatelessWidget {
 /// La pantalla de inicio sigue visible (con el logo ya en su lugar) hasta que la carga termine: en un teléfono
 /// lento no aparece ninguna pantalla intermedia entre el logo y el PIN.
 class _Arranque extends StatefulWidget {
-  const _Arranque({required this.inicio});
+  const _Arranque({required this.inicio, required this.preferencias});
 
   final Future<(RecursosMaterna, BaseLocal)> inicio;
+
+  /// null mientras se leen (o si no se pudieron leer: entonces no se muestra la presentación).
+  final Preferencias? preferencias;
 
   @override
   State<_Arranque> createState() => _EstadoArranque();
@@ -73,6 +102,9 @@ class _EstadoArranque extends State<_Arranque> {
       pantalla = PantallaInicio(key: const ValueKey('inicio'), alTerminar: () => setState(() => _animacionTerminada = true));
     } else if (listo == null) {
       pantalla = _Mensaje('No se pudo iniciar MATERNA: $_error');
+    } else if (widget.preferencias case final p? when !p.presentacionVista) {
+      // solo la primera vez: al terminar quedan guardadas (ya vista) y se redibuja para pasar al acceso
+      pantalla = PantallaPresentacion(key: const ValueKey('arranque-presentacion'), preferencias: p, alTerminar: () => setState(() {}));
     } else {
       pantalla = _Sesion(recursos: listo.$1, base: listo.$2);
     }

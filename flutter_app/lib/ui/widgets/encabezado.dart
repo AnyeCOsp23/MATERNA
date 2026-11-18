@@ -5,6 +5,7 @@ library;
 import 'package:flutter/material.dart';
 
 import '../tema/tema_materna.dart';
+import 'avatar.dart';
 
 /// Logo y «MATERNA» a la izquierda; a la derecha, en qué parte de la app se está (o un botón para volver).
 class EncabezadoMaterna extends StatelessWidget {
@@ -36,6 +37,10 @@ class EncabezadoMaterna extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(color: ColoresMaterna.tintaSuave, fontSize: 13, fontWeight: FontWeight.w500)),
           ),
+          if (AvatarSesion.de(context) case final avatar?) ...[
+            const SizedBox(width: 10),
+            AvatarCirculo(avatar, key: const Key('avatar-sesion'), tamano: 30),
+          ],
         ]),
       );
 }

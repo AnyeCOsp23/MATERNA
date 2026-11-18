@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:materna/datos/base_local.dart';
 import 'package:materna/datos/seguridad.dart';
 import 'package:materna/motor/carga_masiva.dart';
+import 'package:materna/motor/recursos.dart' show medirInferencia;
 import 'package:materna/ui/pantallas/pantalla_acerca_de.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 

@@ -3,13 +3,14 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:materna/datos/base_local.dart';
+import 'package:materna/datos/preferencias.dart';
 import 'package:materna/main.dart';
 import 'package:materna/motor/recursos.dart';
 import 'package:materna/ui/pantallas/pantalla_inicio.dart';
 
 void main() {
   testWidgets('si el modelo tarda, la pantalla de inicio sigue en pantalla sin pantallas intermedias', (tester) async {
-    await tester.pumpWidget(MaternaApp(inicio: Completer<(RecursosMaterna, BaseLocal)>().future));
+    await tester.pumpWidget(MaternaApp(inicio: Completer<(RecursosMaterna, BaseLocal)>().future, preferencias: Future.value(Preferencias.enMemoria())));
     expect(find.byKey(const Key('pantalla-inicio')), findsOneWidget);
     expect(find.byKey(const Key('inicio-texto')), findsOneWidget); // la palabra MATERNA, que se escribe letra por letra
     await tester.pump(duracionInicio * 3);
@@ -21,7 +22,7 @@ void main() {
 
   testWidgets('si la carga falla, lo dice después de la pantalla de inicio', (tester) async {
     final carga = Completer<(RecursosMaterna, BaseLocal)>();
-    await tester.pumpWidget(MaternaApp(inicio: carga.future));
+    await tester.pumpWidget(MaternaApp(inicio: carga.future, preferencias: Future.value(Preferencias.enMemoria())));
     carga.completeError(StateError('sin modelo'));
     await tester.pump(duracionInicio);
     await tester.pumpAndSettle();

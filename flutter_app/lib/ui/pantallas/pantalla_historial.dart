@@ -114,7 +114,7 @@ class _EstadoHistorial extends State<PantallaHistorial> {
         evaluacion: widget.recursos.evaluar(r.registro),
         soloLectura: true,
         nota: 'Evaluación del ${fechaLegible(r.fecha)} · ${atiende[r.atendidoPor] ?? r.atendidoPor} · ${r.ips}'
-            '${r.versionModelo == widget.recursos.clasificador.version ? '' : ' · guardada con la versión ${r.versionModelo}, recalculada con la ${widget.recursos.clasificador.version}'}',
+            '${r.versionModelo == widget.recursos.clasificador.version ? '' : ' · recalculada con la versión actual de MATERNA'}',
       ),
     ));
   }

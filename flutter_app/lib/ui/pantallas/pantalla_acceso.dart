@@ -13,6 +13,8 @@ import 'package:flutter/services.dart';
 import '../../datos/base_local.dart';
 import '../../datos/seguridad.dart';
 import '../tema/tema_materna.dart';
+import '../widgets/ambito_preferencias.dart';
+import '../widgets/avatar.dart';
 import '../widgets/campos.dart';
 import 'pantalla_triaje.dart' show atiende;
 
@@ -322,8 +324,22 @@ class _EstadoRegistrarse extends State<_Registrarse> {
   final _pin = TextEditingController();
   final _pin2 = TextEditingController();
   String? _atiende;
+  var _avatar = 0;
   var _errores = <String, String>{};
   var _creando = false;
+  var _sugeridos = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // lo elegido en la presentación queda propuesto (se puede cambiar)
+    final preferencias = AmbitoPreferencias.de(context);
+    if (!_sugeridos && preferencias != null) {
+      _sugeridos = true;
+      _atiende = atiende.containsKey(preferencias.rol) ? preferencias.rol : null;
+      _avatar = preferencias.avatar;
+    }
+  }
 
   @override
   void dispose() {
@@ -353,6 +369,7 @@ class _EstadoRegistrarse extends State<_Registrarse> {
       atendidoPor: _atiende!,
       ips: _ips.text.trim(),
       municipio: _municipio.text.trim().isEmpty ? null : _municipio.text.trim(),
+      avatar: _avatar,
     );
     final codigo = await widget.base.registrar(usuario: _usuario.text, pin: _pin.text, perfil: perfil);
     final creado = await widget.base.perfilDe(_usuario.text);
@@ -381,6 +398,26 @@ class _EstadoRegistrarse extends State<_Registrarse> {
                 error: _errores['atendido_por'],
                 alCambiar: (v) => setState(() => _atiende = v),
               ),
+              const SizedBox(height: 16),
+              const Etiqueta('Avatar'),
+              Wrap(spacing: 10, runSpacing: 10, children: [
+                for (var k = 0; k < avatares.length; k++)
+                  Rebote(
+                    key: Key('registro-avatar-$k'),
+                    etiqueta: 'Avatar ${avatares[k].nombre}',
+                    seleccionado: k == _avatar,
+                    alTocar: () => setState(() => _avatar = k),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 250),
+                      padding: const EdgeInsets.all(3),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(color: k == _avatar ? ColoresMaterna.ciruela900 : Colors.transparent, width: 2),
+                      ),
+                      child: Opacity(opacity: k == _avatar ? 1 : .55, child: AvatarCirculo(k, tamano: 40)),
+                    ),
+                  ),
+              ]),
               const SizedBox(height: 16),
               _campo('ips', 'IPS o puesto de salud', _ips, error: _errores['ips']),
               const SizedBox(height: 16),
