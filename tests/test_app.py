@@ -48,7 +48,8 @@ def cargar_caso(at, numero):
 
 
 def bienvenidas(at):
-    return [e for e in at.main if getattr(e, "type", None) == "bidi_component"]
+    """El componente de la pantalla de bienvenida (no el motor de animaciones, que siempre está montado)."""
+    return [e for e in at.main if getattr(e, "type", None) == "bidi_component" and getattr(e, "key", None) == "bienvenida"]
 
 
 def test_bienvenida_es_lo_unico_de_la_primera_ejecucion(tmp_path, monkeypatch):

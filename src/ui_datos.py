@@ -131,10 +131,12 @@ def seccion_escalabilidad(permitido):
         st.caption("Aún no se ha medido en este equipo. La medición tarda uno o dos minutos con Random Forest.")
         return
     total = tabla["carga_s"] + tabla["limpieza_s"] + tabla["entrenamiento_s"]
-    st.markdown(ui.barras([(t, f"{miles(n)} · {segundos(t)}") for n, t in zip(tabla["registros"], total)]), unsafe_allow_html=True)
+    graficos.mostrar(graficos.barras_simples([miles(n) for n in tabla["registros"]], list(total), "Tiempo total según los registros",
+                                             "Segundos"), "datos-escalabilidad-total")
     st.caption("Cada barra suma carga, limpieza y entrenamiento. El detalle por etapa y la memoria:")
     grafico, datos = st.columns([3, 2], gap="large")
-    grafico.altair_chart(graficos.escalabilidad(tabla), width="stretch")
+    with grafico:
+        graficos.mostrar(graficos.escalabilidad(tabla), "datos-escalabilidad")
     datos.dataframe(tabla[["registros", "filas_limpias", "carga_s", "limpieza_s", "entrenamiento_s", "memoria_mb"]].rename(columns={
         "registros": "Registros", "filas_limpias": "Filas limpias", "carga_s": "Carga (s)", "limpieza_s": "Limpieza (s)",
         "entrenamiento_s": "Entrenamiento (s)", "memoria_mb": "Memoria (MB)"}), hide_index=True, width="stretch")
@@ -147,7 +149,8 @@ def seccion_eda(base, datos_trabajo, trabajo, etiquetas):
     """Fase 03: el conjunto de trabajo frente al dataset base."""
     st.caption(f"{trabajo['nombre']} · {miles(len(datos_trabajo))} registros")
     c1, c2 = st.columns([2, 3], gap="large")
-    c1.altair_chart(graficos.barras_clases(datos_trabajo), width="stretch")
+    with c1:
+        graficos.mostrar(graficos.barras_clases(datos_trabajo), "datos-trabajo-clases")
     c2.dataframe(pd.DataFrame([{
         "Variable": etiquetas[v], "Media base": base[v].mean(), "Media trabajo": datos_trabajo[v].mean(),
         "Mediana base": base[v].median(), "Mediana trabajo": datos_trabajo[v].median(),

@@ -3,6 +3,7 @@
 El laboratorio muestra una fase a la vez (st.session_state["vista"]): las pruebas van de una a otra con `ir`.
 """
 import json
+import re
 import shutil
 import sqlite3
 
@@ -296,6 +297,17 @@ def test_particion_parametrizable(entorno):
     # un clic en una partición predefinida llena los tres porcentajes
     radio(at, "part_preset").set_value("60-20-20").run()
     assert [numero(at, e).value for e in ("Entrenamiento (%)", "Validación (%)", "Prueba (%)")] == [60, 20, 20]
+    # «Personalizada» se queda elegida aunque los porcentajes sigan siendo los de un atajo, y se pueden editar
+    radio(at, "part_preset").set_value("Personalizada").run()
+    assert radio(at, "part_preset").value == "Personalizada" and not at.exception
+    numero(at, "Entrenamiento (%)").set_value(65)
+    numero(at, "Validación (%)").set_value(15).run()
+    assert radio(at, "part_preset").value == "Personalizada" and not at.error
+    conteos = next(d.value for d in at.dataframe if "Conjunto" in d.value)
+    assert list(conteos["Gestantes"]) == [780, 180, 240]
+    # y volver a un atajo lo aplica
+    radio(at, "part_preset").set_value("70-15-15").run()
+    assert [numero(at, e).value for e in ("Entrenamiento (%)", "Validación (%)", "Prueba (%)")] == [70, 15, 15]
 
 
 def test_probar_otra_configuracion_guarda_particion_semilla_y_usuario(entorno):
@@ -478,7 +490,11 @@ def test_interpretacion_de_metricas_y_avisos_fijos(entorno):
     # los cuatro indicadores y la matriz en cuadros salen de los números oficiales de la prueba
     for cifra in ("0,957", "0,963", "0,998", "Detecta 22 de 23 casos graves", "La diagonal son los aciertos: 175 de 180."):
         assert cifra in textos, cifra
-    assert 'class="c d">85<' in textos and 'class="c d">68<' in textos and 'class="c d">22<' in textos
+    # la matriz de confusión es un mapa de calor ECharts (key estable) con los números oficiales de la prueba
+    matriz = next(e for e in at.main if getattr(e, "type", None) == "bidi_component" and e.key == "g-interpretacion-matriz")
+    celdas = json.loads(json.loads(matriz.proto.json)["opciones"])["series"][0]["data"]
+    assert {(i, j): v for j, i, v in celdas} == {(i, j): v for i, fila in enumerate([[85, 2, 0], [0, 68, 2], [0, 1, 22]])
+                                                  for j, v in enumerate(fila)}
     assert any("En prueba:" in i.value and "Acertó 175 de 180" in i.value for i in at.info)
     # al cambiar de conjunto, las frases cambian con los números
     radio(at, "interp_conjunto").set_value("Entrenamiento").run()

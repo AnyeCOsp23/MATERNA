@@ -19,6 +19,7 @@ import tempfile
 from pathlib import Path
 
 import joblib
+import numpy as np
 import pandas as pd
 import streamlit as st
 
@@ -33,7 +34,7 @@ from src.consolidado_ips import datos_consolidados, guardar_carga, resumen_conso
 from src.depuracion import contar_filas, depurar
 from src.data_preprocessing import (
     PARTICION_OFICIAL, RANGOS_PLAUSIBLES, MedianaEstratificadaImputer, cargar_dataset, marcar_fuera_de_rango,
-    particionar, pasos_preprocesamiento, separar_xy,
+    particionar, pasos_preprocesamiento, preparar_datos, separar_xy,
 )
 from src.evaluate import MATRIZ_COSTO, calcular_metricas, intervalo_bootstrap
 from src.exportar_a_dart import RUTA_MODELO, dir_assets
@@ -68,8 +69,8 @@ def codigo(*objetos):
             st.code(inspect.getsource(objeto), language="python")
 
 
-def grafico(chart):
-    st.altair_chart(chart, width="stretch")
+def grafico(chart, key):
+    graficos.mostrar(chart, key)
 
 
 def decimal(valor, decimales=3):
@@ -106,6 +107,27 @@ def particiones_resumen(proporciones=PARTICION_OFICIAL, semilla=SEMILLA, huella=
                       "% Alto Riesgo": round(conteo[CLASE_ALTO] / len(yp) * 100, 2)})
     disjuntos = not (set(X_train.index) & set(X_val.index) or set(X_train.index) & set(X_test.index) or set(X_val.index) & set(X_test.index))
     return pd.DataFrame(filas), disjuntos
+
+
+@st.cache_data(show_spinner="Calculando las matrices y curvas ROC de la prueba oficial…")
+def evaluacion_oficial():
+    """Matriz de confusión y curvas ROC de los 3 modelos y del híbrido en la prueba oficial de la Fase 2 (antes PNG)."""
+    from sklearn.metrics import confusion_matrix, roc_auc_score, roc_curve
+    from src.evaluate import cargar_modelos, predecir_sistemas
+    _, _, X_test, _, _, y_test = preparar_datos(guardar=False)
+    y = np.asarray(y_test)
+    salidas = predecir_sistemas(cargar_modelos(), X_test)
+    nombres = ["Regresión Logística", "SVM", "Random Forest", "Híbrido (Random Forest + reglas)"]
+    corto = ["Bajo", "Medio", "Alto"]
+    resultado = {}
+    for nombre in nombres:
+        pred, proba = salidas[nombre]
+        roc = {}
+        for c, etiqueta in enumerate(corto):
+            fpr, tpr, _ = roc_curve(y == c, proba[:, c])
+            roc[etiqueta] = (fpr.tolist(), tpr.tolist(), float(roc_auc_score(y == c, proba[:, c])))
+        resultado[nombre] = {"matriz": confusion_matrix(y, pred, labels=[0, 1, 2]).tolist(), "roc": roc}
+    return resultado
 
 
 @st.cache_data
@@ -239,7 +261,11 @@ def estado_particion():
 
 
 def aplicar_preset():
-    valores = PRESETS.get(st.session_state.get("part_preset"))
+    # «Personalizada» se recuerda hasta que se elija un atajo: si no, al seguir sumando 70/15/15 volvería a marcarse
+    # «70-15-15» y la opción parecería no responder
+    eleccion = st.session_state.get("part_preset")
+    st.session_state["part_personalizada"] = eleccion == PERSONALIZADA
+    valores = PRESETS.get(eleccion)
     if valores:
         for clave, valor in zip(CLAVES_PARTICION, valores):
             st.session_state[clave] = valor
@@ -263,7 +289,9 @@ def entrenar_con_avance(algoritmo, hiperparametros, proporciones, semilla, patro
         if etapa == "cv":
             folds.append(detalle["f1_macro"])
             progreso.progress(len(folds) / 8, text=f"Partición {detalle['particion']} de 5 · F1-macro {detalle['f1_macro']:.4f}")
-            zona.altair_chart(graficos.f1_por_particion(folds), width="stretch")
+            with zona.container():
+                # una key por partición (la gráfica se reemplaza dentro de la misma ejecución): solo crece la barra nueva
+                graficos.mostrar(graficos.f1_por_particion(folds, solo_ultima=True), f"entrenamiento-particion-{len(folds)}")
         elif etapa == "ajuste":
             progreso.progress(6 / 8, text=f"Ajuste final con {detalle['n']} gestantes…")
         else:
@@ -291,7 +319,7 @@ def mostrar_entrenamiento(resultado, clave):
                f"semilla {r['semilla']} · F1-macro en validación cruzada {r['cv_f1_macro']:.4f}")
     html('<div class="mt-pills">' + ui.pills([(f"Partición {i} · {decimal(v, 2)}", "ok")
                                               for i, v in enumerate(resultado["cv_f1_por_particion"], start=1)]) + "</div>")
-    st.altair_chart(graficos.f1_por_particion(resultado["cv_f1_por_particion"]), width="stretch", key=f"folds_{clave}")
+    graficos.mostrar(graficos.f1_por_particion(resultado["cv_f1_por_particion"]), f"particiones-{clave}")
     st.dataframe(pd.DataFrame([{"Conjunto": c, "Gestantes": m["n"], "F1-macro": m["f1_macro"], "Recall Alto": m["recall_alto"],
                                 "Accuracy": m["accuracy"], "ROC-AUC": m.get("roc_auc_ovr_macro"),
                                 "Costo clínico": m["costo_clinico_total"]}
@@ -434,8 +462,7 @@ def fase_problema():
             ("ROC-AUC", decimal(principal["roc_auc_ovr_macro"]), "Capacidad de separar las clases, sin depender del umbral."),
         ]))
     with c2, lab.tarjeta("costo", "Matriz de costo clínico", "filas: clase real · columnas: clase asignada", alto="stretch"):
-        html(ui.matriz(MATRIZ_COSTO.tolist(), tono=lambda i, j, v: "d" if v >= 5 else "e" if v else "",
-                       descripcion="Matriz de costo clínico"))
+        grafico(graficos.mapa_calor(MATRIZ_COSTO.tolist(), "Matriz de costo clínico"), "problema-costo")
         st.caption("Subestimar el riesgo pesa mucho más que sobreestimarlo: una gestante grave tratada como Bajo Riesgo pesa 10. "
                    "Los pesos son supuestos del equipo, por validar con un asesor clínico.")
 
@@ -447,7 +474,7 @@ def fase_datos():
         html(ui.cifra(miles(len(df)), etiqueta=f"gestantes · {df.shape[1]} columnas · 65 % La Guajira y 35 % Cesar"))
         st.markdown("Calibrado con cifras del DANE (Estadísticas Vitales Wayúu 2015–2024), el INS y el ONS. "
                     "**No son pacientes reales**: las métricas no son evidencia clínica.")
-        grafico(graficos.barras_clases(df))
+        grafico(graficos.barras_clases(df), "datos-clases")
         st.caption("Los archivos de la Resolución 4505 recibidos correspondían a recién nacidos, sin variables maternas: "
                    "no son aptos para el modelo y, por tener datos personales reales, no se cargan en el laboratorio.")
     with c2, lab.tarjeta("territorio", "Territorio y etnia", "solo para auditar sesgos", alto="stretch"):
@@ -470,10 +497,10 @@ def fase_eda():
     with c1, lab.tarjeta("nulos", "Datos faltantes", alto="stretch"):
         nulos = (df.isna().mean() * 100).round(2)
         nulos = nulos[nulos > 0].sort_values(ascending=False)
-        grafico(graficos.barras_nulos({ETIQUETAS.get(k, k): v for k, v in nulos.items()}))
+        grafico(graficos.barras_nulos({ETIQUETAS.get(k, k): v for k, v in nulos.items()}), "eda-nulos")
         st.caption("Glucosa y FCF faltan cuando no hay glucómetro o doppler fetal. Los nulos **no** se concentran en el área rural.")
     with c2, lab.tarjeta("presion", "Presión sistólica vs diastólica por clase", alto="stretch"):
-        grafico(graficos.dispersion_presion(df))
+        grafico(graficos.dispersion_presion(df), "eda-presion")
         st.caption("Las líneas punteadas marcan 140/90 (hipertensión) y 160/110 (hipertensión severa, regla clínica).")
     with lab.tarjeta("comparacion", "Dataset sintético vs archivo de la IPS"):
         fuentes = {"Ejemplo ficticio (data/ejemplos)": ejemplo_ips}
@@ -489,7 +516,7 @@ def fase_eda():
         } for v in variables]).round(2)
         st.dataframe(comparacion, hide_index=True, width="stretch")
         elegida = st.selectbox("Distribución de", variables, format_func=ETIQUETAS.get)
-        grafico(graficos.histogramas_comparados(df[elegida], ips[elegida], elegida, ETIQUETAS[elegida]))
+        grafico(graficos.histogramas_comparados(df[elegida], ips[elegida], elegida, ETIQUETAS[elegida]), "eda-comparacion")
         if fuente.startswith("Ejemplo"):
             st.caption("El ejemplo ficticio se construyó a partir del dataset sintético: por eso las distribuciones casi coinciden. "
                        "Con un archivo real de una IPS, esta comparación mostraría cuánto se parece el sintético a la realidad.")
@@ -561,12 +588,17 @@ def fase_division():
         st.session_state.setdefault(clave, valor)
     st.session_state.setdefault("part_semilla", elegida["semilla"])
     actual = tuple(st.session_state[clave] for clave in CLAVES_PARTICION)
-    st.session_state["part_preset"] = next((nombre for nombre, valores in PRESETS.items() if valores == actual), PERSONALIZADA)
+    if st.session_state.get("part_personalizada"):
+        st.session_state["part_preset"] = PERSONALIZADA
+    else:
+        st.session_state["part_preset"] = next((nombre for nombre, valores in PRESETS.items() if valores == actual), PERSONALIZADA)
 
     c1, c2 = st.columns([5, 4], gap="medium")
     with c1, lab.tarjeta("particion", "Partición de los datos", alto="stretch"):
         st.radio("Partición", [*PRESETS, PERSONALIZADA], horizontal=True, key="part_preset", on_change=aplicar_preset,
                  label_visibility="collapsed")
+        if st.session_state["part_preset"] == PERSONALIZADA:
+            st.caption("Escriba los tres porcentajes (deben sumar 100) y la semilla; la tabla se recalcula al instante.")
         c = st.columns(4)
         proporciones = (c[0].number_input("Entrenamiento (%)", 1, 98, key="part_entrenamiento"),
                         c[1].number_input("Validación (%)", 1, 98, key="part_validacion"),
@@ -727,7 +759,7 @@ def fase_parametros():
         st.markdown(f"**GridSearchCV:** {len(exp)} configuraciones × 5 particiones = **{len(exp) * 5} entrenamientos**. "
                     f"SMOTE y `class_weight` se comparan como un hiperparámetro más, nunca combinados. "
                     + " · ".join(f"{m}: {n}" for m, n in por_modelo.items()))
-        grafico(graficos.dispersion_hiperparametros(exp))
+        grafico(graficos.dispersion_hiperparametros(exp), "parametros-grilla")
         modelo = st.selectbox("Mejores configuraciones de", list(por_modelo.index), index=list(por_modelo.index).index("Random Forest"))
         st.dataframe(exp[exp["modelo"] == modelo].sort_values("cv_f1_macro_media", ascending=False)
                      [["balanceo", "hiperparametros", "cv_f1_macro_media", "cv_f1_macro_std", "cv_recall_alto_media", "tiempo_ajuste_s"]].head(10),
@@ -746,9 +778,16 @@ def fase_evaluacion():
             "f1_macro": "F1-macro", "f1_macro_ic95": "IC 95 % F1", "recall_alto": "Recall Alto", "recall_alto_ic95": "IC 95 % recall",
             "roc_auc_ovr_macro": "ROC-AUC", "falsos_negativos_alto": "Graves no detectadas", "costo_clinico_total": "Costo clínico"}),
             width="stretch")
+        sistemas = evaluacion_oficial()
+        elegido = st.segmented_control("Sistema", list(sistemas), default="Híbrido (Random Forest + reglas)", key="eval_sistema")
+        elegido = elegido or "Híbrido (Random Forest + reglas)"
         c1, c2 = st.columns(2, gap="large")
-        c1.image(str(DIR_METRICAS.parent / "figures" / "matrices_confusion_test.png"), caption="Matrices de confusión (prueba)")
-        c2.image(str(DIR_METRICAS.parent / "figures" / "curvas_roc_test.png"), caption="Curvas ROC (prueba)")
+        with c1:  # al cambiar de sistema, la matriz y las curvas se transforman (mismo gráfico)
+            st.markdown("**Matriz de confusión** · prueba (n = 180)")
+            grafico(graficos.mapa_calor(sistemas[elegido]["matriz"], "Matriz de confusión en prueba"), "evaluacion-matriz")
+        with c2:
+            st.markdown("**Curvas ROC uno contra el resto** · prueba")
+            grafico(graficos.curvas_roc(sistemas[elegido]["roc"], "Curvas ROC en prueba"), "evaluacion-roc")
         st.markdown("**Sin signos críticos** (lo que el modelo resuelve solo, sin las reglas)")
         st.dataframe(metricas("metricas_test_sin_signos_criticos.csv")[["sistema", "n", "f1_macro", "recall_alto", "costo_clinico_total"]],
                      hide_index=True, width="stretch")
@@ -764,7 +803,7 @@ def fase_generalizacion():
     veredicto = {"Regresión Logística": "subajusta", "SVM": "sobreajusta", "Random Forest": "ajusta bien"}
     for i, (columna, modelo) in enumerate(zip(st.columns(3, gap="small"), veredicto)):
         with columna, lab.tarjeta(f"curva-{i}", modelo, veredicto[modelo], alto="stretch"):
-            grafico(graficos.curva_aprendizaje(curvas, modelo))
+            grafico(graficos.curva_aprendizaje(curvas, modelo), f"generalizacion-{modelo}")
     with lab.tarjeta("brecha", "Brecha entre entrenamiento y validación cruzada", "curvas oficiales de la Fase 2"):
         st.dataframe(brecha.rename(columns={"modelo": "Modelo", "f1_entrenamiento": "F1 entrenamiento", "f1_cv": "F1 validación cruzada",
                                             "f1_cv_std": "± desv.", "brecha": "Brecha"}), hide_index=True, width="stretch")
@@ -796,7 +835,7 @@ def fase_generalizacion():
                 st.caption("Solo el administrador puede calcular curvas nuevas.")
             curva = st.session_state.get("curvas_exp", {}).get(elegida)
             if curva is not None:
-                grafico(graficos.curva_aprendizaje(curva, curva["modelo"].iloc[0], dominio_x=None))
+                grafico(graficos.curva_aprendizaje(curva, curva["modelo"].iloc[0], dominio_x=None), "generalizacion-version")
                 ultimo = curva.iloc[-1]
                 brecha_v = ultimo["f1_entrenamiento"] - ultimo["f1_cv"]
                 st.markdown(f"Con {int(ultimo['n_entrenamiento'])} gestantes de entrenamiento: F1-macro **{ultimo['f1_entrenamiento']:.3f}** "
@@ -920,6 +959,7 @@ semilla_visible = st.session_state.get("part_semilla", particion_elegida()["semi
 lab.encabezado(vista, usuario, [*etiquetas.get(vista, []), f"Semilla {semilla_visible}", ("Datos sintéticos", "warn")])
 # Cada fase va en un contenedor propio: al cambiar de fase, Streamlit retira de inmediato lo de la anterior
 with st.container(key=f"mt-fase-{vista}"):
+    ui.contexto_animacion(f"fase{vista}")  # ids de los diagramas propios de esta fase
     FASES[vista]()
 lab.marcar_recorrida(vista)
 lab.registro()

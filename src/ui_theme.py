@@ -11,6 +11,7 @@ Todo es CSS + SVG en línea (sin fuentes ni librerías externas), así que la in
 Respeta `prefers-reduced-motion` (sin animaciones) y `prefers-reduced-transparency`.
 """
 import html
+import re
 
 from streamlit import components
 
@@ -69,7 +70,7 @@ CSS = """
   --mt-rapida: .2s;            /* respuestas: hover, presión, cambios de color */
   --mt-entrada: .55s;          /* entrada de tarjetas y paneles */
   --mt-entrada-corta: .35s;    /* entrada de elementos pequeños */
-  --mt-entrada-larga: .9s;     /* gráficas que crecen */
+  --mt-entrada-larga: .75s;    /* gráficas que crecen (600-900 ms con el escalonado) */
   --mt-cascada: 70ms;          /* retraso entre elementos consecutivos */
   --mt-subida: 16px;           /* desplazamiento vertical de entrada */
   --mt-rebote: 1.05;           /* escala máxima del rebote de elementos pequeños */
@@ -251,8 +252,8 @@ body:has(.st-key-mt-login) { overflow: hidden; }
 .st-key-mt-login input::-ms-reveal, .st-key-mt-login input::-ms-clear { display: none; }
 /* el aviso "Press Enter to submit form" (en inglés) se montaba sobre el campo; Enter sigue enviando */
 .st-key-mt-login [data-testid="InputInstructions"] { display: none; }
-/* el componente que monta la pantalla de bienvenida no debe dejar hueco en la página */
-[data-testid="stElementContainer"]:has([data-testid="stBidiComponentRegular"]) { display: none; }
+/* los componentes sin contenido visible (bienvenida y motor de animaciones) no deben dejar hueco; las gráficas sí se ven */
+[data-testid="stElementContainer"]:has([data-testid="stBidiComponentRegular"]):not(:has(.mt-echart)) { display: none; }
 [data-testid="stToolbar"] { opacity: .55; }
 .block-container { max-width: 1240px; padding: 2.2rem 2rem 1.2rem; position: relative; z-index: 1; }
 
@@ -277,6 +278,8 @@ a { color: var(--mt-vino); }
   animation: mt-entrar var(--mt-entrada) var(--mt-curva-entrada) backwards;
   animation-delay: calc(var(--i, 0) * var(--mt-cascada));
 }
+/* las tarjetas con gráficas no hacen fundido: el gráfico es el que entra animado (si no, se solaparían) */
+[class*="st-key-mt-card-"]:has(.mt-echart) { animation: none; }
 .mt-cab { --i: 1; }
 .mt-kpi, .mt-badge, .mt-chip, .mt-icon, .mt-section .num, .mt-step .n, .mt-trace div {
   animation: mt-rebotar var(--mt-entrada-corta) var(--mt-curva) backwards;
@@ -405,20 +408,32 @@ div[data-testid="stForm"] { padding: 1.2rem 1.3rem 1.1rem; }
 .mt-fila { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; font-size: 14px; font-weight: 500; }
 .mt-fila b { color: var(--mt-vino); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .mt-fila small { display: block; font-size: 12px; font-weight: 400; color: var(--mt-tinta-suave); }
+/* diagramas: cuando cambian los datos, el mismo elemento se transforma (transiciones), sin repetir la entrada */
+.mt-barras i { transition: height .75s var(--mt-curva); }
+.mt-part i { transition: flex-grow .75s var(--mt-curva); }
+.mt-tr i, .mt-fill { transition: width .75s var(--mt-curva); }
+.mt-ring .arc { transition: stroke-dashoffset .75s var(--mt-curva); }
+.mt-count { transition: --mt-num .75s var(--mt-curva); }
+/* cifra contando: el número que dibuja el motor va encima del texto (que no se toca) */
+[data-mt-contando] { position: relative; color: transparent !important; }
+[data-mt-contando]::after { content: attr(data-mt-txt); position: absolute; left: 0; top: 0; color: var(--mt-c); white-space: nowrap; }
+.mt-matriz .c { animation: mt-celda .5s var(--mt-curva) calc(var(--i, 0) * 40ms) both; transition: background-color .6s var(--mt-curva), color .6s var(--mt-curva); }
+@keyframes mt-celda { from { opacity: 0; transform: scale(.82); } to { opacity: 1; transform: none; } }
 /* barras de escalabilidad */
 .mt-barras { display: flex; align-items: flex-end; gap: 18px; height: 132px; }
 .mt-barras > div { flex: 1; text-align: center; min-width: 0; }
 .mt-barras i { display: block; border-radius: 10px 10px 4px 4px; background: linear-gradient(180deg, #E8C6D8, var(--mt-rosa-barra));
-  transform-origin: bottom; animation: mt-subir var(--mt-entrada-larga) var(--mt-curva) .15s both; }
+  transform-origin: bottom; animation: mt-subir var(--mt-entrada-larga) var(--mt-curva) calc(.05s + var(--i, 0) * 60ms) both; }
 .mt-barras span { display: block; margin-top: 4px; font-size: 12px; color: var(--mt-tinta-suave); white-space: nowrap; }
 /* barra y filas de la partición */
-.mt-part { display: flex; height: 22px; border-radius: 11px; overflow: hidden; background: var(--mt-rosa-suave); }
-.mt-part i { display: block; min-width: 2px; transition: flex-grow .5s var(--mt-curva); }
+.mt-part { display: flex; height: 22px; border-radius: 11px; overflow: hidden; background: var(--mt-rosa-suave);
+  transform-origin: left; animation: mt-crecer var(--mt-entrada-larga) var(--mt-curva) .1s both; }
+.mt-part i { display: block; min-width: 2px; }
 .mt-sr { display: flex; justify-content: space-between; font-size: 14px; font-weight: 500; margin-bottom: 7px; }
 .mt-sr b { color: var(--mt-vino); font-variant-numeric: tabular-nums; }
 .mt-tr { height: 8px; border-radius: 4px; background: #F3E8EE; overflow: hidden; }
 .mt-tr i { display: block; height: 8px; border-radius: 4px; background: var(--mt-rosa-medio); transform-origin: left;
-  animation: mt-crecer var(--mt-entrada-larga) var(--mt-curva) .15s both; }
+  animation: mt-crecer var(--mt-entrada-larga) var(--mt-curva) calc(.1s + var(--i, 0) * 70ms) both; }
 /* matriz en cuadros */
 .mt-matriz { display: grid; grid-template-columns: 92px repeat(3, 1fr); gap: 6px; text-align: center; font-size: 13px; font-weight: 600; }
 .mt-matriz .f { align-self: center; text-align: left; }
@@ -765,8 +780,8 @@ def encabezado(modelo, pendientes, kpis):
         f'<span class="mt-pill" style="--i:2">{pendientes} registro(s) por sincronizar</span>'
         f'<span class="mt-pill" style="--i:3">Modelo: {html.escape(modelo)}</span>'
     )
-    tarjetas = "".join(f'<div class="mt-kpi" style="--i:{i + 2}"><b>{valor}</b><span>{nombre}</span></div>'
-                       for i, (nombre, valor) in enumerate(kpis))
+    tarjetas = "".join(f'<div class="mt-kpi" style="--i:{i + 2}" data-mt="{_id(f"kpi{i}")}"><b>{_numeros(str(valor))}</b>'
+                       f'<span>{nombre}</span></div>' for i, (nombre, valor) in enumerate(kpis))
     return _html(f"""
     <div class="mt-hero mt-glass" style="--i:0">
       <div class="mt-logo">{LOGO_ISOTIPO}</div>
@@ -831,22 +846,22 @@ def panel_probabilidades(probabilidades, categoria_modelo, nombre_modelo, origen
     barras = "".join(
         f"""<div class="mt-bar-row">
         <span class="lbl">{ESTILO_CATEGORIA[c]['titulo']}</span>
-        <div class="mt-track"><div class="mt-fill" style="width:{p * 100:.1f}%;background:{ESTILO_CATEGORIA[c]['barra']};animation-delay:{0.3 + 0.07 * i:.2f}s"></div></div>
-        <span class="val">{_pct(p)}</span></div>"""
+        <div class="mt-track"><div class="mt-fill" data-mt-dim="width" style="width:{p * 100:.1f}%;background:{ESTILO_CATEGORIA[c]['barra']};animation-delay:{0.1 + 0.07 * i:.2f}s"></div></div>
+        <span class="val">{_numeros(_pct(p))}</span></div>"""
         for i, (c, p) in enumerate(probabilidades.items())
     )
     origen_txt = "Regla clínica" if origen == "regla_clinica" else "Modelo ML"
     return _html(f"""
-    <div class="mt-panel mt-glass" style="--i:3">
+    <div class="mt-panel mt-glass" style="--i:3" data-mt="{_id('probabilidades')}">
       <div class="mt-panel-title">Inferencia del modelo · {html.escape(nombre_modelo)}</div>
       <div class="mt-chart">
         <div class="mt-ring">
           <svg width="150" height="150" viewBox="0 0 150 150">
             <circle cx="75" cy="75" r="54" fill="none" stroke="rgba(125,47,95,.08)" stroke-width="14"/>
             <circle class="arc" cx="75" cy="75" r="54" fill="none" stroke="{color_top}" stroke-width="14" stroke-linecap="round"
-              stroke-dasharray="{circunferencia}" stroke-dashoffset="{circunferencia * (1 - p_top):.2f}"/>
+              stroke-dasharray="{circunferencia}" data-mt-dim="stroke-dashoffset" style="stroke-dashoffset:{circunferencia * (1 - p_top):.2f}"/>
           </svg>
-          <div class="center"><span class="mt-count" style="--mt-num:{round(p_top * 100)}"></span>
+          <div class="center"><span class="mt-count" data-mt-dim="--mt-num" style="--mt-num:{round(p_top * 100)}"></span>
           <small>{ESTILO_CATEGORIA[categoria_modelo]['titulo']}</small></div>
         </div>
         <div>{barras}</div>
@@ -900,6 +915,112 @@ def login_encabezado():
       <div class="mt-acceso-titulo" role="heading" aria-level="1">Le damos la bienvenida</div>
       <p class="mt-acceso-sub">Módulo 1 · Laboratorio de ML. Inicie sesión para continuar.</p>
     </div>""")
+
+
+# ---------------------------------------------------------------- animación de los diagramas HTML
+# Cada diagrama (barras, partición, matrices, cifras, panel de probabilidades) lleva `data-mt="<id estable>"`.
+#   - ENTRADA: al abrir la fase el diagrama es nuevo en la página: sus animaciones CSS lo construyen (barras que
+#     crecen escalonadas, celdas que se rellenan una a una) y el motor hace contar sus cifras desde 0.
+#   - TRANSFORMACIÓN: si los datos cambian por una interacción, Streamlit (React) actualiza el MISMO elemento en
+#     su lugar: las medidas cambian con transiciones CSS (no se repite la entrada) y el motor cuenta cada cifra
+#     desde su valor anterior (atributo `data-mt-num`).
+#   - Una ejecución sin cambios no toca el DOM: no se anima nada.
+# Con «reducir movimiento» del sistema no hay animaciones, transiciones ni conteos.
+_ANIM = {"prefijo": "mt", "n": 0}
+
+
+def contexto_animacion(prefijo):
+    """Llamar al empezar a dibujar una fase o página: los ids de sus diagramas no chocan con los de otra fase."""
+    _ANIM["prefijo"], _ANIM["n"] = str(prefijo), 0
+
+
+def _id(nombre, id_=None):
+    if id_:
+        return f'{_ANIM["prefijo"]}-{id_}'
+    _ANIM["n"] += 1
+    return f'{_ANIM["prefijo"]}-{nombre}-{_ANIM["n"]}'
+
+
+def _numeros(texto):
+    """Envuelve las cifras del texto ya escapado («0,963», «1.200», «12,7 %») para que cuenten hasta su valor."""
+    def envolver(m):
+        crudo = m.group(0)
+        decimales = len(crudo.split(",")[1]) if "," in crudo else 0
+        valor = float(crudo.replace(".", "").replace(",", "."))
+        miles_ = "1" if "." in crudo or (decimales == 0 and abs(valor) >= 1000) else "0"
+        return f'<span data-mt-num="{valor}" data-mt-dec="{decimales}" data-mt-miles="{miles_}">{crudo}</span>'
+    return re.sub(r"(?<![\w.,])\d{1,3}(?:\.\d{3})+(?:,\d+)?(?![\w])|(?<![\w.,])\d+(?:,\d+)?(?![\w.])", envolver, texto)
+
+
+JS_MOTOR = r"""
+function etiquetaDebug(activa) {
+  let d = document.getElementById("mt-debug-movimiento");
+  if (!activa) { if (d) d.remove(); return; }
+  if (!d) {
+    d = document.createElement("div");
+    d.id = "mt-debug-movimiento";
+    d.style.cssText = "position:fixed;right:16px;bottom:16px;z-index:100000;font:600 12px/1.4 system-ui;background:#FFF7D6;" +
+                      "color:#5C4400;border:1px solid #E7CF77;border-radius:8px;padding:6px 10px;box-shadow:0 4px 14px rgba(0,0,0,.08)";
+    document.body.appendChild(d);
+    window.matchMedia("(prefers-reduced-motion: reduce)").addEventListener("change", () => etiquetaDebug(true));
+  }
+  const reducir = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  d.textContent = `Modo debug · prefers-reduced-motion: ${reducir ? "reduce (animaciones DESACTIVADAS)" : "no-preference (animaciones activas)"}`;
+}
+export default function ({ data }) {
+  etiquetaDebug(!!(data && data.debug));
+  if (window.__mtMotor) return;
+  window.__mtMotor = true;
+  const DUR = 750;
+  const quieto = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const formato = (v, e) => {
+    const dec = +e.dataset.mtDec || 0;
+    let [ent, frac] = Math.abs(v).toFixed(dec).split(".");
+    if (e.dataset.mtMiles === "1") ent = ent.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+    return (v < 0 ? "−" : "") + ent + (frac ? "," + frac : "");
+  };
+  const suave = (t) => 1 - Math.pow(1 - t, 3);
+  // Cuenta sin tocar el texto que maneja React: lo dibuja encima (::after) mientras dura el conteo.
+  function contar(e, desde, hasta, retardo) {
+    if (quieto() || desde === hasta || isNaN(hasta)) return;
+    const turno = (e.__mtTurno || 0) + 1;
+    e.__mtTurno = turno;
+    e.style.setProperty("--mt-c", getComputedStyle(e).color);
+    e.setAttribute("data-mt-txt", formato(desde, e));
+    e.setAttribute("data-mt-contando", "");
+    const t0 = performance.now() + retardo;
+    const paso = (t) => {
+      if (e.__mtTurno !== turno) return;  // llegó un valor más nuevo: ese conteo manda
+      const k = Math.min(1, Math.max(0, (t - t0) / DUR));
+      e.setAttribute("data-mt-txt", formato(desde + (hasta - desde) * suave(k), e));
+      if (k < 1) requestAnimationFrame(paso);
+      else { e.removeAttribute("data-mt-contando"); e.removeAttribute("data-mt-txt"); }
+    };
+    requestAnimationFrame(paso);
+  }
+  const raices = (n) => n.nodeType !== 1 ? [] : [...(n.matches("[data-mt]") ? [n] : []), ...n.querySelectorAll("[data-mt]")];
+  new MutationObserver((cambios) => {
+    for (const c of cambios) {
+      if (c.type === "attributes") {  // un dato cambió en el mismo elemento: contar desde el valor anterior
+        const e = c.target, viejo = parseFloat(c.oldValue), nuevo = parseFloat(e.dataset.mtNum);
+        if (!isNaN(viejo)) contar(e, viejo, nuevo, 0);
+        continue;
+      }
+      for (const n of c.addedNodes) for (const r of raices(n))  // diagrama nuevo (se abrió la fase): contar desde 0
+        r.querySelectorAll("[data-mt-num]").forEach((e) => contar(e, 0, parseFloat(e.dataset.mtNum), 100));
+    }
+  }).observe(document.body, { childList: true, subtree: true, attributes: true,
+                              attributeFilter: ["data-mt-num"], attributeOldValue: true });
+}
+"""
+
+_MOTOR = components.v2.component("materna_animaciones", js=JS_MOTOR, isolate_styles=False)
+
+
+def motor_animaciones(debug=False):
+    """Monta (una vez por página) el motor que anima la entrada y las transiciones de los diagramas HTML.
+    Con `debug`, muestra en pantalla el valor de prefers-reduced-motion que detecta el navegador."""
+    _MOTOR(key="mt-motor", data={"debug": bool(debug)}, height=0)
 
 
 def miles(n):
@@ -961,12 +1082,12 @@ def titulo_tarjeta(titulo, nota=None):
     return f'<div class="mt-card-h"><h2>{html.escape(titulo)}</h2>{extra}</div>'
 
 
-def cifra(valor, despues=None, etiqueta=""):
+def cifra(valor, despues=None, etiqueta="", id=None):
     """Cifra grande; con `despues`, el paso de una a otra (10.000 → 9.874 registros útiles)."""
-    partes = f'<span class="mt-big">{html.escape(str(valor))}</span>'
+    partes = f'<span class="mt-big">{_numeros(html.escape(str(valor)))}</span>'
     if despues is not None:
-        partes += f'<span class="mt-mut" aria-hidden="true">→</span><span class="mt-big ok">{html.escape(str(despues))}</span>'
-    return f'<div class="mt-cifra">{partes}<span class="mt-mut">{html.escape(etiqueta)}</span></div>'
+        partes += f'<span class="mt-mut" aria-hidden="true">→</span><span class="mt-big ok">{_numeros(html.escape(str(despues)))}</span>'
+    return f'<div class="mt-cifra" data-mt="{_id("cifra", id)}">{partes}<span class="mt-mut">{html.escape(etiqueta)}</span></div>'
 
 
 def archivo(nombre, detalle):
@@ -983,44 +1104,49 @@ def filas(pares):
     return f'<div class="mt-filas">{cuerpo}</div>'
 
 
-def barras(elementos):
+def barras(elementos, id=None):
     """Barras verticales proporcionales. Cada elemento es (valor, texto que va debajo)."""
     maximo = max((v for v, _ in elementos), default=0) or 1
-    cuerpo = "".join(f'<div><i style="height:{max(6, round(104 * v / maximo))}px"></i><span>{html.escape(texto)}</span></div>'
-                     for v, texto in elementos)
-    return f'<div class="mt-barras">{cuerpo}</div>'
+    cuerpo = "".join(f'<div><i data-mt-dim="height" style="height:{max(6, round(104 * v / maximo))}px;--i:{k}"></i>'
+                     f'<span>{_numeros(html.escape(texto))}</span></div>' for k, (v, texto) in enumerate(elementos))
+    return f'<div class="mt-barras" data-mt="{_id("barras", id)}">{cuerpo}</div>'
 
 
 TONOS_PARTICION = ("#D3A0BB", "#E8C9D9", "#EADFE4")
 
 
-def barra_particion(conjuntos):
+def barra_particion(conjuntos, id=None):
     """Barra apilada y una fila por conjunto. Cada elemento es (nombre, porcentaje, registros)."""
-    tramos = "".join(f'<i style="flex:{max(p, 0)} 1 0;background:{tono}"></i>' for (_, p, _), tono in zip(conjuntos, TONOS_PARTICION))
+    tramos = "".join(f'<i data-mt-dim="flex-grow" style="flex:{max(p, 0)} 1 0;background:{tono}"></i>'
+                     for (_, p, _), tono in zip(conjuntos, TONOS_PARTICION))
     cuerpo = "".join(
-        f'<div><div class="mt-sr"><span>{html.escape(nombre)}</span><b>{p} % · {miles(n)}</b></div>'
-        f'<div class="mt-tr"><i style="width:{min(max(p, 0), 100)}%"></i></div></div>' for nombre, p, n in conjuntos)
-    return _html(f'<div class="mt-part" role="img" aria-label="Proporción de cada conjunto">{tramos}</div>'
-                 f'<div class="mt-filas" style="margin-top:12px;gap:12px">{cuerpo}</div>')
+        f'<div><div class="mt-sr"><span>{html.escape(nombre)}</span><b>{_numeros(f"{p} % · {miles(n)}")}</b></div>'
+        f'<div class="mt-tr"><i data-mt-dim="width" style="width:{min(max(p, 0), 100)}%;--i:{k}"></i></div></div>'
+        for k, (nombre, p, n) in enumerate(conjuntos))
+    return _html(f'<div data-mt="{_id("particion", id)}"><div class="mt-part" role="img" aria-label="Proporción de cada conjunto">'
+                 f'{tramos}</div><div class="mt-filas" style="margin-top:12px;gap:12px">{cuerpo}</div></div>')
 
 
-def matriz(valores, clases=("Bajo", "Medio", "Alto"), prefijo="Real ", tono=None, descripcion="Matriz de confusión"):
+def matriz(valores, clases=("Bajo", "Medio", "Alto"), prefijo="Real ", tono=None, descripcion="Matriz de confusión", id=None):
     """Matriz 3 × 3 en cuadros. `tono(i, j, v)` devuelve 'd' (fuerte), 'e' (medio) o '' (claro)."""
     tono = tono or (lambda i, j, v: "d" if i == j else "e" if v else "")
     celdas = "<span></span>" + "".join(f'<span class="mt-mut">{html.escape(c)}</span>' for c in clases)
     for i, fila in enumerate(valores):
         celdas += f'<span class="mt-mut f">{html.escape(prefijo + clases[i])}</span>'
-        celdas += "".join(f'<span class="c {tono(i, j, v)}">{miles(v)}</span>' for j, v in enumerate(fila))
-    return (f'<div class="mt-matriz" role="img" aria-label="{html.escape(descripcion)}: filas, clase real; '
-            f'columnas, clase asignada">{celdas}</div>')
+        # se rellena celda por celda (--i: orden de lectura) y cada número cuenta hasta su valor
+        celdas += "".join(f'<span class="c {tono(i, j, v)}" style="--i:{i * len(fila) + j}">{_numeros(miles(v))}</span>'
+                          for j, v in enumerate(fila))
+    return (f'<div class="mt-matriz" data-mt="{_id("matriz", id)}" role="img" aria-label="{html.escape(descripcion)}: '
+            f'filas, clase real; columnas, clase asignada">{celdas}</div>')
 
 
-def indicador(titulo, valor, pie):
+def indicador(titulo, valor, pie, id=None):
     """Contenido de una tarjeta de indicador: nombre, cifra grande y una frase que la explica."""
     return _html(f"""
+    <div data-mt="{_id("indicador", id)}">
     <div class="mt-kpi-t">{html.escape(titulo)}</div>
-    <div class="mt-big">{html.escape(str(valor))}</div>
-    <div class="mt-kpi-s">{html.escape(pie)}</div>""")
+    <div class="mt-big">{_numeros(html.escape(str(valor)))}</div>
+    <div class="mt-kpi-s">{html.escape(pie)}</div></div>""")
 
 
 def puntos(frases):

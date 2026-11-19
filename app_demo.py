@@ -20,7 +20,7 @@ import time
 
 import streamlit as st
 
-from src import ui_laboratorio as lab, ui_theme as ui
+from src import graficos, ui_laboratorio as lab, ui_theme as ui
 from src.autenticacion import INTENTOS_MAXIMOS, ROLES, autenticar, cargar_usuarios, puede
 
 SEGUNDOS_BLOQUEO = 60
@@ -63,6 +63,10 @@ if not st.session_state.get("bienvenida_mostrada"):
         st.stop()
     st.session_state["bienvenida_mostrada"] = True
 html(ui.estilos())
+# ?debug=1 en la URL: muestra prefers-reduced-motion y el arranque de cada animación
+DEBUG_ANIMACION = st.query_params.get("debug") == "1"
+graficos.modo_debug(DEBUG_ANIMACION)
+ui.motor_animaciones(DEBUG_ANIMACION)  # entrada y transiciones de los diagramas HTML (una vez por página)
 
 
 def formulario_login():
