@@ -6,35 +6,40 @@ Proyecto de aula · Inteligencia Artificial · Ingeniería de Sistemas, 7.º sem
 Equipo: Anyelin Cecilia Ospino Rueda · Duan Andrés Pineda Corrales · Rigoberto Márquez Fernández
 Docente: Tony Jiménez
 
-> ⚠️ **Prototipo académico.** Los modelos se entrenaron con un dataset **sintético** (1.200 registros) que el equipo calibró con proporciones del DANE y del INS. No contiene historias clínicas reales y **no debe usarse para tomar decisiones clínicas.**
+> ⚠️ **Prototipo académico.** El modelo se entrenó con un dataset **sintético** (1.200 gestantes) que el equipo calibró con proporciones del DANE y del INS. No contiene historias clínicas reales y **no debe usarse para tomar decisiones clínicas.** Las métricas miden cuánto reproduce el sistema el etiquetado sintético, no su desempeño clínico.
 
 ---
 
 ## 1. ¿Qué hace?
 
-Clasifica a una gestante en **Bajo, Medio o Alto Riesgo** obstétrico a partir de datos que se pueden tomar en un puesto de salud rural: edad, edad gestacional, controles previos, presión arterial, frecuencia cardiaca fetal, glucosa, proteinuria en tira y convulsiones. El sistema es **híbrido**:
+Clasifica a una gestante en **Bajo, Medio o Alto Riesgo** obstétrico a partir de datos que se pueden tomar en un puesto de salud rural: edad, semanas de gestación, controles previos, presión arterial, frecuencia cardiaca fetal, glucosa, proteinuria en tira y convulsiones. El sistema es **híbrido** y decide en este orden:
 
-1. Un **motor de reglas clínicas** marca de inmediato Alto Riesgo si hay PAS ≥ 160, PAD ≥ 110, convulsiones o proteinuria ++. La regla prevalece sobre el modelo.
-2. Si no hay signos críticos, decide un **modelo de aprendizaje automático**: Random Forest, seleccionado en validación. La Regresión Logística es el baseline y el SVM queda como modelo de comparación.
+1. **Regla crítica** (`src/clinical_rules.py`): PAS ≥ 160, PAD ≥ 110, convulsiones o proteinuria ≥ ++ → Alto Riesgo.
+2. **Signo de alarma de la Resolución 3280** (cefalea intensa, visión borrosa, tinnitus, dolor epigástrico, sangrado genital, fiebre o disminución de movimientos fetales) → Alto Riesgo.
+3. Si no hay ninguno, decide el **Random Forest** (300 árboles), elegido en validación frente a la Regresión Logística (línea base) y la SVM.
 
-## 2. Arquitectura
+## 2. Arquitectura: dos módulos independientes pero integrados
 
 ```mermaid
 flowchart LR
-    A[Formulario en campo<br/>app_demo.py / app móvil] --> B{Motor de reglas<br/>clinical_rules.py}
-    B -- signo crítico --> R[ALTO RIESGO<br/>origen: regla]
-    B -- sin signos críticos --> P[Pipeline de preprocesamiento<br/>imputación · RobustScaler · One-Hot]
-    P --> M[Random Forest<br/>predict_proba]
-    M --> C[Categoría + probabilidades<br/>origen: modelo]
-    R --> S[(SQLite local<br/>pendiente de sincronizar)]
-    C --> S
-    S -. con conectividad, Fase 3 .-> API[API FastAPI / consola ESE-IPS]
+    subgraph M1[Módulo 1 · Laboratorio de ML · Streamlit]
+        L[12 fases ejecutables<br/>ingesta, depuración, partición,<br/>entrenamiento, evaluación…]
+    end
+    subgraph M2[Módulo 2 · App de usuario final · Flutter]
+        A[Triaje · resultado · carga masiva<br/>historial · sin internet]
+    end
+    L -- «Publicar al Módulo 2»<br/>solo administrador --> J[(JSON en flutter_app/assets<br/>modelo RF, preprocesamiento,<br/>reglas y catálogo 3280<br/>con versión y SHA-256)]
+    J --> A
 ```
+
+- **Módulo 1 · Laboratorio de ML** (`app_demo.py`, `paginas/`, `src/`). Para el docente, el equipo y el médico auditor. Cada fase del ciclo de vida se **ejecuta** en el aplicativo: carga masiva y generador sintético, depuración de datos crudos, partición parametrizable, parametrización de los tres modelos, entrenamiento en vivo con versiones, evaluación con interpretación de métricas, curvas de aprendizaje, nuevo patrón manual y lista de chequeo del ciclo de vida. Roles: **administrador** (todo, incluido publicar) y **médico auditor** (audita e ingiere archivos; no entrena ni publica).
+- **Módulo 2 · App de usuario final** (`flutter_app/`). Para el personal de salud en territorio. Un solo código para Android y web, **sin internet**: cuentas con usuario y PIN, triaje por pasos, resultado Alto/Medio/Bajo con motivo y conducta sugerida, carga masiva de archivos de la IPS priorizada (documentos seudonimizados con HMAC-SHA256), historial local en SQLite, modo oscuro y ajustes de accesibilidad.
+- **Integración.** Solo por los JSON que publica el Módulo 1. El motor en Dart reproduce a scikit-learn con **diferencia cero** (200 casos del modelo, 160 de alertas y la carga masiva de ejemplo). El modelo en uso (v1) solo cambia con «Publicar al Módulo 2»; los entrenamientos del laboratorio crean versiones nuevas en `experimentos/`.
 
 Pipeline de entrenamiento (todo lo que aprende de los datos se ajusta **solo** con entrenamiento o con cada fold):
 
 ```
-CSV crudo ─► limpieza estructural ─► partición estratificada 70/15/15
+CSV crudo ─► limpieza estructural ─► partición estratificada 70/15/15 (parametrizable en el Módulo 1)
                                           │
               train ──► [ imputación estratificada ─► RobustScaler + One-Hot ─► SMOTE | class_weight ─► modelo ]
                          └──────────────── GridSearchCV, 5-fold estratificado ─────────────────┘
@@ -46,50 +51,59 @@ CSV crudo ─► limpieza estructural ─► partición estratificada 70/15/15
 
 ```
 MATERNA/
-├── app_demo.py                      # Interfaz Streamlit (demo de sustentación, offline-first)
-├── static/logo_materna.*            # Logo de la pantalla de bienvenida (servido localmente)
-├── requirements.txt
-├── pytest.ini
-├── tests/                           # 129 pruebas automatizadas (ver sección 6)
-├── data/
-│   ├── raw/dataset_riesgo_materno_guajira_cesar.csv
-│   └── processed/                   # Particiones train/val/test (se regeneran, no se versionan)
-├── src/
-│   ├── config.py                    # Rutas, semilla y definición de variables
-│   ├── data_preprocessing.py        # Sub-fase 2.1
-│   ├── train_models.py              # Sub-fase 2.2
-│   ├── clinical_rules.py            # Sub-fase 2.3: evaluar_riesgo_hibrido()
-│   ├── evaluate.py                  # Sub-fase 2.4
-│   └── ui_theme.py                  # Estilo visual de la app y pantalla de bienvenida (offline)
-├── models/                          # Modelos entrenados (.joblib) y metadatos
-├── notebooks/
-│   ├── EDA_Riesgo_Materno_Guajira_Cesar.ipynb       # EDA corregido de la Fase 1
-│   └── Fase2_Modelado_y_Evaluacion_MATERNA.ipynb    # Notebook de la Fase 2
-├── reports/
-│   ├── metrics/                     # CSV/JSON con todas las métricas y experimentos
-│   └── figures/                     # Matrices de confusión, ROC, comparación
-├── docs/                            # Documento técnico de avance (Fase 2)
-└── contexto/                        # Documentos de la Fase 1 y guías de la asignatura
+├── app_demo.py                      # Módulo 1: consola Streamlit (inicio de sesión y laboratorio)
+├── paginas/                         # Laboratorio de las 12 fases, triaje de la Fase 2 y variables 3280
+├── src/                             # Preprocesamiento, modelos, reglas, evaluación, ingesta 3280,
+│                                    # seudonimización, generador, experimentos, exportación a JSON…
+├── config/variables_3280.json       # Catálogo único de 71 variables de la Res. 3280 y su decisión
+├── data/raw/                        # Dataset sintético de 1.200 gestantes
+├── models/                          # Modelos oficiales de la Fase 2 (.joblib) y metadatos
+├── reports/metrics/ y figures/      # Métricas, experimentos, auditoría de sesgos y figuras
+├── notebooks/                       # EDA (Fase 1, corregido) y modelado (Fase 2)
+├── tests/                           # 328 pruebas de Python (10 en Chrome)
+├── flutter_app/                     # Módulo 2: app Flutter (lib/, test/ con 441 pruebas, assets/ con los JSON)
+├── docs/                            # Documento técnico de la Fase 2
+└── .streamlit/                      # Configuración; secrets.toml.example como plantilla de usuarios
 ```
 
+No se versionan: `experimentos/` (versiones y registro del laboratorio), `data/salidas/` (ingestas seudonimizadas), `.streamlit/secrets.toml` (usuarios y sal) ni las bases SQLite locales.
+
 ## 4. Instalación y ejecución
+
+### Módulo 1 · Laboratorio (Python 3, Windows/Linux/Mac)
 
 ```bash
 python -m venv .venv
 # Windows: .venv\Scripts\activate   ·   Linux/Mac: source .venv/bin/activate
 pip install -r requirements.txt
 
-python -m src.data_preprocessing   # 2.1 reporte de calidad y particiones
-python -m src.train_models         # 2.2 búsqueda de hiperparámetros (~2 min) y modelos
-python -m src.evaluate             # 2.4 métricas, figuras y auditoría de sesgos
-streamlit run app_demo.py          # 2.3 demo interactiva (http://localhost:8501)
+# Usuarios: copie .streamlit/secrets.toml.example como .streamlit/secrets.toml, cambie MATERNA_SAL y cree el administrador
+python -m src.autenticacion crear-usuario admin --rol administrador --nombre "Administrador"
 
-pytest                             # las 129 pruebas, incluidas las 6 de navegador (~1,5 min; requiere Google Chrome)
-pytest -m "not e2e"                # 123 pruebas, sin navegador
-pytest -m e2e                      # solo las 6 pruebas en Chrome real
+streamlit run app_demo.py          # http://localhost:8501
 ```
 
-Los modelos ya entrenados vienen en `models/`, así que la demo funciona sin reentrenar. Todo es reproducible con la semilla 42.
+Los modelos oficiales vienen en `models/`, así que el laboratorio funciona sin reentrenar. Para regenerar las cifras de la Fase 2: `python -m src.data_preprocessing`, `python -m src.train_models` (~2 min) y `python -m src.evaluate`. Todo es reproducible con la semilla 42.
+
+### Módulo 2 · App (Flutter)
+
+```bash
+cd flutter_app
+flutter pub get
+flutter run -d chrome                          # probar en el navegador
+flutter build apk --release                    # Android: build/app/outputs/flutter-apk/app-release.apk
+flutter build web --no-web-resources-cdn       # web que no descarga nada de internet
+```
+
+La app trae el modelo en `flutter_app/assets/`; si el administrador publica un modelo nuevo desde el Módulo 1, los teléfonos lo reciben al **recompilar** la app. Se probó en un Xiaomi con Android 16.
+
+### Pruebas
+
+```bash
+pytest                             # 328 pruebas de Python, incluidas 10 en Chrome real (requiere Google Chrome)
+pytest -m "not e2e"                # 308, sin navegador
+cd flutter_app && flutter test     # 441 pruebas de Dart (paridad, motor, pantallas, base local, modo oscuro…)
+```
 
 ## 5. Resultados (conjunto de prueba, n = 180, de los cuales 23 son Alto Riesgo)
 
@@ -104,15 +118,12 @@ Los modelos ya entrenados vienen en `models/`, así que la demo funciona sin ree
 
 \*Matriz de costo ilustrativa que penaliza la subestimación del riesgo (Alto→Bajo = 10, Alto→Medio = 5, Medio→Bajo = 3; la sobreestimación cuesta 1–2). Ningún sistema clasificó un Alto Riesgo como Bajo.
 
-**Desempeño sin signos críticos** (166 casos de prueba donde no actúa ninguna regla, que es el aporte real del modelo): Random Forest F1-macro 0,932; SVM 0,847; Regresión Logística 0,673.
+- La sensibilidad es del **100 % solo en los casos con signo crítico** (14 de 14 en prueba; 89 de 89 en el dataset). El recall global de Alto es 0,957, no 1,00.
+- **Sin signos críticos** (166 casos de prueba donde no actúa ninguna regla): Random Forest F1-macro 0,932; SVM 0,847; Regresión Logística 0,673.
+- Validación cruzada (5-fold, entrenamiento), F1-macro: Random Forest (sin límite de profundidad, 50 % de variables por división, SMOTE) 0,932 ± 0,017; SVM RBF (C = 100, γ = scale, class_weight) 0,861 ± 0,011; Regresión Logística (C = 10, class_weight) 0,750 ± 0,013. Las 166 configuraciones están en `reports/metrics/experimentos_cv_completo.csv`.
+- El escalamiento por signos de alarma de la Res. 3280 no cambia estas cifras: el dataset sintético no tiene esas variables.
 
-Validación cruzada (5-fold, entrenamiento), F1-macro:
-
-- Random Forest (300 árboles, sin límite de profundidad, 50 % de variables por división, SMOTE): 0,932 ± 0,017.
-- SVM RBF (C = 100, γ = scale, class_weight): 0,861 ± 0,011.
-- Regresión Logística (C = 10, class_weight): 0,750 ± 0,013.
-
-El sistema principal se eligió con el conjunto de validación (F1-macro del híbrido RF: 0,944). El registro de las 166 configuraciones está en `reports/metrics/experimentos_cv_completo.csv`.
+**Escalabilidad** (Módulo 1, fase 04, Random Forest, Intel Core i5-8300H y 15,8 GB de RAM): 5.000 registros se cargan en 0,04 s, se depuran en 0,15 s y entrenan en 1,6 s; 30.000 registros, en 0,15 s, 0,34 s y 7,3 s.
 
 ## 6. Decisiones técnicas y correcciones
 
@@ -120,48 +131,31 @@ El sistema principal se eligió con el conjunto de validación (F1-macro del hí
 |---|---|---|
 | SMOTE | Dentro de cada fold (`imblearn.Pipeline`) | Aplicarlo antes de la validación cruzada filtraría información sintética de los folds de validación. |
 | SMOTE vs. `class_weight` | Se comparan como alternativas en cada modelo (gana SMOTE en RF y `class_weight` en SVM y RL) | Usarlos juntos compensaría el desbalance dos veces. |
-| Random Forest como modelo principal | Se agregó después de las pruebas de coherencia clínica | El SVM clasificaba como Bajo Riesgo casos con un solo factor de riesgo (PA 140/90, glucosa 140, 0 controles, edad 36) y con 20 controles extrapolaba a Alto Riesgo. Los árboles representan umbrales de forma nativa y no extrapolan fuera del rango de entrenamiento. |
+| Random Forest como modelo principal | Se agregó después de las pruebas de coherencia clínica | El SVM clasificaba como Bajo Riesgo casos con un solo factor de riesgo y extrapolaba fuera de rango. Los árboles representan umbrales de forma nativa. |
 | Probabilidades del SVM | `CalibratedClassifierCV` (Platt) | `SVC(probability=True)` está deprecado en scikit-learn 1.9. |
-| Regresión Logística | `solver='lbfgs'` sin `multi_class` | El parámetro se eliminó; lbfgs ya es multinomial. |
-| Imputación | Mediana por **área × trimestre** + indicador `*_no_disponible` | Es lo que definió el documento de la Fase 1; la FCF depende fisiológicamente de la edad gestacional. Con municipio × grupo de edad, 10 de los 24 estratos tenían menos de 10 valores en entrenamiento (Becerril ≥ 35 años: 1), y la mediana resultaba inestable. |
-| Variables demográficas | Etnia, municipio y departamento **no** entran al modelo | No mejoran a ningún modelo en la ablación (RF 0,932 → 0,930; SVM 0,861 → 0,828) y evitan que la identidad étnica funcione como *proxy* de riesgo. Se usan para auditar sesgos. |
-| Selección | F1-macro en CV; modelo híbrido elegido en validación | La prueba se usa solo para el informe final. |
-| Imputación con enteros | La columna se convierte a `float` antes de imputar | Bug encontrado en las pruebas: `glucosa=100` (entero, sin nulos) hacía fallar la imputación con pandas 3. |
+| Imputación | Mediana por **área × trimestre** + indicador `*_no_disponible` | Lo definió la Fase 1; con municipio × edad había estratos de una sola gestante. |
+| Variables demográficas | Etnia, municipio y departamento **no** entran al modelo | No lo mejoran en la ablación (RF 0,932 → 0,930) y evitan que la identidad étnica funcione como *proxy* de riesgo. Se usan para auditar sesgos. |
+| Datos de la IPS | Ingesta con la plantilla 3280, filtro de variables y seudonimización HMAC-SHA256 con sal propia | Ley 1581 de 2012: el documento nunca se guarda. Los archivos de la Res. 4505 recibidos (recién nacidos, sin variables maternas) **no se usan**. |
+| Módulo 2 sin servidor | El modelo viaja como JSON y la app lo ejecuta en el dispositivo | Coherente con el objetivo offline; la API FastAPI de la propuesta inicial no fue necesaria. La sincronización es simulada. |
+| Lo oficial no se toca | Los entrenamientos del laboratorio crean versiones nuevas | El modelo en uso (v1) solo cambia con «Publicar al Módulo 2» (administrador). |
 
-### Pruebas automatizadas (`tests/`)
-
-| Archivo | Qué verifica | Pruebas |
-|---|---|---|
-| `test_reglas_clinicas.py` | Umbrales exactos (159/160, 109/110, proteinuria 1/2), valores faltantes, versión vectorizada igual a la individual, y que 2.000 entradas aleatorias con signo crítico terminen siempre en Alto | 27 |
-| `test_preprocesamiento.py` | Carga, partición 70/15/15 disjunta y reproducible, imputación sin fuga, respaldo con estratos pequeños y categorías desconocidas | 12 |
-| `test_modelos.py` | Probabilidades válidas, determinismo, 5.000 entradas aleatorias del formulario, valores en los bordes, invariancia a etnia y territorio, métricas reproducibles | 37 |
-| `test_coherencia_clinica.py` | Un solo factor de riesgo no puede dar Bajo Riesgo; sin extrapolación absurda fuera de rango | 17 |
-| `test_app.py` | Cada entrada del formulario, umbrales desde la interfaz, valores extremos, cambio de modelo, guardado y sincronización, bienvenida solo al abrir | 30 |
-| `test_e2e_navegador.py` | Pantalla de bienvenida (logo centrado, desvanecimiento y retiro), flujo completo en Chrome, escritura en el formulario, ausencia de errores de JavaScript (`pytest -m e2e`) | 6 |
-
-Correcciones a la Fase 1 (detalle en el notebook de EDA):
-- El EDA entregado analizaba el dataset UCI y no el propio. Ahora el EDA usa el dataset de La Guajira y Cesar.
-- Las conclusiones de ese notebook contradecían sus salidas (duplicados y umbral de desbalance).
-- Los nulos **no** se concentran en el área rural en la glucosa (cabecera 14,2 %, rural 12,6 %).
-- Se elimina la columna vacía `Unnamed: 16` que genera la coma final del CSV.
-- Errores de digitación en el cronograma: "Blatter" → Flutter, "Fasta PI" → FastAPI, "F1/Real" → F1/Recall.
+Correcciones a la Fase 1 (detalle en el notebook de EDA): el EDA entregado analizaba el dataset UCI y no el propio; en la glucosa los nulos **no** se concentran en lo rural (cabecera 14,2 %, rural 12,6 %), en la FCF sí (6,0 % y 8,4 %); se elimina la columna vacía `Unnamed: 16`; y la cifra 76,9 citada para La Guajira es el percentil 75 nacional de 2023 (la razón de La Guajira en 2023 fue 94,1 según el INS).
 
 ## 7. Limitaciones, ética y sesgos
 
-- **Etiquetas sintéticas por reglas.** Las 89 gestantes con signos críticos están todas etiquetadas como Alto Riesgo, porque las etiquetas se generaron con esos umbrales. El híbrido acierta esos casos por construcción. Las métricas miden la capacidad de reproducir el etiquetado, no el desempeño clínico.
-- **Ventaja de los árboles sobre datos sintéticos.** Las etiquetas siguen umbrales, y eso es justo lo que los árboles aprenden mejor. Parte de la ventaja del Random Forest puede deberse a esa estructura y achicarse con datos reales.
-- **Brecha por subgrupo.** Con el Random Forest, el recall de Alto Riesgo en el área rural dispersa subió de 0,78 a 0,88, pero sigue por debajo de la cabecera (0,94). El subgrupo más bajo es la atención por auxiliar de enfermería (0,64, con solo 11 casos de Alto Riesgo). Ver `reports/metrics/auditoria_subgrupos.csv`.
-- **Casos para el asesor clínico.** Con FCF 60 o glucosa 300, el modelo da solo Riesgo Medio, aunque clínicamente podrían ser una emergencia. No se convirtieron en reglas porque los umbrales debe definirlos un especialista.
+- **Etiquetas sintéticas por reglas.** Las 89 gestantes con signos críticos están todas etiquetadas como Alto Riesgo, porque las etiquetas se generaron con esos umbrales. Las métricas miden la capacidad de reproducir el etiquetado, no el desempeño clínico, y parte de la ventaja del Random Forest puede achicarse con datos reales.
+- **Brecha por subgrupo.** El recall de Alto Riesgo en el área rural dispersa es 0,88 frente a 0,94 en cabecera. El subgrupo más bajo es la atención por auxiliar de enfermería (0,64, con solo 11 casos de Alto Riesgo). Ver `reports/metrics/auditoria_subgrupos.csv`.
+- **Umbrales por validar.** La proteinuria ≥ ++, los signos de alarma que elevan el triaje y la conducta sugerida deben validarse con un especialista en ginecobstetricia. Con FCF 60 o glucosa 300 el modelo da solo Riesgo Medio; esos umbrales debe definirlos un especialista.
+- **Seguridad local.** La base del teléfono no está cifrada; el PIN protege el acceso casual, no los archivos.
 - **Incertidumbre.** Con 23 casos de Alto Riesgo en prueba, los intervalos de confianza son amplios.
-- **Protocolos.** Los textos de acción de la app son orientativos y deben validarse con un ginecobstetra y con la red de referencia de cada ESE/IPS.
-- **Idioma.** La interfaz en Wayuunaiki necesita una traducción validada con la comunidad; no se inventa.
+- **Herramienta de apoyo.** No reemplaza el juicio clínico; la decisión final es del profesional de salud.
 
-## 8. Hoja de ruta (Fase 3)
+## 8. Trabajo futuro
 
-API FastAPI documentada · app móvil Flutter offline (SQLite) con exportación del modelo · ajuste de umbrales orientado al recall en subgrupos rurales · reglas para bradicardia fetal e hiperglucemia severa validadas por un especialista · validación con datos reales anonimizados mediante una alianza con una ESE/IPS · informe final con análisis ético.
+Validación con historias clínicas reales y anonimizadas mediante una alianza con una ESE/IPS · cierre de las brechas rural y de auxiliares con ajuste de umbral sobre datos reales · sincronización real con un servidor de la IPS · cifrado de la base local · incorporar al modelo las variables de la Res. 3280 que hoy solo generan alertas.
 
 ## 9. Flujo de trabajo con Git
 
-- Rama `main` estable; una rama por bloque (`paso-1-fix-imputacion`, `paso-2-random-forest`, etc.) integrada mediante *pull request* revisado por otro integrante.
-- Mensajes de commit con prefijo: `feat:`, `fix:`, `docs:`, `exp:` (experimentos), `refactor:`.
-- Cada integrante sube su propio trabajo con su cuenta. El historial de `git log` es la evidencia de trabajo incremental que pide la rúbrica.
+- Rama `main` estable; una rama por bloque (`fase3/…`) integrada mediante *pull request*.
+- Mensajes de commit con prefijo: `feat:`, `fix:`, `docs:`, `test:`, `chore:`.
+- Los tres integrantes aparecen como autores de sus commits; el historial de `git log` es la evidencia de trabajo incremental que pide la rúbrica.

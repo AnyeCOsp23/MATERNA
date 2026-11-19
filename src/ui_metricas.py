@@ -2,7 +2,7 @@
 import pandas as pd
 import streamlit as st
 
-from src import experimentos, interpretacion, patrones, ui_laboratorio as lab, ui_theme as ui
+from src import experimentos, graficos, interpretacion, patrones, ui_laboratorio as lab, ui_theme as ui
 from src.config import NOMBRES_CLASES
 
 AVISO_CORTO = "Datos sintéticos: mide cuánto reproduce el etiquetado, no el desempeño clínico."
@@ -59,7 +59,8 @@ def seccion_interpretacion(trabajo):
     izquierda, derecha = st.columns(2, gap="medium")
     with izquierda, lab.tarjeta("matriz", "Matriz de confusión", f"{conjunto} · {int(elegido['metricas']['n'])} gestantes",
                                 alto="stretch"):
-        st.markdown(ui.matriz(elegido["matriz"]), unsafe_allow_html=True)
+        # al cambiar de conjunto, el mismo mapa de calor se transforma
+        graficos.mostrar(graficos.mapa_calor(elegido["matriz"], "Matriz de confusión"), "interpretacion-matriz")
     with derecha, lab.tarjeta("leer", "Cómo leerlo", alto="stretch"):
         st.markdown(ui.puntos(interpretacion.como_leer(elegido)), unsafe_allow_html=True)
         st.markdown(interpretacion.frase_criticos(elegido))
@@ -82,8 +83,8 @@ def seccion_interpretacion(trabajo):
             with st.expander(f"{panel['nombre']} · {panel['valor']}"):
                 _explicacion(panel, conjunto)
                 if panel["nombre"] == "Costo clínico":
-                    st.markdown(ui.matriz(panel["matriz"], tono=lambda i, j, v: "d" if v >= 5 else "e" if v else "",
-                                          descripcion="Matriz de costo clínico"), unsafe_allow_html=True)
+                    # está dentro de un desplegable: el gráfico espera a que se abra (ancho > 0) para entrar
+                    graficos.mostrar(graficos.mapa_calor(panel["matriz"], "Matriz de costo clínico"), "interpretacion-costo")
                 elif "matriz" in panel:
                     st.dataframe(pd.DataFrame(panel["matriz"], index=[f"Real: {c}" for c in NOMBRES_CLASES],
                                               columns=[f"Asignada: {c}" for c in NOMBRES_CLASES]), width="content")

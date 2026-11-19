@@ -116,6 +116,7 @@ if faltantes:
     st.stop()
 
 cat = catalogos()
+ui.contexto_animacion("triaje")  # ids de los diagramas de esta página
 st.info("**Vista provisional del Módulo 2.** La app de usuario final definitiva es MATERNA en Flutter (web y móvil), con captura manual, carga masiva de archivos de la IPS y semáforo de riesgo. Esta página es la demo de la Fase 2.", icon=":material/info:")
 
 # ---------------------------------------------------------------- barra lateral
