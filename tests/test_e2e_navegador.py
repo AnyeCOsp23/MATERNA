@@ -171,7 +171,7 @@ def test_navegar_al_laboratorio(pagina):
     menu(pagina).get_by_role("button", name="División").click()
     pagina.locator(".mt-h1", has_text="División de los datos").wait_for(timeout=60000)
     esperar_fin_ejecucion(pagina)
-    assert pagina.locator('[class*="st-key-mt-nav-"] button').count() == 13  # 12 fases + ética
+    assert pagina.locator('[class*="st-key-mt-nav-"] button').count() == 14  # 12 fases + ética + mapa territorial
     assert pagina.locator('[class*="st-key-mt-nav-activa-06"]').count() == 1
     assert "Fase 6 · de 12" in pagina.locator(".mt-eyebrow").first.text_content()
     # la tarjeta de la partición y la barra del registro de ejecución están en pantalla

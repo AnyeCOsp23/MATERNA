@@ -24,9 +24,8 @@ import pandas as pd
 import streamlit as st
 
 from src import (
-    conjunto_trabajo, estadisticas, experimentos, graficos, interpretacion, patrones, publicacion, recorrido, ui_datos,
-    ui_laboratorio as lab,
-    ui_metricas, ui_patrones, ui_publicacion, ui_recorrido, ui_theme as ui,
+    conjunto_trabajo, estadisticas, experimentos, georreferencia, graficos, interpretacion, patrones, publicacion, recorrido,
+    ui_datos, ui_laboratorio as lab, ui_metricas, ui_patrones, ui_publicacion, ui_recorrido, ui_theme as ui,
 )
 from src.autenticacion import puede
 from src.clinical_rules import evaluar_reglas, mascara_reglas
@@ -522,6 +521,7 @@ def seccion_descriptivas():
 
 def fase_eda():
     seccion_descriptivas()
+    lab.boton_ir("mapa", "Ver dónde están las gestantes: mapa territorial")
     c1, c2 = st.columns([2, 3], gap="medium")
     with c1, lab.tarjeta("nulos", "Datos faltantes", alto="stretch"):
         nulos = (df.isna().mean() * 100).round(2)
@@ -950,11 +950,72 @@ def fase_etica():
         )
 
 
+# ---------------------------------------------------------------- mapa territorial (georreferenciación)
+@st.cache_data
+def resumen_territorial():
+    """Cifras por municipio y por punto del dataset base: son las del mapa y las de sus tablas."""
+    datos = dataset()
+    return georreferencia.por_municipio(datos), georreferencia.por_punto(datos)
+
+
+def fase_mapa():
+    municipios, puntos_tabla = resumen_territorial()
+    st.warning("**Datos sintéticos.** Las 1.200 gestantes y sus ubicaciones son sintéticas: cada una se ubicó dentro de su "
+               "municipio (semilla 42), cerca de su cabecera o de un punto de concentración con nombre genérico. Los límites "
+               "municipales y las cabeceras sí son reales (DANE, Marco Geoestadístico Nacional 2024). La ubicación **no es una "
+               "variable del modelo**.", icon=":material/info:")
+    c = st.columns([2, 3], vertical_alignment="bottom")
+    depto = c[0].segmented_control("Departamento", ["Ambos", "La Guajira", "Cesar"], default="Ambos", key="mapa_depto")
+    niveles = c[1].pills("Nivel de riesgo", NOMBRES_CLASES, selection_mode="multi", default=NOMBRES_CLASES, key="mapa_niveles")
+    depto = None if depto in (None, "Ambos") else depto
+    niveles = [n for n in NOMBRES_CLASES if n in (niveles or NOMBRES_CLASES)]  # sin selección = todos
+    todos = len(niveles) == len(NOMBRES_CLASES)
+    texto_niveles = "todos los niveles" if todos else " y ".join(niveles)
+
+    m = municipios if depto is None else municipios[municipios["departamento"] == depto]
+    m = m.assign(seleccion=m[niveles].sum(axis=1))
+    p = puntos_tabla if depto is None else puntos_tabla[puntos_tabla["departamento"] == depto]
+    p = p[p[niveles].sum(axis=1) > 0]
+
+    medida, nota = ("pct_alto", "color: % de Alto Riesgo") if todos else ("seleccion", f"color: gestantes de {texto_niveles}")
+    with lab.tarjeta("mapa-municipios", "Gestantes por municipio", nota):
+        grafico(graficos.mapa_coropletico(m, depto, medida, "Mapa de municipios"), f"mapa-municipios-{depto}")
+        st.caption("Pase el cursor por un municipio para ver sus cifras; use la rueda para acercar y arrastre para moverse. "
+                   "Los municipios en gris no tienen gestantes en los datos.")
+        tabla_m = m.rename(columns={"municipio": "Municipio", "departamento": "Departamento", "gestantes": "Gestantes",
+                                    "Bajo Riesgo": "Bajo", "Riesgo Medio": "Medio", "Alto Riesgo": "Alto", "pct_alto": "% Alto"})
+        columnas = ["Municipio", "Departamento", "Gestantes", "Bajo", "Medio", "Alto", "% Alto"]
+        if not todos:
+            tabla_m = tabla_m.rename(columns={"seleccion": f"De {texto_niveles}"})
+            columnas.append(f"De {texto_niveles}")
+        st.dataframe(tabla_m[columnas], hide_index=True, width="stretch")
+    with lab.tarjeta("mapa-puntos", "Dónde se concentran", "tamaño: cuántas gestantes · color: nivel de riesgo"):
+        grafico(graficos.mapa_concentracion(p, tuple(niveles), depto, "Mapa de puntos de concentración"),
+                f"mapa-puntos-{depto}-{'-'.join(n.split()[0] for n in niveles)}")
+        st.caption("Cada lugar muestra un círculo por nivel de riesgo; el de Alto Riesgo va encima. Elija solo «Alto Riesgo» "
+                   "para ver dónde buscar primero. Los puntos de concentración son sintéticos y las cabeceras, reales.")
+        tabla_p = p.sort_values(["Alto Riesgo", "gestantes"], ascending=False).rename(columns={
+            "nombre": "Lugar", "tipo": "Tipo", "municipio": "Municipio", "gestantes": "Gestantes", "Bajo Riesgo": "Bajo",
+            "Riesgo Medio": "Medio", "Alto Riesgo": "Alto", "pct_alto": "% Alto"})
+        st.dataframe(tabla_p[["Lugar", "Tipo", "Municipio", "Gestantes", "Alto", "Medio", "Bajo", "% Alto"]],
+                     hide_index=True, width="stretch", height=320)
+    with lab.tarjeta("mapa-privacidad", "Privacidad de las ubicaciones"):
+        st.markdown(
+            "- Cada ubicación se guarda **solo con el código anónimo** de la gestante, nunca con su nombre o documento.\n"
+            "- Tres niveles de detalle: **municipio**; **ranchería, vereda o resguardo** (el nivel de trabajo por defecto); "
+            "y **GPS exacto**, solo con consentimiento registrado y para médico o enfermería, en la app.\n"
+            "- El mapa no muestra la etnia: ubicar a las gestantes por pueblo podría estigmatizar a una comunidad.\n"
+            "- La ubicación y la distancia a la cabecera son **solo apoyo para encontrar y priorizar visitas**: no entran al modelo."
+        )
+        st.caption(f"Límites: {georreferencia.FUENTE_LIMITES}. Funciona sin internet: solo límites y puntos, sin mapa de fondo.")
+    codigo(georreferencia.construir_sinteticos, georreferencia.por_municipio)
+
+
 # ---------------------------------------------------------------- la fase elegida en el menú lateral
 FASES = {
     "01": fase_problema, "02": fase_datos, "03": fase_eda, "04": fase_limpieza, "05": fase_variables, "06": fase_division,
     "07": fase_algoritmo, "08": fase_entrenamiento, "09": fase_parametros, "10": fase_evaluacion, "11": fase_generalizacion,
-    "12": fase_entrega, "etica": fase_etica,
+    "12": fase_entrega, "etica": fase_etica, "mapa": fase_mapa,
 }
 vista = lab.vista()
 etiquetas = {
