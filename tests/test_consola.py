@@ -20,7 +20,6 @@ from src.exportar_a_dart import DIR_ASSETS
 from src.experimentos import leer_registro
 from src.generar_ejemplo_ips import DIR_EJEMPLOS
 from src.inspeccionar_ips import inspeccionar
-from src.lista_chequeo import ACTIVIDADES, ESTADOS
 from src.ui_laboratorio import VISTAS
 
 APP = str(RAIZ / "app_demo.py")
@@ -128,8 +127,8 @@ def test_login_abre_el_laboratorio(entorno):
     at = iniciar_sesion(app_abierta(), "medico", CLAVES["medico"])
     assert not at.exception
     assert at.session_state["usuario"]["rol"] == "medico_auditor"
-    # la página de inicio es el laboratorio (Módulo 1), en la fase 01; el menú lateral lleva a las 14 vistas
-    assert len(menu(at)) == len(VISTAS) == 14 and menu(at)[0].key == "mt-nav-activa-01"
+    # la página de inicio es el laboratorio (Módulo 1), en la fase 01; el menú lateral lleva a las 13 vistas
+    assert len(menu(at)) == len(VISTAS) == 13 and menu(at)[0].key == "mt-nav-activa-01"
     assert any("Definir el problema" in m.value for m in at.markdown)
     menu(at)[9].click().run()  # 10 Evaluación
     assert not at.exception and at.session_state["vista"] == "10"
@@ -515,9 +514,10 @@ def test_pagina_variables_3280(entorno):
     assert not at.exception and len(at.dataframe[0].value) == 71
 
 
-def test_lista_de_chequeo_en_el_laboratorio(entorno):
-    at = pagina("laboratorio", "administrador", "chequeo")
+def test_lista_de_chequeo_fuera_de_la_interfaz(entorno):
+    """La lista de chequeo es un documento interno del equipo (Word): no está en el menú ni se abre como vista."""
+    assert "chequeo" not in VISTAS
+    at = pagina("laboratorio", "administrador", "chequeo")  # una vista guardada que ya no existe vuelve a la fase 01
     assert not at.exception
-    por_estado = {m.label: int(m.value) for m in at.metric if m.label in ESTADOS}
-    assert set(por_estado) == set(ESTADOS) and sum(por_estado.values()) == len(ACTIVIDADES)
-    assert any(len(d.value) == len(ACTIVIDADES) and "Evidencia en el aplicativo" in d.value for d in at.dataframe)
+    assert not any("chequeo" in (b.key or "") for b in at.sidebar.button)
+    assert any("Definir el problema" in m.value for m in at.markdown)

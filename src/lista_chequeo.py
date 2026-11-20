@@ -8,6 +8,9 @@ Cada fila es una actividad con su estado real:
 El requisito del docente es que cada fase se pueda EJECUTAR en el Módulo 1, no solo mostrarse: por eso
 una actividad que hoy solo muestra resultados guardados figura aparte de su versión ejecutable.
 
+Es un documento interno del equipo: ya no se muestra en el Módulo 1; se entrega como Word
+(«MATERNA - Lista de chequeo del ciclo de vida.docx», con casillas, generado desde esta tabla).
+
 Esta tabla se actualiza al cerrar cada etapa. Una prueba (tests/test_lista_chequeo.py) vigila que los
 archivos citados existan, para que la evidencia no apunte a algo que ya no está.
 """

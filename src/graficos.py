@@ -412,10 +412,20 @@ def mapa_calor(valores, titulo, filas=("Bajo", "Medio", "Alto"), columnas=("Bajo
     return Grafico(opciones, alto, titulo, {"celdas": len(datos), "n_columnas": n_c})
 
 
+def texto_auc(auc):
+    """AUC con 3 decimales y coma. Un AUC menor que 1 que se redondearía a 1,000 se muestra «> 0,999»:
+    «1,000» haría creer que la separación es perfecta."""
+    if auc < 1 and round(auc, 3) >= 1:
+        return "> 0,999"
+    return f"{auc:.3f}".replace(".", ",")
+
+
 def curvas_roc(curvas, titulo="Curvas ROC"):
-    """Curvas ROC uno contra el resto: {clase: (fpr, tpr, auc)}. Las líneas se trazan de izquierda a derecha."""
+    """Curvas ROC uno contra el resto: {clase: (fpr, tpr, auc)}. Las líneas se trazan de izquierda a derecha.
+    Los puntos llegan tal cual de sklearn.metrics.roc_curve (un punto por umbral, de (0, 0) a (1, 1))."""
     color = {"Bajo": COLOR_CLASE["Bajo Riesgo"], "Medio": COLOR_CLASE["Riesgo Medio"], "Alto": COLOR_CLASE["Alto Riesgo"]}
-    series = [{"name": f"{clase} (AUC {auc:.3f})".replace(".", ","), "type": "line", "showSymbol": False, "smooth": False,
+    coma = {"color": TINTA_SUAVE, "fontSize": 12, "formatter": js("(v) => String(v).replace('.', ',')")}
+    series = [{"name": f"{clase} (AUC {texto_auc(auc)})", "type": "line", "showSymbol": False, "smooth": False,
                "data": [[round(float(x), 4), round(float(y), 4)] for x, y in zip(fpr, tpr)],
                "lineStyle": {"width": 2.5, "color": color.get(clase, COLOR_CLASE.get(clase, SERIE_1))},
                "itemStyle": {"color": color.get(clase, COLOR_CLASE.get(clase, SERIE_1))},
@@ -424,7 +434,8 @@ def curvas_roc(curvas, titulo="Curvas ROC"):
                    "lineStyle": {"type": "dashed", "color": TINTA_SUAVE, "width": 1}, "tooltip": {"show": False}})
     opciones = _base(
         legend=_leyenda(data=[s["name"] for s in series[:-1]]), series=series,
-        xAxis=_eje("Tasa de falsos positivos", min=0, max=1), yAxis=_eje("Sensibilidad", min=0, max=1, nameGap=40),
+        xAxis=_eje("Tasa de falsos positivos (FPR)", min=0, max=1, axisLabel=coma),
+        yAxis=_eje("Sensibilidad (TPR)", min=0, max=1, nameGap=40, axisLabel=coma),
         tooltip={**_base()["tooltip"], "trigger": "item", "formatter": js(
             "(p) => p.seriesName + '<br/>FPR ' + p.value[0].toFixed(3) + ' · sensibilidad ' + p.value[1].toFixed(3)")})
     return Grafico(opciones, 320, titulo, {"curvas": len(curvas)})

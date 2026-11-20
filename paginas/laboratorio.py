@@ -1,4 +1,4 @@
-"""MATERNA — Módulo 1: Laboratorio de ML auditable (fases 01 a 12, ética y lista de chequeo).
+"""MATERNA — Módulo 1: Laboratorio de ML auditable (fases 01 a 12 y ética).
 
 Audiencia: docente y equipo. La página muestra UNA fase a la vez, la que se elige en el menú lateral
 (src/ui_laboratorio.py): cada fase tiene su encabezado y sus tarjetas, con los datos y resultados reales del
@@ -24,12 +24,13 @@ import pandas as pd
 import streamlit as st
 
 from src import (
-    conjunto_trabajo, experimentos, graficos, interpretacion, publicacion, recorrido, ui_datos, ui_laboratorio as lab,
+    conjunto_trabajo, estadisticas, experimentos, graficos, interpretacion, patrones, publicacion, recorrido, ui_datos,
+    ui_laboratorio as lab,
     ui_metricas, ui_patrones, ui_publicacion, ui_recorrido, ui_theme as ui,
 )
 from src.autenticacion import puede
 from src.clinical_rules import evaluar_reglas, mascara_reglas
-from src.config import CLASE_ALTO, DIR_METRICAS, DIR_MODELOS, NOMBRES_CLASES, SEMILLA
+from src.config import CLASE_ALTO, DIR_METRICAS, DIR_MODELOS, NOMBRES_CLASES, SEMILLA, TARGET
 from src.consolidado_ips import datos_consolidados, guardar_carga, resumen_consolidado
 from src.depuracion import contar_filas, depurar
 from src.data_preprocessing import (
@@ -41,7 +42,6 @@ from src.exportar_a_dart import RUTA_MODELO, dir_assets
 from src.filtro_3280 import tabla_decisiones, variables_modelo
 from src.generar_ejemplo_ips import DIR_EJEMPLOS, DIR_PLANTILLAS
 from src.inspeccionar_ips import CENTINELAS, inspeccionar, reemplazar_centinelas
-from src.lista_chequeo import ACTIVIDADES, ESTADOS, resumen as resumen_chequeo, tabla as tabla_chequeo
 from src.seudonimizacion import LONGITUD_MINIMA_SAL, VARIABLE_SAL
 from src.train_models import GRID_C_LR, con_estrategias_balanceo, grid_random_forest
 from src.ui_theme import miles
@@ -492,7 +492,36 @@ def fase_datos():
 
 
 # ---------------------------------------------------------------- 03
+# Variables de las estadísticas descriptivas: las numéricas del modelo, más la proteinuria (0 = negativa, 1 = +, 2 = ++)
+ETIQUETAS_DESCRIPTIVAS = {**ETIQUETAS, "proteinuria": "Proteinuria (cruces)"}
+
+
+def seccion_descriptivas():
+    """Media, mediana, moda y desviación estándar de los datos con que se entrena hoy (conjunto + patrones nuevos).
+    Se recalcula en cada ejecución: al agregar un patrón o cambiar el conjunto de trabajo, la tabla ya lo incluye."""
+    base = df if datos_trabajo is None else datos_trabajo
+    nuevos = patrones.vigentes()
+    activos = estadisticas.combinar(base, nuevos)
+    detalle = f"{nombre_datos}" + (f" + {miles(len(nuevos))} patrón(es) nuevo(s)" if len(nuevos) else "")
+    with lab.tarjeta("descriptivas", "Estadísticas descriptivas", f"{miles(len(activos))} gestantes"):
+        st.caption(f"Datos con que se entrena hoy: **{detalle}**. La tabla se actualiza sola al agregar patrones "
+                   f"(fase 02) o al usar otro conjunto de trabajo ({lab.nombre_fase('04')}).")
+        grupo = st.segmented_control("Gestantes", ["Todas", *NOMBRES_CLASES], default="Todas", key="eda_grupo")
+        elegidas = activos if grupo in (None, "Todas") else activos[activos[TARGET] == grupo]
+        tabla = estadisticas.descriptivas(elegidas, ETIQUETAS_DESCRIPTIVAS)
+        st.dataframe(tabla, hide_index=True, width="stretch")
+        notas = ["Desviación estándar muestral. Q1 y Q3: el 25 % de las gestantes está por debajo de Q1 y el 25 % por encima "
+                 "de Q3.", "La moda de FCF y glucosa se calcula con valores redondeados a enteros (vienen con decimales); "
+                 "si hay empate se muestra la menor."]
+        piso = estadisticas.moda_en_el_minimo(tabla, ETIQUETAS_DESCRIPTIVAS)
+        if piso:
+            notas.append(f"En {', '.join(piso)} la moda coincide con el mínimo: muchos registros tienen justo ese valor, "
+                         "lo que indica un piso (valores recortados al generar o capturar los datos).")
+        st.caption(" ".join(notas))
+
+
 def fase_eda():
+    seccion_descriptivas()
     c1, c2 = st.columns([2, 3], gap="medium")
     with c1, lab.tarjeta("nulos", "Datos faltantes", alto="stretch"):
         nulos = (df.isna().mean() * 100).round(2)
@@ -671,7 +700,7 @@ def seccion_recorrido():
         lab.anotar(f"Recorrido de «{nombre.split(' (')[0]}»: {datos['categoria']}")
     ui_recorrido.mostrar(datos, clave=f"recorrido-{list(casos).index(nombre)}")
     st.caption(f"Se dibujan {len(datos['arboles'])} de los {datos['n_arboles']} árboles; el promedio y los puntos salen de los "
-               f"{datos['n_arboles']}. Para otra gestante, evalúela en la página «Triaje (Fase 2)» y pulse «Ver cómo decidió el sistema».")
+               f"{datos['n_arboles']}. Para otra gestante, evalúela en la página «Triaje (Módulo 2)» y pulse «Ver cómo decidió el sistema».")
     with st.expander("El recorrido en texto"):
         for frase in recorrido.en_texto(datos):
             st.markdown(frase)
@@ -921,32 +950,11 @@ def fase_etica():
         )
 
 
-# ---------------------------------------------------------------- lista de chequeo
-def fase_chequeo():
-    chequeo = tabla_chequeo()
-    conteo = chequeo["Estado"].value_counts().reindex(list(ESTADOS), fill_value=0)
-    st.markdown(
-        f"Auditoría del repositorio contra las **12 fases** del ciclo de aprendizaje automático: **{len(ACTIVIDADES)} actividades**. "
-        "**Hecho** quiere decir que hoy se puede ver o ejecutar en el aplicativo; **Parcial**, que existe una parte; "
-        "**Falta**, que aún no existe y en qué etapa del plan se construye. La columna *Evidencia* dice en qué fase verlo."
-    )
-    for columna, estado in zip(st.columns(3), ESTADOS):
-        columna.metric(estado, int(conteo[estado]))
-    with lab.tarjeta("resumen", "Resumen por fase"):
-        st.dataframe(resumen_chequeo(), hide_index=True, width="stretch")
-    with lab.tarjeta("actividades", "Actividades y su evidencia"):
-        filtro = st.segmented_control("Mostrar", ["Todas", *ESTADOS], default="Todas", key="chequeo_estado")
-        visibles = chequeo if filtro in (None, "Todas") else chequeo[chequeo["Estado"] == filtro]
-        st.dataframe(visibles, hide_index=True, width="stretch", height=560)
-        st.download_button("Descargar la lista de chequeo (CSV)", chequeo.to_csv(index=False).encode("utf-8-sig"),
-                           "materna_lista_de_chequeo.csv", "text/csv", icon=":material/download:")
-
-
 # ---------------------------------------------------------------- la fase elegida en el menú lateral
 FASES = {
     "01": fase_problema, "02": fase_datos, "03": fase_eda, "04": fase_limpieza, "05": fase_variables, "06": fase_division,
     "07": fase_algoritmo, "08": fase_entrenamiento, "09": fase_parametros, "10": fase_evaluacion, "11": fase_generalizacion,
-    "12": fase_entrega, "etica": fase_etica, "chequeo": fase_chequeo,
+    "12": fase_entrega, "etica": fase_etica,
 }
 vista = lab.vista()
 etiquetas = {

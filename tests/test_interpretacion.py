@@ -11,6 +11,15 @@ from src.evaluate import MATRIZ_COSTO, calcular_metricas
 from src.generador_sintetico import generar
 
 
+@pytest.fixture(scope="module", autouse=True)
+def experimentos_aislados(tmp_path_factory):
+    """Carpeta de experimentos vacía: los patrones o versiones que alguien guardó al usar el laboratorio en este
+    equipo (carpeta experimentos/, fuera del repositorio) no deben cambiar el resultado de las pruebas."""
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setenv(experimentos.VARIABLE_DIRECTORIO, str(tmp_path_factory.mktemp("experimentos")))
+        yield
+
+
 @pytest.fixture(scope="module")
 def en_uso():
     return interpretacion.evaluar_sistema()

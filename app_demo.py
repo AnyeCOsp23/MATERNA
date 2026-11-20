@@ -6,9 +6,9 @@ Arquitectura de dos módulos independientes pero integrados:
                                    y semáforo. Consume los JSON que entrega el Módulo 1 (fase 12).
 
 Páginas (carpeta paginas/):
-  Laboratorio ML  las 12 fases, ética y lista de chequeo; muestra una fase a la vez, elegida en el menú lateral
+  Laboratorio ML  las 12 fases y ética; muestra una fase a la vez, elegida en el menú lateral
   Variables 3280  tabla de decisiones del filtro de la Resolución 3280
-  Triaje (Fase 2) demo anterior del triaje; la app de usuario final es el Módulo 2
+  Triaje (Módulo 2) vista provisional del triaje (demo de la Fase 2); la app definitiva del Módulo 2 es Flutter
 
 Ejecutar:        streamlit run app_demo.py
 Crear usuarios:  python -m src.autenticacion crear-usuario <usuario> --rol <rol> --nombre "<nombre>"
@@ -17,13 +17,15 @@ Crear usuarios:  python -m src.autenticacion crear-usuario <usuario> --rol <rol>
 import importlib
 import threading
 import time
+from pathlib import Path
 
 import streamlit as st
 
-from src import graficos, ui_laboratorio as lab, ui_theme as ui
-from src.autenticacion import INTENTOS_MAXIMOS, ROLES, autenticar, cargar_usuarios, puede
+from src import graficos, recuperacion, ui_laboratorio as lab, ui_theme as ui
+from src.autenticacion import INTENTOS_MAXIMOS, LONGITUD_MINIMA, ROLES, autenticar, cargar_usuarios, puede
 
 SEGUNDOS_BLOQUEO = 60
+FAVICON = Path(__file__).resolve().parent / "static" / "favicon.png"
 # Módulos que importa el laboratorio. La primera vez tardan unos 4,5 s (scikit-learn, pandas, matplotlib,
 # imbalanced-learn, Altair); se precargan mientras se ven la bienvenida y el login.
 MODULOS_LABORATORIO = (
@@ -47,7 +49,8 @@ def precargar_laboratorio():
     return hilo
 
 
-st.set_page_config(page_title="MATERNA — Alerta temprana", page_icon="🪷", layout="wide")
+# Favicon: el isotipo de MATERNA (static/favicon.png, cuadrado de 128 px con fondo transparente)
+st.set_page_config(page_title="MATERNA — Alerta temprana", page_icon=str(FAVICON), layout="wide")
 precargar_laboratorio()
 
 # Pantalla de bienvenida, solo al abrir la página (Streamlit vuelve a ejecutar el script en cada interacción).
@@ -69,20 +72,79 @@ graficos.modo_debug(DEBUG_ANIMACION)
 ui.motor_animaciones(DEBUG_ANIMACION)  # entrada y transiciones de los diagramas HTML (una vez por página)
 
 
+def ir_a_recuperar(paso):
+    """on_click de los botones de la recuperación: None vuelve al inicio de sesión."""
+    st.session_state["recuperar"] = paso
+    if paso is None:
+        st.session_state.pop("recuperar_id", None)
+
+
+def formulario_recuperacion(usuarios):
+    """«¿Olvidó su contraseña?»: pedir el código por correo y, con él, elegir una contraseña nueva (src/recuperacion.py)."""
+    config = recuperacion.config_correo()
+    if st.session_state.get("recuperar") == "pedir":
+        if config is None:
+            st.info("La recuperación por correo aún no está configurada en este equipo. Pida al administrador que "
+                    "restablezca su contraseña.", icon=":material/mail:")
+        else:
+            with st.form("recuperar_pedir"):
+                identificador = st.text_input("Usuario o correo registrado", autocomplete="username")
+                pedir = st.form_submit_button("Enviar el código", type="primary", width="stretch")
+            if pedir and identificador.strip():
+                with st.spinner("Enviando el código…"):
+                    enviado = recuperacion.solicitar(identificador, usuarios, config)
+                if enviado:
+                    st.session_state["recuperar_id"] = identificador.strip()
+                    st.session_state["recuperar"] = "codigo"
+                    st.rerun()
+                st.error("No se pudo enviar el correo en este momento. Intente más tarde o avise al administrador.")
+            elif pedir:
+                st.error("Escriba su usuario o su correo.")
+    else:
+        st.info(recuperacion.AVISO_ENVIO, icon=":material/mark_email_read:")
+        with st.form("recuperar_codigo"):
+            codigo = st.text_input(f"Código de {recuperacion.DIGITOS} dígitos", max_chars=recuperacion.DIGITOS,
+                                   autocomplete="one-time-code")
+            nueva = st.text_input("Contraseña nueva", type="password", autocomplete="new-password",
+                                  help=f"Al menos {LONGITUD_MINIMA} caracteres.")
+            repetida = st.text_input("Repita la contraseña nueva", type="password", autocomplete="new-password")
+            cambiar = st.form_submit_button("Cambiar la contraseña", type="primary", width="stretch")
+        if cambiar:
+            ok, mensaje = recuperacion.restablecer(st.session_state.get("recuperar_id", ""), codigo, nueva, repetida,
+                                                   usuarios, config)
+            if ok:
+                ir_a_recuperar(None)
+                st.session_state["login_aviso"] = mensaje
+                st.rerun()
+            st.error(mensaje)
+    # los enlaces van en una fila para que el paso del código quepa en una pantalla de portátil (1366 × 768)
+    volver, otro = st.columns(2, gap="small")
+    volver.button("Volver al inicio de sesión", key="mt-recuperar-volver", type="tertiary", icon=":material/arrow_back:",
+                  on_click=ir_a_recuperar, args=(None,))
+    if st.session_state.get("recuperar") == "codigo":
+        otro.button("Pedir otro código", key="mt-recuperar-otra-vez", type="tertiary", on_click=ir_a_recuperar, args=("pedir",))
+
+
 def formulario_login():
     """Dibuja el login. Devuelve los datos del usuario si acaba de iniciar sesión; si no, None."""
     usuarios = cargar_usuarios(st.secrets)
+    recuperando = st.session_state.get("recuperar") is not None
     # Pantalla completa: a la izquierda la marca, a la derecha el acceso (estilos .st-key-mt-login* en ui_theme)
     with st.container(key="mt-login"):
         marca, acceso = st.columns(2, gap="small")
         with marca:
             html(ui.login_marca())
         with acceso, st.container(key="mt-login-acceso"):
-            html(ui.login_encabezado())
+            html(ui.login_encabezado(recuperando))
             if not usuarios:
                 st.warning("No hay usuarios configurados. Cree uno desde la terminal y reinicie la consola:\n\n"
                            "`python -m src.autenticacion crear-usuario admin --rol administrador --nombre \"Administrador\"`")
                 return None
+            if recuperando:
+                formulario_recuperacion(usuarios)
+                return None
+            if aviso := st.session_state.pop("login_aviso", None):
+                st.success(aviso, icon=":material/check_circle:")
             with st.form("login"):
                 usuario = st.text_input("Usuario", autocomplete="username")
                 contrasena = st.text_input("Contraseña", type="password", autocomplete="current-password")
@@ -102,8 +164,7 @@ def formulario_login():
                     st.session_state["bloqueo_hasta"] = time.time() + SEGUNDOS_BLOQUEO
                     st.session_state["intentos"] = 0
                 st.error("Usuario o contraseña incorrectos.")
-            st.caption("Para revisar el sistema: administrador y médico auditor. El personal de salud que "
-                       "atiende a las gestantes usa el Módulo 2, la app MATERNA web y móvil. Las contraseñas se guardan solo como hash scrypt.")
+            st.button("¿Olvidó su contraseña?", key="mt-olvido", type="tertiary", on_click=ir_a_recuperar, args=("pedir",))
     return None
 
 
@@ -130,7 +191,7 @@ laboratorio = st.Page("paginas/laboratorio.py", title="Laboratorio ML", icon=":m
 OTRAS = [
     ("variables_3280", st.Page("paginas/variables_3280.py", title="Variables 3280", icon=":material/fact_check:")),
     # Provisional: demo del triaje de la Fase 2; la app de usuario final es el Módulo 2 (Flutter, web y móvil)
-    ("triaje", st.Page("paginas/triaje.py", title="Triaje (Fase 2)", icon=":material/stethoscope:")),
+    ("triaje", st.Page("paginas/triaje.py", title="Triaje (Módulo 2)", icon=":material/stethoscope:")),
 ]
 otras = [p for permiso, p in OTRAS if puede(usuario, permiso)]
 pagina = st.navigation([laboratorio, *otras], position="hidden")
