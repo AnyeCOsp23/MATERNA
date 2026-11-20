@@ -126,8 +126,10 @@ html, body, .stApp, p, label, input, button, textarea, li, .mt-hero, .mt-result,
 [data-testid="stMarkdownContainer"], [data-testid="stCaptionContainer"] { font-family: var(--mt-fuente); }
 h1, h2, h3, h4, h5 { font-family: var(--mt-fuente) !important; }
 /* Streamlit resta 1 rem bajo cada bloque de Markdown porque espera un párrafo al final: con nuestras piezas
-   (que no terminan en párrafo) el bloque siguiente se montaba encima */
-[data-testid="stMarkdownContainer"]:has(> [class^="mt-"]:last-child) { margin-bottom: 0 !important; }
+   (que no terminan en párrafo) el bloque siguiente se montaba encima. También vale para las piezas animadas,
+   que van envueltas en <div data-mt> sin clase (barra de la partición, indicadores de la fase 10) */
+[data-testid="stMarkdownContainer"]:has(> [class^="mt-"]:last-child),
+[data-testid="stMarkdownContainer"]:has(> [data-mt]:last-child) { margin-bottom: 0 !important; }
 /* sin el ícono de enlace que Streamlit agrega a los títulos */
 .mt-cab [data-testid="stHeaderActionElements"], .mt-card-h [data-testid="stHeaderActionElements"],
 .mt-section [data-testid="stHeaderActionElements"] { display: none; }
@@ -178,7 +180,15 @@ body:not(:has(#mt-splash)) .st-key-mt-login-acceso div[data-testid="stForm"],
 body:not(:has(#mt-splash)) .st-key-mt-login-acceso [data-testid="stCaptionContainer"],
 body:not(:has(#mt-splash)) .st-key-mt-login-acceso [data-testid="stAlert"] { animation-play-state: running; }
 /* mientras el login cubre la ventana, la página de abajo no debe desplazarse */
+/* los enlaces del login («¿Olvidó su contraseña?», recuperación) entran después del formulario */
+.st-key-mt-login-acceso [data-testid="stButton"] {
+  animation: mt-login-aparece .75s var(--mt-curva) calc(.25s + 5 * 90ms) both; animation-play-state: paused;
+}
+body.mt-revelado .st-key-mt-login-acceso [data-testid="stButton"],
+body:not(:has(#mt-splash)) .st-key-mt-login-acceso [data-testid="stButton"] { animation-play-state: running; }
 body:has(.st-key-mt-login) { overflow: hidden; }
+.mt-acceso-logo.mt-compacto { margin-bottom: clamp(.8rem, 2vh, 1.4rem); }
+.st-key-mt-recuperar-otra-vez { display: flex; justify-content: flex-end; }
 
 /* panel de marca (izquierda) */
 .st-key-mt-login [data-testid="stColumn"]:first-child {
@@ -233,6 +243,14 @@ body:has(.st-key-mt-login) { overflow: hidden; }
 .st-key-mt-login-acceso input { font-size: clamp(.98rem, 1vw, 1.08rem) !important; }
 .st-key-mt-login-acceso [data-testid="stBaseButton-primaryFormSubmit"] {
   min-height: clamp(3rem, 6vh, 3.5rem); margin-top: .4rem; font-size: clamp(1rem, 1.05vw, 1.12rem);
+}
+/* «¿Olvidó su contraseña?» y los enlaces de la recuperación: texto en vino, sin caja */
+.st-key-mt-olvido { margin-top: -.4rem; }
+.st-key-mt-olvido button, .st-key-mt-recuperar-otra-vez button, .st-key-mt-recuperar-volver button {
+  min-height: 0 !important; padding: 2px 0 !important; color: var(--mt-vino) !important; font-weight: 600 !important;
+}
+.st-key-mt-olvido button:hover p, .st-key-mt-recuperar-otra-vez button:hover p, .st-key-mt-recuperar-volver button:hover p {
+  text-decoration: underline; text-underline-offset: 3px;
 }
 .st-key-mt-login-acceso [data-testid="stCaptionContainer"], .st-key-mt-login-acceso [data-testid="stCaptionContainer"] p {
   text-align: left; color: var(--mt-tinta-suave) !important; font-size: clamp(.8rem, .85vw, .9rem); line-height: 1.55;
@@ -336,12 +354,6 @@ section[data-testid="stSidebar"] [class*="st-key-mt-nav-activa-"] button {
   background: var(--mt-rosa) !important; color: var(--mt-vino) !important; font-weight: 700 !important;
 }
 section[data-testid="stSidebar"] [class*="st-key-mt-nav-activa-"] button code { background: var(--mt-vino); color: #fff; }
-/* la lista de chequeo lleva su conteo a la derecha, como una etiqueta */
-section[data-testid="stSidebar"] [class*="-chequeo"] button p { justify-content: space-between; flex-direction: row-reverse; white-space: nowrap; }
-section[data-testid="stSidebar"] [class*="-chequeo"] button code {
-  width: auto; height: auto; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600;
-  background: var(--mt-ok-fondo) !important; color: var(--mt-ok-tinta) !important; border: 1px solid var(--mt-ok-linea);
-}
 /* otras páginas (enlaces) con el mismo aspecto que las fases */
 section[data-testid="stSidebar"] a[data-testid="stPageLink-NavLink"] {
   min-height: 32px; padding: 0 10px; border-radius: 10px; gap: 10px; background: transparent;
@@ -443,7 +455,7 @@ div[data-testid="stForm"] { padding: 1.2rem 1.3rem 1.1rem; }
 /* indicadores (KPI) */
 .mt-kpi-t { font-size: 13px; font-weight: 600; color: var(--mt-tinta-suave); }
 .mt-kpi-s { font-size: 13px; font-weight: 500; color: var(--mt-tinta); line-height: 1.4; }
-[class*="st-key-mt-card-kpi"] { gap: .35rem; }
+[class*="st-key-mt-card-kpi"] { gap: .6rem; }
 [class*="st-key-mt-card-kpi"] [data-testid="stPopoverButton"] {
   min-height: 26px !important; padding: 2px 10px !important; border: 1px solid var(--mt-linea) !important; background: #fff !important;
   color: var(--mt-tinta-suave) !important; font-size: 12px !important; font-weight: 600 !important; box-shadow: none !important;
@@ -905,15 +917,17 @@ def login_marca():
     </div>""")
 
 
-def login_encabezado():
-    """Panel derecho del inicio de sesión: logo MATERNA destacado y bienvenida."""
-    return _html("""
-    <div class="mt-acceso-logo mt-escalon" style="--paso:1">
+def login_encabezado(recuperando=False):
+    """Panel derecho del inicio de sesión: logo MATERNA destacado y bienvenida (o el título de la recuperación)."""
+    titulo, sub = (("Recuperar la contraseña", "Le enviaremos un código a su correo registrado para elegir una nueva.")
+                   if recuperando else ("Le damos la bienvenida", "Módulo 1 · Laboratorio de ML. Inicie sesión para continuar."))
+    return _html(f"""
+    <div class="mt-acceso-logo mt-escalon{' mt-compacto' if recuperando else ''}" style="--paso:1">
       <img src="./app/static/logo_isotipo.webp" alt="" aria-hidden="true"><span>MATERNA</span>
     </div>
     <div class="mt-escalon" style="--paso:2">
-      <div class="mt-acceso-titulo" role="heading" aria-level="1">Le damos la bienvenida</div>
-      <p class="mt-acceso-sub">Módulo 1 · Laboratorio de ML. Inicie sesión para continuar.</p>
+      <div class="mt-acceso-titulo" role="heading" aria-level="1">{titulo}</div>
+      <p class="mt-acceso-sub">{sub}</p>
     </div>""")
 
 

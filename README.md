@@ -32,7 +32,7 @@ flowchart LR
     J --> A
 ```
 
-- **Módulo 1 · Laboratorio de ML** (`app_demo.py`, `paginas/`, `src/`). Para el docente, el equipo y el médico auditor. Cada fase del ciclo de vida se **ejecuta** en el aplicativo: carga masiva y generador sintético, depuración de datos crudos, partición parametrizable, parametrización de los tres modelos, entrenamiento en vivo con versiones, evaluación con interpretación de métricas, curvas de aprendizaje, nuevo patrón manual y lista de chequeo del ciclo de vida. Roles: **administrador** (todo, incluido publicar) y **médico auditor** (audita e ingiere archivos; no entrena ni publica).
+- **Módulo 1 · Laboratorio de ML** (`app_demo.py`, `paginas/`, `src/`). Para el docente, el equipo y el médico auditor. Cada fase del ciclo de vida se **ejecuta** en el aplicativo: carga masiva y generador sintético, depuración de datos crudos, partición parametrizable, parametrización de los tres modelos, entrenamiento en vivo con versiones, evaluación con interpretación de métricas, curvas de aprendizaje y nuevo patrón manual. La lista de chequeo del ciclo de vida es un documento interno del equipo (`src/lista_chequeo.py`). Roles: **administrador** (todo, incluido publicar) y **médico auditor** (audita e ingiere archivos; no entrena ni publica).
 - **Módulo 2 · App de usuario final** (`flutter_app/`). Para el personal de salud en territorio. Un solo código para Android y web, **sin internet**: cuentas con usuario y PIN, triaje por pasos, resultado Alto/Medio/Bajo con motivo y conducta sugerida, carga masiva de archivos de la IPS priorizada (documentos seudonimizados con HMAC-SHA256), historial local en SQLite, modo oscuro y ajustes de accesibilidad.
 - **Integración.** Solo por los JSON que publica el Módulo 1. El motor en Dart reproduce a scikit-learn con **diferencia cero** (200 casos del modelo, 160 de alertas y la carga masiva de ejemplo). El modelo en uso (v1) solo cambia con «Publicar al Módulo 2»; los entrenamientos del laboratorio crean versiones nuevas en `experimentos/`.
 
@@ -52,7 +52,7 @@ CSV crudo ─► limpieza estructural ─► partición estratificada 70/15/15 (
 ```
 MATERNA/
 ├── app_demo.py                      # Módulo 1: consola Streamlit (inicio de sesión y laboratorio)
-├── paginas/                         # Laboratorio de las 12 fases, triaje de la Fase 2 y variables 3280
+├── paginas/                         # Laboratorio de las 12 fases, Triaje (Módulo 2) y variables 3280
 ├── src/                             # Preprocesamiento, modelos, reglas, evaluación, ingesta 3280,
 │                                    # seudonimización, generador, experimentos, exportación a JSON…
 ├── config/variables_3280.json       # Catálogo único de 71 variables de la Res. 3280 y su decisión

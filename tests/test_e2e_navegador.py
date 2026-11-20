@@ -98,7 +98,7 @@ def menu(pg):
 
 
 def ir_al_triaje(pg):
-    pg.get_by_role("link", name="Triaje (Fase 2)").click()
+    pg.get_by_role("link", name="Triaje (Módulo 2)").click()
     pg.wait_for_selector('[data-testid="stNumberInputField"]', timeout=60000)
     esperar_fin_ejecucion(pg)
 
@@ -171,11 +171,16 @@ def test_navegar_al_laboratorio(pagina):
     menu(pagina).get_by_role("button", name="División").click()
     pagina.locator(".mt-h1", has_text="División de los datos").wait_for(timeout=60000)
     esperar_fin_ejecucion(pagina)
-    assert pagina.locator('[class*="st-key-mt-nav-"] button').count() == 14
+    assert pagina.locator('[class*="st-key-mt-nav-"] button').count() == 13  # 12 fases + ética
     assert pagina.locator('[class*="st-key-mt-nav-activa-06"]').count() == 1
     assert "Fase 6 · de 12" in pagina.locator(".mt-eyebrow").first.text_content()
     # la tarjeta de la partición y la barra del registro de ejecución están en pantalla
     assert pagina.locator(".st-key-mt-card-particion .mt-part").count() == 1
+    # regresión: las etiquetas («Suma 100»…) no se montan sobre la barra de «Prueba» (margen de -1rem de Streamlit)
+    assert pagina.evaluate("""() => {
+      const tr = [...document.querySelectorAll('.st-key-mt-card-particion .mt-tr')].pop();
+      const pills = document.querySelector('.st-key-mt-card-particion .mt-pills');
+      return pills.getBoundingClientRect().top >= tr.getBoundingClientRect().bottom; }""")
     assert "Sesión iniciada" in pagina.locator(".mt-lg").inner_text()
     # el ancho del menú deja ver el contenido sin barra horizontal
     assert pagina.evaluate("document.documentElement.scrollWidth <= window.innerWidth")

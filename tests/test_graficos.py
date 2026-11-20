@@ -130,3 +130,12 @@ def test_echarts_esta_en_static_y_se_sirve():
     assert archivo.exists() and archivo.stat().st_size > 500_000
     assert "Apache" in archivo.read_text(encoding="utf-8", errors="ignore")[:600]
     assert "enableStaticServing = true" in (RAIZ / ".streamlit/config.toml").read_text(encoding="utf-8")
+
+
+def test_auc_casi_perfecto_no_se_muestra_como_1():
+    """Un AUC de 0,9999 no es 1: la leyenda dice «> 0,999» para no aparentar una separación perfecta."""
+    assert graficos.texto_auc(0.9999) == "> 0,999"
+    assert graficos.texto_auc(1.0) == "1,000"
+    assert graficos.texto_auc(0.9959) == "0,996"
+    nombres = [s["name"] for s in graficos.curvas_roc({"Bajo": ([0, 0, 1], [0, 1, 1], 0.9999)}).opciones["series"]]
+    assert nombres[0] == "Bajo (AUC > 0,999)"

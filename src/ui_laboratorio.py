@@ -1,8 +1,8 @@
 """Fase 3 — Armazón del laboratorio: fases del ciclo de vida, menú lateral, encabezado, tarjetas y registro de ejecución.
 
 El laboratorio muestra UNA fase a la vez. La fase visible vive en st.session_state["vista"]: el menú lateral
-(que dibuja app_demo.py) la cambia y paginas/laboratorio.py dibuja solo esa fase. Así cada fase de la lista de
-chequeo tiene su propia pantalla y no se recalculan las demás en cada interacción.
+(que dibuja app_demo.py) la cambia y paginas/laboratorio.py dibuja solo esa fase. Así cada fase tiene su propia
+pantalla y no se recalculan las demás en cada interacción.
 
 El registro de ejecución es la barra inferior: lo último que se ejecutó en esta sesión, con su hora real.
 """
@@ -12,7 +12,6 @@ import streamlit as st
 
 from src import ui_theme as ui
 from src.autenticacion import ROLES
-from src.lista_chequeo import ACTIVIDADES
 
 INICIO = "01"
 # (clave, nombre en el menú, título de la pantalla, subtítulo)
@@ -39,7 +38,6 @@ GRUPOS = [
 TRANSVERSAL = "Transversal"
 EXTRAS = [
     ("etica", "Ética y limitaciones", "Ética y limitaciones", "Sesgos, datos sintéticos y lo que falta validar"),
-    ("chequeo", "Lista de chequeo", "Lista de chequeo del ciclo de vida", "Auditoría del repositorio contra las 12 fases"),
 ]
 VISTAS = {clave: {"menu": menu, "titulo": titulo, "sub": sub, "grupo": grupo}
           for grupo, fases in [*GRUPOS, (TRANSVERSAL, EXTRAS)] for clave, menu, titulo, sub in fases}
@@ -89,7 +87,6 @@ def menu(en_laboratorio, otras_paginas=()):
     """Menú de la barra lateral: las 12 fases agrupadas, las vistas transversales y las demás páginas."""
     actual = vista() if en_laboratorio else None
     recorridas = st.session_state.get("vistas_recorridas", [])
-    hechas = sum(1 for a in ACTIVIDADES if a[2] == "Hecho")
     with st.container(key="mt-menu"):
         st.markdown(ui.menu_marca(), unsafe_allow_html=True)
         for grupo, fases in GRUPOS:
@@ -98,7 +95,6 @@ def menu(en_laboratorio, otras_paginas=()):
                 _item(clave, actual, recorridas)
         st.markdown(ui.menu_grupo(TRANSVERSAL), unsafe_allow_html=True)
         _item("etica", actual, recorridas, insignia="")
-        _item("chequeo", actual, recorridas, insignia=f"{hechas}/{len(ACTIVIDADES)}")
         if otras_paginas:
             st.markdown(ui.menu_grupo("Otras vistas"), unsafe_allow_html=True)
             for pagina in otras_paginas:
@@ -109,7 +105,7 @@ def menu(en_laboratorio, otras_paginas=()):
 def encabezado(clave, usuario, chips=()):
     """Ruta de navegación, sesión activa, número de fase, título y etiquetas de la pantalla."""
     v = VISTAS[clave]
-    eyebrow = f"Fase {int(clave)} · de {N_FASES}" if clave.isdigit() else ("Auditoría" if clave == "chequeo" else TRANSVERSAL)
+    eyebrow = f"Fase {int(clave)} · de {N_FASES}" if clave.isdigit() else TRANSVERSAL
     rol = ROLES.get(usuario["rol"], "Sin rol") if usuario else "Sin sesión"
     st.markdown(ui.encabezado_pagina(["Laboratorio ML", v["grupo"], v["menu"]], f"Sesión activa · {rol}", eyebrow,
                                      v["titulo"], v["sub"], chips), unsafe_allow_html=True)
