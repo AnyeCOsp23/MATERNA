@@ -372,8 +372,10 @@ class BaseLocal {
       _bd.insert('evaluaciones', _fila(e, perfil, versionModelo, categoria, idSeudonimo: idSeudonimo));
 
   /// Guarda una carga masiva y todas sus evaluaciones en una sola transacción (todo o nada). Devuelve su id.
+  /// [ubicaciones] (opcional, en el mismo orden que los resultados): dónde ubicar a cada gestante, por municipio.
   Future<int> guardarCarga(CargaMasiva carga,
-      {required Perfil perfil, required String versionModelo, required List<String> clases, required String clave}) {
+      {required Perfil perfil, required String versionModelo, required List<String> clases, required String clave,
+      List<UbicacionCapturada?>? ubicaciones}) {
     final fecha = DateTime.now();
     return _bd.transaction((t) async {
       final id = await t.insert('cargas', {
@@ -395,7 +397,19 @@ class BaseLocal {
         lote.insert('evaluaciones', _fila(r.evaluacion, perfil, versionModelo, clases[r.evaluacion.clase],
             idSeudonimo: r.idSeudonimo, idCarga: id, fecha: fecha));
       }
-      await lote.commit(noResult: true);
+      if (ubicaciones == null) {
+        await lote.commit(noResult: true);
+        return id;
+      }
+      // con ubicaciones hacen falta los id de las evaluaciones recién creadas
+      final ids = await lote.commit();
+      final lugares = t.batch();
+      final momento = fecha.toIso8601String();
+      for (final (i, u) in ubicaciones.indexed) {
+        if (u == null || u.gps != null) continue; // la carga de la IPS nunca trae GPS
+        lugares.insert('ubicaciones', _filaUbicacion(ids[i] as int, u, perfil, momento));
+      }
+      await lugares.commit(noResult: true);
       return id;
     });
   }

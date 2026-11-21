@@ -1,6 +1,6 @@
-/// Pantalla principal del Módulo 2: las cuatro pestañas bajo la barra de navegación flotante.
+/// Pantalla principal del Módulo 2: las cinco pestañas bajo la barra de navegación flotante.
 ///
-///   1 Triaje individual · 2 Carga masiva IPS · 3 Historial local · 4 Acerca de
+///   1 Triaje individual · 2 Carga masiva IPS · 3 Historial local · 4 Mapa y visitas · 5 Acerca de
 ///
 /// Cada pestaña conserva su estado al cambiar de una a otra (un triaje a medio llenar no se pierde).
 /// Cada evaluación (individual o de una carga masiva) se guarda en la base local y aparece en el historial.
@@ -19,11 +19,13 @@ import 'pantalla_acerca_de.dart';
 import 'pantalla_carga.dart';
 import 'pantalla_historial.dart';
 import 'pantalla_triaje.dart';
+import 'pantalla_visitas.dart';
 
 final destinos = [
   DestinoBarra(icono: (c) => IconoDeTrazo(IconoTrazo.estetoscopio, color: c), etiqueta: 'Triaje'),
   DestinoBarra(icono: (c) => IconoDeTrazo(IconoTrazo.subirArchivo, color: c), etiqueta: 'Carga IPS'),
   DestinoBarra(icono: (c) => IconoDeTrazo(IconoTrazo.baseDatos, color: c), etiqueta: 'Historial'),
+  DestinoBarra(icono: (c) => IconoDeTrazo(IconoTrazo.mapa, color: c), etiqueta: 'Visitas'),
   DestinoBarra(icono: (c) => IconoDeTrazo(IconoTrazo.informacion, color: c), etiqueta: 'Acerca de'),
 ];
 
@@ -90,7 +92,9 @@ class _EstadoPrincipal extends State<PantallaPrincipal> {
             elegirArchivo: widget.elegirArchivo,
             guardarArchivo: widget.guardarArchivo,
           ),
-          PantallaHistorial(recursos: widget.recursos, base: widget.base, cambios: _cambios, idUsuario: widget.perfil.id),
+          PantallaHistorial(recursos: widget.recursos, base: widget.base, cambios: _cambios, idUsuario: widget.perfil.id,
+              perfil: widget.perfil),
+          PantallaVisitas(recursos: widget.recursos, base: widget.base, perfil: widget.perfil, cambios: _cambios),
           PantallaAcercaDe(recursos: widget.recursos, perfil: widget.perfil, alCerrarSesion: widget.alCerrarSesion),
           ]),
         ),

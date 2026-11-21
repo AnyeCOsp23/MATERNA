@@ -38,7 +38,7 @@ void main() {
     await registrar(tester);
     await tester.tap(find.byKey(const Key('codigo-anotado')));
     await esperar(tester);
-    await tocar(tester, find.byKey(const Key('pestana-3')));
+    await tocar(tester, find.byKey(const Key('pestana-4')));
     expect(brillo(tester, find.byKey(const Key('deslinde'))), Brightness.light);
     expect(colorTexto(tester, 'Qué le permite hacer MATERNA'), Paleta.claro.tinta);
 
@@ -59,7 +59,7 @@ void main() {
     expect(colorTexto(tester, 'Historial local'), Paleta.oscura.tinta);
 
     // y se vuelve al claro
-    await tocar(tester, find.byKey(const Key('pestana-3')));
+    await tocar(tester, find.byKey(const Key('pestana-4')));
     await tocar(tester, find.byKey(const Key('ajuste-modo-oscuro')));
     expect(preferencias.modoOscuro, isFalse);
     expect(colorTexto(tester, 'Colores oscuros, más cómodos de noche'), Paleta.claro.tintaSuave);

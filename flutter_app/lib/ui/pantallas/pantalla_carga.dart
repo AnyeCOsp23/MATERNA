@@ -18,13 +18,16 @@ import 'package:flutter/material.dart';
 import '../../datos/base_local.dart';
 import '../../datos/lector_ips.dart';
 import '../../datos/seudonimizacion.dart';
+import '../../datos/ubicaciones.dart';
 import '../../motor/carga_masiva.dart';
 import '../../motor/recursos.dart';
+import '../../motor/visitas.dart';
 import '../tema/tema_materna.dart';
 import '../widgets/barra_flotante.dart';
 import '../widgets/boton_info.dart';
 import '../widgets/encabezado.dart';
 import '../widgets/iconos_trazo.dart';
+import '../widgets/mapa_materna.dart';
 import 'pantalla_historial.dart' show fechaLegible;
 import 'pantalla_resultado.dart';
 
@@ -225,7 +228,13 @@ class _EstadoCarga extends State<PantallaCarga> {
     if (carga.resultados.isEmpty) return;
     final clasificador = widget.recursos.clasificador;
     await widget.base.guardarCarga(carga,
-        perfil: widget.perfil, versionModelo: clasificador.version, clases: clasificador.clases, clave: _clave!);
+        perfil: widget.perfil, versionModelo: clasificador.version, clases: clasificador.clases, clave: _clave!,
+        ubicaciones: widget.recursos.geografia == null
+            ? null
+            : [
+                for (final r in carga.resultados)
+                  switch (_municipioDe(r)) { final c? => UbicacionCapturada(codigoMunicipio: c), null => null },
+              ]);
     widget.alGuardar?.call();
     if (mounted) setState(() => _guardada = true);
   }
@@ -457,6 +466,29 @@ class _EstadoCarga extends State<PantallaCarga> {
         ),
       );
 
+  /// Código del municipio de la fila (columna «Municipio» del archivo), si es de La Guajira o el Cesar.
+  String? _municipioDe(ResultadoFila r) =>
+      widget.recursos.geografia?.porNombre(r.evaluacion.registro['municipio'] as String?)?.codigo;
+
+  /// Mapa de la carga: cada gestante en la cabecera de su municipio (el archivo de la IPS no trae el lugar exacto).
+  Widget _mapaCarga() {
+    final geo = widget.recursos.geografia!;
+    final filas = [
+      for (final r in _carga!.resultados)
+        if (_filtro == null || r.evaluacion.clase == _filtro)
+          if (_municipioDe(r) case final codigo?) (codigo, r.evaluacion.clase),
+    ];
+    final total = _filtro == null ? _carga!.resultados.length : _carga!.cuantas(_filtro!);
+    return _desplegable(key: const Key('mapa-carga'), titulo: 'Ver en el mapa (${filas.length} de $total con municipio)', hijos: [
+      MapaMaterna(key: ValueKey('mapa-carga-$_filtro'), geografia: geo, puntos: puntosPorMunicipio(filas, geo), alto: 300),
+      const SizedBox(height: 8),
+      const LeyendaMapa(),
+      const SizedBox(height: 4),
+      Text('Por municipio: cada círculo va en la cabecera. Para ubicarlas por ranchería, vereda o resguardo, use la '
+          '«Ubicación para la visita» del triaje.', style: _suave),
+    ]);
+  }
+
   Widget _resumen() {
     final carga = _carga!;
     final r = carga.reporte;
@@ -647,6 +679,7 @@ class _EstadoCarga extends State<PantallaCarga> {
                   if (carga.resultados.isNotEmpty) ...[
                     const SizedBox(height: 16),
                     _filtros(),
+                    if (widget.recursos.geografia != null) ...[const SizedBox(height: 10), _mapaCarga()],
                     const SizedBox(height: 10),
                   ],
                 ],

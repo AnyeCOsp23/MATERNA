@@ -5,7 +5,7 @@ library;
 
 import 'package:flutter/material.dart';
 
-enum IconoTrazo { estetoscopio, subirArchivo, baseDatos, informacion }
+enum IconoTrazo { estetoscopio, subirArchivo, baseDatos, informacion, mapa }
 
 class IconoDeTrazo extends StatelessWidget {
   const IconoDeTrazo(this.icono, {super.key, required this.color, this.tamano = 24});
@@ -74,6 +74,19 @@ class _Pintor extends CustomPainter {
         canvas.drawPath(Path()..moveTo(14, 3)..lineTo(14, 8)..lineTo(19, 8), trazo);
         canvas.drawLine(const Offset(12, 17.5), const Offset(12, 11.5), trazo);
         canvas.drawPath(Path()..moveTo(9.5, 14)..lineTo(12, 11.5)..lineTo(14.5, 14), trazo);
+      case IconoTrazo.mapa:
+        // Marcador de ubicación (gota con un círculo) sobre una línea de suelo
+        canvas.drawPath(
+          Path()
+            ..moveTo(12, 19)
+            ..cubicTo(8.5, 15.2, 6, 12.4, 6, 9.4)
+            ..arcToPoint(const Offset(18, 9.4), radius: const Radius.circular(6))
+            ..cubicTo(18, 12.4, 15.5, 15.2, 12, 19)
+            ..close(),
+          trazo,
+        );
+        canvas.drawCircle(const Offset(12, 9.4), 2.2, trazo);
+        canvas.drawLine(const Offset(7.5, 21.2), const Offset(16.5, 21.2), trazo);
       case IconoTrazo.informacion:
         canvas.drawCircle(const Offset(12, 12), 9, trazo);
         canvas.drawLine(const Offset(12, 11), const Offset(12, 16.5), trazo);

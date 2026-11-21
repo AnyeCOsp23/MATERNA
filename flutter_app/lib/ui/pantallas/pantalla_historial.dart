@@ -9,11 +9,14 @@ import 'package:flutter/material.dart';
 
 import '../../datos/base_local.dart';
 import '../../datos/seudonimizacion.dart';
+import '../../datos/ubicaciones.dart';
 import '../../motor/recursos.dart';
+import '../../motor/visitas.dart';
 import '../tema/tema_materna.dart';
 import '../widgets/barra_flotante.dart';
 import '../widgets/encabezado.dart';
 import '../widgets/iconos_trazo.dart';
+import '../widgets/mapa_materna.dart';
 import 'pantalla_resultado.dart';
 import 'pantalla_triaje.dart' show atiende;
 
@@ -30,13 +33,17 @@ String fechaLegible(DateTime f) {
 }
 
 class PantallaHistorial extends StatefulWidget {
-  const PantallaHistorial({super.key, required this.recursos, required this.base, required this.cambios, this.idUsuario});
+  const PantallaHistorial({super.key, required this.recursos, required this.base, required this.cambios, this.idUsuario,
+      this.perfil});
 
   final RecursosMaterna recursos;
   final BaseLocal base;
 
   /// Cuenta que inició sesión: solo se muestran sus evaluaciones.
   final int? idUsuario;
+
+  /// Perfil de esa cuenta, para el mapa (el GPS exacto solo se muestra a médico o enfermería).
+  final Perfil? perfil;
 
   /// Aumenta cada vez que se guarda una evaluación: el historial se recarga solo.
   final ValueNotifier<int> cambios;
@@ -52,6 +59,10 @@ class _EstadoHistorial extends State<PantallaHistorial> {
   var _porDocumento = false;
   String? _avisoBusqueda;
   late Future<(List<RegistroEvaluacion>, int)> _datos = _cargar();
+  late Future<List<RegistroUbicacion>> _ubicaciones = _cargarUbicaciones();
+
+  Future<List<RegistroUbicacion>> _cargarUbicaciones() async =>
+      widget.perfil == null ? const [] : widget.base.listarUbicaciones(perfil: widget.perfil!);
 
   @override
   void initState() {
@@ -113,7 +124,36 @@ class _EstadoHistorial extends State<PantallaHistorial> {
   // llaves: con «=>» el setState devolvería el Future de la asignación, y Flutter lo rechaza
   void _recargar() => setState(() {
         _datos = _cargar();
+        _ubicaciones = _cargarUbicaciones();
       });
+
+  /// Mapa de las evaluaciones con ubicación (mismo filtro de nivel que la lista).
+  Widget _mapa() => FutureBuilder<List<RegistroUbicacion>>(
+        future: _ubicaciones,
+        builder: (context, estado) {
+          final geo = widget.recursos.geografia;
+          final ubicaciones = estado.data ?? const <RegistroUbicacion>[];
+          if (geo == null || ubicaciones.isEmpty) return const SizedBox.shrink();
+          final puntos = puntosDelMapa(ubicaciones, geo, clases: _clase == null ? null : {_clase!});
+          return Card(
+            key: const Key('mapa-historial'),
+            clipBehavior: Clip.antiAlias,
+            child: ExpansionTile(
+              shape: const Border(),
+              leading: Icon(Icons.map_rounded, color: ColoresMaterna.ciruela700),
+              title: const Text('Ver en el mapa', style: TextStyle(fontWeight: FontWeight.w700)),
+              subtitle: Text('${puntos.fold<int>(0, (n, p) => n + p.total)} gestante(s) con ubicación',
+                  style: TextStyle(color: ColoresMaterna.tintaSuave, fontSize: 12.5)),
+              childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              children: [
+                MapaMaterna(key: ValueKey('mapa-historial-$_clase-${ubicaciones.length}'), geografia: geo, puntos: puntos, alto: 280),
+                const SizedBox(height: 8),
+                const LeyendaMapa(),
+              ],
+            ),
+          );
+        },
+      );
 
   Future<void> _sincronizar() async {
     final n = await widget.base.marcarSincronizadas(idUsuario: widget.idUsuario);
@@ -266,6 +306,8 @@ class _EstadoHistorial extends State<PantallaHistorial> {
                   ]),
                   const SizedBox(height: 14),
                   _filtros(),
+                  const SizedBox(height: 10),
+                  _mapa(),
                   const SizedBox(height: 14),
                   if (estado.connectionState != ConnectionState.done)
                     const Center(child: Padding(padding: EdgeInsets.all(24), child: CircularProgressIndicator()))
