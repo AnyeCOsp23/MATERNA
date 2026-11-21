@@ -8,6 +8,7 @@ import 'package:flutter/services.dart';
 
 import 'catalogo_3280.dart';
 import 'clasificador.dart';
+import 'geografia.dart';
 
 /// Resultado completo de una evaluación (igual que clinical_rules.evaluar_riesgo_hibrido de Python):
 ///   1. signo crítico (PAS, PAD, convulsiones, proteinuria)  -> Alto Riesgo, origen 'regla_clinica';
@@ -48,18 +49,20 @@ class Evaluacion {
 }
 
 class RecursosMaterna {
-  RecursosMaterna({required this.clasificador, required this.catalogo, required this.reglas});
+  RecursosMaterna({required this.clasificador, required this.catalogo, required this.reglas, this.geografia});
 
   factory RecursosMaterna.desdeTextos({
     required String preproceso,
     required String modelo,
     required String reglas,
     required String catalogo,
+    Geografia? geografia,
   }) =>
       RecursosMaterna(
         clasificador: ClasificadorMaterna.desdeTexto(preproceso, modelo, reglas),
         catalogo: Catalogo3280.desdeTexto(catalogo),
         reglas: jsonDecode(reglas) as Map<String, dynamic>,
+        geografia: geografia,
       );
 
   /// Lee los JSON y arma el modelo en otro hilo (compute): son 918 KB y 300 árboles, y en un teléfono lento o en
@@ -69,14 +72,21 @@ class RecursosMaterna {
         await rootBundle.loadString('assets/modelo_rf.json'),
         await rootBundle.loadString('assets/reglas.json'),
         await rootBundle.loadString('assets/variables_3280.json'),
+        await rootBundle.loadString('assets/geo/municipios_guajira_cesar.geojson'),
+        await rootBundle.loadString('assets/geo/cabeceras_guajira_cesar.json'),
+        await rootBundle.loadString('assets/geo/puntos_concentracion.json'),
       ]);
 
-  static RecursosMaterna _desdeLista(List<String> t) =>
-      RecursosMaterna.desdeTextos(preproceso: t[0], modelo: t[1], reglas: t[2], catalogo: t[3]);
+  static RecursosMaterna _desdeLista(List<String> t) => RecursosMaterna.desdeTextos(
+      preproceso: t[0], modelo: t[1], reglas: t[2], catalogo: t[3],
+      geografia: Geografia.desdeTextos(municipios: t[4], cabeceras: t[5], puntos: t[6]));
 
   final ClasificadorMaterna clasificador;
   final Catalogo3280 catalogo;
   final Map<String, dynamic> reglas;
+
+  /// Municipios, cabeceras y puntos de concentración para ubicar a las gestantes (null en pruebas que no la usan).
+  final Geografia? geografia;
 
   /// Mensaje legible de cada signo crítico (p. ej. 'pas_severa' -> 'Hipertensión severa: PAS ≥ 160 mmHg').
   String mensajeRegla(String id) =>

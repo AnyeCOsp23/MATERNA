@@ -11,6 +11,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../datos/ubicaciones.dart';
 import '../../motor/catalogo_3280.dart';
 import '../../motor/recursos.dart';
 import '../tema/tema_materna.dart';
@@ -18,6 +19,7 @@ import '../widgets/ambito_preferencias.dart';
 import '../widgets/barra_flotante.dart';
 import '../widgets/campos.dart';
 import '../widgets/encabezado.dart';
+import '../widgets/seccion_ubicacion.dart';
 import 'pantalla_resultado.dart';
 
 const _proteinuria = {0: 'Negativa', 1: '+', 2: '++ o más'};
@@ -49,15 +51,22 @@ class _Paso {
 }
 
 class PantallaTriaje extends StatefulWidget {
-  const PantallaTriaje({super.key, required this.recursos, this.atendidoPor, this.alGuardar});
+  const PantallaTriaje({super.key, required this.recursos, this.atendidoPor, this.municipio, this.alGuardar,
+      this.obtenerPosicion = posicionDelDispositivo});
 
   final RecursosMaterna recursos;
 
-  /// Guarda la evaluación (base local) antes de mostrar el resultado.
-  final Future<void> Function(Evaluacion evaluacion)? alGuardar;
+  /// Guarda la evaluación (base local) y, si se registró, la ubicación para la visita, antes de mostrar el resultado.
+  final Future<void> Function(Evaluacion evaluacion, UbicacionCapturada? ubicacion)? alGuardar;
 
   /// Quién atiende, tomado del perfil del operador (si ya inició sesión). Se puede cambiar en el paso 3.
   final String? atendidoPor;
+
+  /// Municipio de la cuenta: la ubicación para la visita empieza ahí.
+  final String? municipio;
+
+  /// GPS del dispositivo (las pruebas lo reemplazan).
+  final ObtenerPosicion obtenerPosicion;
 
   @override
   State<PantallaTriaje> createState() => _EstadoTriaje();
@@ -72,6 +81,11 @@ class _EstadoTriaje extends State<PantallaTriaje> {
   var _version = 0; // al empezar una evaluación nueva se reconstruye el asistente completo
 
   Catalogo3280 get _catalogo => widget.recursos.catalogo;
+
+  // Ubicación para la visita (opcional): un control nuevo en cada evaluación
+  late ControlUbicacion _ubicacion = _nuevaUbicacion();
+  ControlUbicacion _nuevaUbicacion() =>
+      ControlUbicacion(codigoMunicipio: widget.recursos.geografia?.porNombre(widget.municipio)?.codigo);
 
   late final List<_Paso> _pasos = [
     const _Paso('Datos maternos', 'Edad, semanas de gestación y controles previos.', Icons.pregnant_woman_rounded,
@@ -104,6 +118,7 @@ class _EstadoTriaje extends State<PantallaTriaje> {
     for (final c in _textos.values) {
       c.dispose();
     }
+    _ubicacion.dispose();
     super.dispose();
   }
 
@@ -118,6 +133,8 @@ class _EstadoTriaje extends State<PantallaTriaje> {
         _errores = {};
         _paso = 0;
         _version++;
+        _ubicacion.dispose();
+        _ubicacion = _nuevaUbicacion();
       });
 
   // ------------------------------------------------------------------ validación y registro
@@ -200,8 +217,17 @@ class _EstadoTriaje extends State<PantallaTriaje> {
   Future<void> _evaluar() async {
     final registro = _registroCompleto();
     if (registro == null) return;
+    final ubicacion = _ubicacion.capturada();
+    try {
+      apodoValido(ubicacion?.referenciaApodo);
+    } on ArgumentError catch (e) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(content: Text('Ubicación para la visita: ${e.message}')));
+      return;
+    }
     final evaluacion = widget.recursos.evaluar(registro);
-    await widget.alGuardar?.call(evaluacion);
+    await widget.alGuardar?.call(evaluacion, ubicacion);
     if (!mounted) return;
     // aviso adicional, si se eligió en los ajustes: el teléfono vibra cuando sale Alto Riesgo
     final alto = widget.recursos.clasificador.clases[evaluacion.clase] == 'Alto Riesgo';
@@ -367,6 +393,18 @@ class _EstadoTriaje extends State<PantallaTriaje> {
           alEditar: (indice) => setState(() => _paso = indice),
           pasos: [for (final p in _pasos.take(5)) (p.titulo, p.variables)],
         );
+      case 2 when widget.recursos.geografia != null:
+        return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          _tarjeta([for (final nombre in paso.variables) _campo(nombre)]),
+          const SizedBox(height: 10),
+          SeccionUbicacion(
+            key: ValueKey('ubicacion-$_version'),
+            control: _ubicacion,
+            geografia: widget.recursos.geografia!,
+            atendidoPor: _opciones['atendido_por'] as String? ?? widget.atendidoPor,
+            obtenerPosicion: widget.obtenerPosicion,
+          ),
+        ]);
       default:
         return _tarjeta([for (final nombre in paso.variables) _campo(nombre)]);
     }

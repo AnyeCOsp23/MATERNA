@@ -9,6 +9,7 @@ library;
 import 'package:flutter/material.dart';
 
 import '../../datos/base_local.dart';
+import '../../datos/ubicaciones.dart';
 import '../../motor/recursos.dart';
 import '../tema/tema_materna.dart';
 import '../widgets/avatar.dart';
@@ -60,13 +61,14 @@ class _EstadoPrincipal extends State<PantallaPrincipal> {
     super.dispose();
   }
 
-  Future<void> _guardar(Evaluacion evaluacion) async {
-    await widget.base.guardar(
+  Future<void> _guardar(Evaluacion evaluacion, UbicacionCapturada? ubicacion) async {
+    final id = await widget.base.guardar(
       evaluacion,
       perfil: widget.perfil,
       versionModelo: widget.recursos.clasificador.version,
       categoria: widget.recursos.clasificador.clases[evaluacion.clase],
     );
+    if (ubicacion != null) await widget.base.guardarUbicacion(id, ubicacion, perfil: widget.perfil);
     _cambios.value++;
   }
 
@@ -78,7 +80,8 @@ class _EstadoPrincipal extends State<PantallaPrincipal> {
         body: DecoratedBox(
           decoration: fondoCrema,
           child: IndexedStack(index: _pestana, children: [
-          PantallaTriaje(recursos: widget.recursos, atendidoPor: widget.perfil.atendidoPor, alGuardar: _guardar),
+          PantallaTriaje(recursos: widget.recursos, atendidoPor: widget.perfil.atendidoPor, municipio: widget.perfil.municipio,
+              alGuardar: _guardar),
           PantallaCarga(
             recursos: widget.recursos,
             base: widget.base,

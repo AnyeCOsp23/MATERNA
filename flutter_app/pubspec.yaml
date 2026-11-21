@@ -41,6 +41,7 @@ dependencies:
   archive: 3.6.1
   xml: 6.6.1
   shared_preferences: ^2.5.6
+  geolocator: ^14.0.1
 
 dev_dependencies:
   flutter_test:
@@ -72,6 +73,8 @@ flutter:
     - assets/modelo_rf.json
     - assets/reglas.json
     - assets/variables_3280.json
+    # georreferenciación: límites y cabeceras del DANE y puntos de concentración sintéticos (src/georreferencia.py)
+    - assets/geo/
     - assets/logo_isotipo.webp
     # capas del logo para la pantalla de inicio (salen del video MATERNA_logo_reveal: 5 pétalos, trazos y palabra)
     - assets/logo_petalo_exterior_izq.webp

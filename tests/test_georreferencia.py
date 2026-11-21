@@ -131,3 +131,10 @@ def test_vista_mapa_territorial_con_filtros():
     at.segmented_control(key="mapa_depto").set_value("La Guajira").run()
     guajira = at.dataframe[0].value
     assert set(guajira["Departamento"]) == {"La Guajira"} and guajira["Gestantes"].sum() == 769
+
+
+def test_la_app_lleva_los_mismos_archivos_geograficos():
+    """flutter_app/assets/geo/ es copia exacta de data/geo/ (si cambian, correr: python -m src.georreferencia app)."""
+    for ruta in geo.PARA_LA_APP:
+        assert (geo.DIR_GEO_APP / ruta.name).read_bytes() == ruta.read_bytes(), ruta.name
+    assert not (geo.DIR_GEO_APP / geo.RUTA_UBICACIONES.name).exists()  # las 1.200 ubicaciones no van a la app

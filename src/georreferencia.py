@@ -17,6 +17,8 @@ Regenerar (solo si cambian las descargas del DANE; con la misma semilla sale id�
     python -m src.georreferencia construir RUTA_MUNICIPIOS.geojson RUTA_CABECERAS.geojson
 Volver a generar solo lo sintético a partir de lo que ya está en data/geo/:
     python -m src.georreferencia sinteticos
+Copiar a la app (Módulo 2) los límites, las cabeceras y los puntos (las ubicaciones de las 1.200 no van a la app):
+    python -m src.georreferencia app
 """
 import argparse
 import json
@@ -32,6 +34,8 @@ RUTA_MUNICIPIOS = DIR_GEO / "municipios_guajira_cesar.geojson"
 RUTA_CABECERAS = DIR_GEO / "cabeceras_guajira_cesar.json"
 RUTA_PUNTOS = DIR_GEO / "puntos_concentracion.json"
 RUTA_UBICACIONES = DIR_GEO / "ubicaciones_sinteticas.csv"
+DIR_GEO_APP = RAIZ / "flutter_app" / "assets" / "geo"
+PARA_LA_APP = (RUTA_MUNICIPIOS, RUTA_CABECERAS, RUTA_PUNTOS)
 ETIQUETA_SINTETICO = "sintético"
 FUENTE_LIMITES = "DANE, Marco Geoestadístico Nacional (MGN) 2024, servicio Divipola · capas Municipio y Centros Poblados"
 
@@ -255,6 +259,14 @@ def por_punto(datos, ubic=None):
     return pd.DataFrame(filas).sort_values("gestantes", ascending=False, ignore_index=True)
 
 
+def exportar_a_app():
+    """Copia a flutter_app/assets/geo/ los archivos que usa la app, sin cambiarlos (una prueba lo verifica)."""
+    DIR_GEO_APP.mkdir(parents=True, exist_ok=True)
+    for ruta in PARA_LA_APP:
+        (DIR_GEO_APP / ruta.name).write_bytes(ruta.read_bytes())
+    return [DIR_GEO_APP / r.name for r in PARA_LA_APP]
+
+
 def main():
     parser = argparse.ArgumentParser(description="Georreferenciación de MATERNA (datos geográficos locales)")
     sub = parser.add_subparsers(dest="accion", required=True)
@@ -262,7 +274,12 @@ def main():
     c.add_argument("municipios")
     c.add_argument("cabeceras")
     sub.add_parser("sinteticos", help="vuelve a generar solo los puntos y ubicaciones sintéticos")
+    sub.add_parser("app", help="copia los límites, cabeceras y puntos a flutter_app/assets/geo/")
     args = parser.parse_args()
+    if args.accion == "app":
+        for ruta in exportar_a_app():
+            print(ruta)
+        return
     from src.data_preprocessing import cargar_dataset
     if args.accion == "construir":
         preparar_dane(args.municipios, args.cabeceras)

@@ -19,10 +19,11 @@ import '../motor/carga_masiva.dart';
 import '../motor/recursos.dart';
 import 'seguridad.dart';
 import 'seudonimizacion.dart';
+import 'ubicaciones.dart';
 
 /// 1: perfil, PIN y evaluaciones (commit B) · 2: cargas masivas de la IPS · 3: varias cuentas de usuario ·
-/// 4: avatar de cada cuenta.
-const _version = 4;
+/// 4: avatar de cada cuenta · 5: ubicación de cada evaluación (georreferenciación, ubicaciones.dart).
+const _version = 5;
 
 /// Quién usa la app. `atendidoPor` es una de las 4 categorías que conoce el modelo. `id` y `usuario` son null
 /// solo en las pruebas que no pasan por el acceso.
@@ -139,6 +140,7 @@ class BaseLocal {
           if (anterior < 2) await _crearCargas(bd);
           if (anterior < 3) await _pasarACuentas(bd);
           if (anterior < 4) await _agregarAvatar(bd);
+          if (anterior < 5) await _crearUbicaciones(bd);
         }, onCreate: (bd, _) async {
           await bd.execute('CREATE TABLE ajustes (clave TEXT PRIMARY KEY, valor TEXT NOT NULL)');
           await bd.execute('''CREATE TABLE evaluaciones (
@@ -154,6 +156,7 @@ class BaseLocal {
           await _crearCargas(bd);
           await _pasarACuentas(bd);
           await _agregarAvatar(bd);
+          await _crearUbicaciones(bd);
         }));
     return BaseLocal._(bd);
   }
@@ -188,6 +191,18 @@ class BaseLocal {
   /// Versión 4: cada cuenta tiene su avatar (las cuentas que ya existían quedan con el primero).
   static Future<void> _agregarAvatar(Database bd) =>
       bd.execute('ALTER TABLE usuarios ADD COLUMN avatar INTEGER NOT NULL DEFAULT 0');
+
+  /// Versión 5: dónde encontrar a la gestante de cada evaluación. Sin nombre ni documento: el código anónimo viene
+  /// de la evaluación. `lat`/`lon` solo existen en el nivel 'gps', que exige consentimiento (lo verifica guardarUbicacion).
+  static Future<void> _crearUbicaciones(Database bd) async {
+    await bd.execute('''CREATE TABLE ubicaciones (
+      id INTEGER PRIMARY KEY AUTOINCREMENT, id_evaluacion INTEGER NOT NULL UNIQUE, id_usuario INTEGER,
+      codigo_municipio TEXT NOT NULL, id_lugar TEXT, nivel TEXT NOT NULL, lat REAL, lon REAL,
+      consentimiento INTEGER NOT NULL DEFAULT 0, consentimiento_fecha TEXT, consentimiento_por TEXT,
+      referencia_rol TEXT, referencia_apodo TEXT, ultimo_contacto TEXT NOT NULL,
+      estado TEXT NOT NULL DEFAULT 'pendiente')''');
+    await bd.execute('CREATE INDEX ubicaciones_usuario ON ubicaciones (id_usuario)');
+  }
 
   Future<void> cerrar() => _bd.close();
 
@@ -323,6 +338,7 @@ class BaseLocal {
     final f = await _usuario(usuario);
     if (f == null) return;
     await _bd.transaction((t) async {
+      await t.delete('ubicaciones', where: 'id_usuario = ?', whereArgs: [f['id']]);
       await t.delete('evaluaciones', where: 'id_usuario = ?', whereArgs: [f['id']]);
       await t.delete('cargas', where: 'id_usuario = ?', whereArgs: [f['id']]);
       await t.delete('usuarios', where: 'id = ?', whereArgs: [f['id']]);
@@ -420,6 +436,61 @@ class BaseLocal {
         orderBy: 'fecha DESC, id DESC',
         limit: limite);
     return filas.map(RegistroEvaluacion.desdeFila).toList();
+  }
+
+  // ------------------------------------------------------------------ ubicaciones (georreferenciación)
+  /// Guarda dónde encontrar a la gestante de una evaluación. Reglas (aunque la pantalla falle):
+  ///   - el GPS exacto exige consentimiento registrado y una cuenta de médico o enfermería;
+  ///   - la referencia comunitaria es un rol y, si se quiere, un apodo corto (no un nombre completo ni un documento).
+  Future<int> guardarUbicacion(int idEvaluacion, UbicacionCapturada u, {required Perfil perfil, DateTime? fecha}) {
+    if (u.gps != null && !u.consentimiento) {
+      throw ArgumentError('Para guardar la ubicación exacta hace falta el consentimiento.');
+    }
+    if (u.gps != null && !puedeUsarGps(perfil.atendidoPor)) {
+      throw ArgumentError('Su cuenta registra la ubicación por ranchería, vereda o resguardo, no el GPS exacto.');
+    }
+    if (u.referenciaRol != null && !rolesReferencia.contains(u.referenciaRol)) {
+      throw ArgumentError('Referencia comunitaria no válida.');
+    }
+    final momento = (fecha ?? DateTime.now()).toIso8601String();
+    return _bd.insert('ubicaciones', _filaUbicacion(idEvaluacion, u, perfil, momento),
+        conflictAlgorithm: ConflictAlgorithm.replace);
+  }
+
+  Map<String, Object?> _filaUbicacion(int idEvaluacion, UbicacionCapturada u, Perfil perfil, String momento) => {
+        'id_evaluacion': idEvaluacion,
+        'id_usuario': perfil.id,
+        'codigo_municipio': u.codigoMunicipio,
+        'id_lugar': u.idLugar,
+        'nivel': u.nivel.name,
+        'lat': u.gps?.lat,
+        'lon': u.gps?.lon,
+        'consentimiento': u.consentimiento ? 1 : 0,
+        'consentimiento_fecha': u.consentimiento ? momento : null,
+        'consentimiento_por': u.consentimiento ? perfil.usuario : null,
+        'referencia_rol': u.referenciaRol,
+        'referencia_apodo': apodoValido(u.referenciaApodo),
+        'ultimo_contacto': momento,
+      };
+
+  /// Las ubicaciones del usuario, con el nivel de riesgo de su evaluación. El GPS exacto solo se entrega a médico o
+  /// enfermería: a las demás cuentas les llega el lugar (ranchería, vereda, resguardo o cabecera).
+  Future<List<RegistroUbicacion>> listarUbicaciones({required Perfil perfil, int? idCarga}) async {
+    final condiciones = ['u.id_usuario ${perfil.id == null ? 'IS NULL' : '= ?'}', if (idCarga != null) 'e.id_carga = ?'];
+    final filas = await _bd.rawQuery('''SELECT u.*, e.fecha, e.clase, e.categoria, e.id_seudonimo, e.id_carga
+        FROM ubicaciones u JOIN evaluaciones e ON e.id = u.id_evaluacion
+        WHERE ${condiciones.join(' AND ')} ORDER BY e.clase DESC, u.ultimo_contacto ASC''',
+        [?perfil.id, ?idCarga]);
+    return [for (final f in filas) RegistroUbicacion.desdeFila(f, conGps: puedeUsarGps(perfil.atendidoPor))];
+  }
+
+  /// Registra el resultado de una visita: «visitada» actualiza el último contacto; «sin localizar» lo deja como estaba.
+  Future<void> marcarVisita(int idUbicacion, EstadoVisita estado, {required Perfil perfil, DateTime? fecha}) async {
+    final cambios = <String, Object?>{'estado': estado.name};
+    if (estado == EstadoVisita.visitada) cambios['ultimo_contacto'] = (fecha ?? DateTime.now()).toIso8601String();
+    final (deUsuario, argumentos) = _deUsuario(perfil.id);
+    await _bd.update('ubicaciones', cambios,
+        where: ['id = ?', ?deUsuario].join(' AND '), whereArgs: [idUbicacion, ...argumentos]);
   }
 
   Future<int> pendientesDeSincronizar({int? idUsuario}) async {

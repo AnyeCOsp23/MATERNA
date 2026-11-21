@@ -1,0 +1,245 @@
+{
+ "fuente": "DANE, Marco Geoestadístico Nacional (MGN) 2024, servicio Divipola · capas Municipio y Centros Poblados (centro de la cabecera, clase 1)",
+ "cabeceras": [
+  {
+   "codigo": "20001",
+   "nombre": "Valledupar",
+   "lon": -73.25944,
+   "lat": 10.4605
+  },
+  {
+   "codigo": "20011",
+   "nombre": "Aguachica",
+   "lon": -73.61402,
+   "lat": 8.30687
+  },
+  {
+   "codigo": "20013",
+   "nombre": "Agustín Codazzi",
+   "lon": -73.23838,
+   "lat": 10.04043
+  },
+  {
+   "codigo": "20032",
+   "nombre": "Astrea",
+   "lon": -73.97583,
+   "lat": 9.49798
+  },
+  {
+   "codigo": "20045",
+   "nombre": "Becerril",
+   "lon": -73.27873,
+   "lat": 9.70436
+  },
+  {
+   "codigo": "20060",
+   "nombre": "Bosconia",
+   "lon": -73.88872,
+   "lat": 9.97499
+  },
+  {
+   "codigo": "20175",
+   "nombre": "Chimichagua",
+   "lon": -73.81321,
+   "lat": 9.25875
+  },
+  {
+   "codigo": "20178",
+   "nombre": "Chiriguaná",
+   "lon": -73.59991,
+   "lat": 9.36102
+  },
+  {
+   "codigo": "20228",
+   "nombre": "Curumaní",
+   "lon": -73.54087,
+   "lat": 9.20171
+  },
+  {
+   "codigo": "20238",
+   "nombre": "El Copey",
+   "lon": -73.96269,
+   "lat": 10.14976
+  },
+  {
+   "codigo": "20250",
+   "nombre": "El Paso",
+   "lon": -73.74196,
+   "lat": 9.66845
+  },
+  {
+   "codigo": "20295",
+   "nombre": "Gamarra",
+   "lon": -73.74382,
+   "lat": 8.32036
+  },
+  {
+   "codigo": "20310",
+   "nombre": "González",
+   "lon": -73.37992,
+   "lat": 8.38943
+  },
+  {
+   "codigo": "20383",
+   "nombre": "La Gloria",
+   "lon": -73.80338,
+   "lat": 8.61919
+  },
+  {
+   "codigo": "20400",
+   "nombre": "La Jagua de Ibirico",
+   "lon": -73.33408,
+   "lat": 9.56373
+  },
+  {
+   "codigo": "20443",
+   "nombre": "Manaure Balcón del Cesar",
+   "lon": -73.02949,
+   "lat": 10.39082
+  },
+  {
+   "codigo": "20517",
+   "nombre": "Pailitas",
+   "lon": -73.62576,
+   "lat": 8.95934
+  },
+  {
+   "codigo": "20550",
+   "nombre": "Pelaya",
+   "lon": -73.66675,
+   "lat": 8.68941
+  },
+  {
+   "codigo": "20570",
+   "nombre": "Pueblo Bello",
+   "lon": -73.58633,
+   "lat": 10.41729
+  },
+  {
+   "codigo": "20614",
+   "nombre": "Río de Oro",
+   "lon": -73.38643,
+   "lat": 8.29231
+  },
+  {
+   "codigo": "20621",
+   "nombre": "Robles",
+   "lon": -73.1714,
+   "lat": 10.38753
+  },
+  {
+   "codigo": "20710",
+   "nombre": "San Alberto",
+   "lon": -73.39382,
+   "lat": 7.76109
+  },
+  {
+   "codigo": "20750",
+   "nombre": "San Diego",
+   "lon": -73.18122,
+   "lat": 10.33303
+  },
+  {
+   "codigo": "20770",
+   "nombre": "San Martín",
+   "lon": -73.51088,
+   "lat": 7.99981
+  },
+  {
+   "codigo": "20787",
+   "nombre": "Tamalameque",
+   "lon": -73.81213,
+   "lat": 8.86172
+  },
+  {
+   "codigo": "44001",
+   "nombre": "Riohacha",
+   "lon": -72.9118,
+   "lat": 11.52859
+  },
+  {
+   "codigo": "44035",
+   "nombre": "Albania",
+   "lon": -72.6119,
+   "lat": 11.14687
+  },
+  {
+   "codigo": "44078",
+   "nombre": "Barrancas",
+   "lon": -72.79355,
+   "lat": 10.95865
+  },
+  {
+   "codigo": "44090",
+   "nombre": "Dibulla",
+   "lon": -73.30755,
+   "lat": 11.27163
+  },
+  {
+   "codigo": "44098",
+   "nombre": "Distracción",
+   "lon": -72.8874,
+   "lat": 10.89833
+  },
+  {
+   "codigo": "44110",
+   "nombre": "El Molino",
+   "lon": -72.92675,
+   "lat": 10.65354
+  },
+  {
+   "codigo": "44279",
+   "nombre": "Fonseca",
+   "lon": -72.84633,
+   "lat": 10.88669
+  },
+  {
+   "codigo": "44378",
+   "nombre": "Hatonuevo",
+   "lon": -72.75894,
+   "lat": 11.0689
+  },
+  {
+   "codigo": "44420",
+   "nombre": "La Jagua del Pilar",
+   "lon": -73.07162,
+   "lat": 10.51018
+  },
+  {
+   "codigo": "44430",
+   "nombre": "Maicao",
+   "lon": -72.24287,
+   "lat": 11.37851
+  },
+  {
+   "codigo": "44560",
+   "nombre": "Manaure",
+   "lon": -72.43887,
+   "lat": 11.77386
+  },
+  {
+   "codigo": "44650",
+   "nombre": "San Juan del Cesar",
+   "lon": -73.00061,
+   "lat": 10.76955
+  },
+  {
+   "codigo": "44847",
+   "nombre": "Uribia",
+   "lon": -72.266,
+   "lat": 11.7115
+  },
+  {
+   "codigo": "44855",
+   "nombre": "Urumita",
+   "lon": -73.01251,
+   "lat": 10.56023
+  },
+  {
+   "codigo": "44874",
+   "nombre": "Villanueva",
+   "lon": -72.97744,
+   "lat": 10.60875
+  }
+ ]
+}
