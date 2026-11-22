@@ -23,18 +23,29 @@ Clasifica a una gestante en **Bajo, Medio o Alto Riesgo** obstétrico a partir d
 ```mermaid
 flowchart LR
     subgraph M1[Módulo 1 · Laboratorio de ML · Streamlit]
-        L[12 fases ejecutables<br/>ingesta, depuración, partición,<br/>entrenamiento, evaluación…]
+        L[12 fases ejecutables<br/>ingesta, depuración, partición,<br/>entrenamiento, evaluación…<br/>y mapa territorial]
     end
     subgraph M2[Módulo 2 · App de usuario final · Flutter]
-        A[Triaje · resultado · carga masiva<br/>historial · sin internet]
+        A[Triaje · resultado · carga masiva<br/>historial · mapa y visitas · sin internet]
     end
     L -- «Publicar al Módulo 2»<br/>solo administrador --> J[(JSON en flutter_app/assets<br/>modelo RF, preprocesamiento,<br/>reglas y catálogo 3280<br/>con versión y SHA-256)]
     J --> A
 ```
 
-- **Módulo 1 · Laboratorio de ML** (`app_demo.py`, `paginas/`, `src/`). Para el docente, el equipo y el médico auditor. Cada fase del ciclo de vida se **ejecuta** en el aplicativo: carga masiva y generador sintético, depuración de datos crudos, partición parametrizable, parametrización de los tres modelos, entrenamiento en vivo con versiones, evaluación con interpretación de métricas, curvas de aprendizaje y nuevo patrón manual. La lista de chequeo del ciclo de vida es un documento interno del equipo (`src/lista_chequeo.py`). Roles: **administrador** (todo, incluido publicar) y **médico auditor** (audita e ingiere archivos; no entrena ni publica).
-- **Módulo 2 · App de usuario final** (`flutter_app/`). Para el personal de salud en territorio. Un solo código para Android y web, **sin internet**: cuentas con usuario y PIN, triaje por pasos, resultado Alto/Medio/Bajo con motivo y conducta sugerida, carga masiva de archivos de la IPS priorizada (documentos seudonimizados con HMAC-SHA256), historial local en SQLite, modo oscuro y ajustes de accesibilidad.
+- **Módulo 1 · Laboratorio de ML** (`app_demo.py`, `paginas/`, `src/`). Para el docente, el equipo y el médico auditor. Cada fase del ciclo de vida se **ejecuta** en el aplicativo: carga masiva y generador sintético, depuración de datos crudos, partición parametrizable, parametrización de los tres modelos, entrenamiento en vivo con versiones, evaluación con interpretación de métricas, curvas de aprendizaje, nuevo patrón manual y **mapa territorial** (georreferenciación, ver abajo). La lista de chequeo del ciclo de vida es un documento interno del equipo (`src/lista_chequeo.py`). Roles: **administrador** (todo, incluido publicar) y **médico auditor** (audita e ingiere archivos; no entrena ni publica).
+- **Módulo 2 · App de usuario final** (`flutter_app/`). Para el personal de salud en territorio. Un solo código para Android y web, **sin internet**: cuentas con usuario y PIN, triaje por pasos, resultado Alto/Medio/Bajo con motivo y conducta sugerida, carga masiva de archivos de la IPS priorizada (documentos seudonimizados con HMAC-SHA256), historial local en SQLite, **ubicación para la visita** (municipio, ranchería, vereda o resguardo; GPS solo con consentimiento) y pestaña **Mapa y visitas** con la lista de visitas priorizada, modo oscuro y ajustes de accesibilidad.
 - **Integración.** Solo por los JSON que publica el Módulo 1. El motor en Dart reproduce a scikit-learn con **diferencia cero** (200 casos del modelo, 160 de alertas y la carga masiva de ejemplo). El modelo en uso (v1) solo cambia con «Publicar al Módulo 2»; los entrenamientos del laboratorio crean versiones nuevas en `experimentos/`.
+
+### Georreferenciación: encontrar a las gestantes en territorio
+
+En las comunidades indígenas de La Guajira y el Cesar es difícil ubicar a las gestantes (lugares dispersos y razones culturales). El mapa ayuda a encontrarlas y a priorizar las visitas. **La ubicación nunca es una variable del modelo**: no cambia el resultado ni las métricas.
+
+- **Módulo 1 · «Mapa territorial»** (menú *Transversal*, enlace desde la fase 03): mapa por municipio coloreado por % de Alto Riesgo y mapa de concentración (un círculo por nivel en cada lugar, del tamaño de las gestantes; Alto encima), con filtros por departamento y nivel, tablas con las mismas cifras y una prueba que verifica que coinciden con el dataset.
+- **Módulo 2 · «Ubicación para la visita»** (paso 3 del triaje, opcional): municipio, ranchería, vereda o resguardo, distancia aproximada a la cabecera (referencia de la IPS más cercana) y referencia comunitaria (un rol y un apodo, no un nombre completo). **Pestaña «Visitas»**: mapa de concentración y lista de visitas pendientes por prioridad (riesgo y último contacto) o por recorrido (lo más cercano primero dentro de cada nivel), con «Visitada» y «No la encontramos». También hay mapa en el historial y en el resultado de la carga masiva (por municipio).
+- **Datos** (`data/geo/`, fuente en `data/geo/FUENTE.md`): límites de los 40 municipios y sus cabeceras **reales** (DANE, Marco Geoestadístico Nacional 2024); puntos de concentración y ubicaciones de las 1.200 gestantes **sintéticos** (semilla 42), rotulados así en el mapa. No se usan lugares reales como puntos para no asignarles riesgos inventados a comunidades reales.
+- **Sin internet**: los mapas dibujan solo límites y puntos (ECharts en el laboratorio; flutter_map sin teselas en la app), sin mapa de calles.
+- **Privacidad**: cada ubicación va solo con la evaluación y su código anónimo; tres niveles de detalle (municipio, lugar, GPS exacto). El GPS exacto exige el consentimiento registrado y una cuenta de médico o enfermería; la base local lo hace cumplir y solo entrega las coordenadas a esos roles. El mapa no muestra la etnia.
+- **Regenerar**: `python -m src.georreferencia sinteticos` (mismo resultado con la misma semilla) y `python -m src.georreferencia app` (copia los archivos a `flutter_app/assets/geo/`; una prueba verifica que sean idénticos).
 
 Pipeline de entrenamiento (todo lo que aprende de los datos se ajusta **solo** con entrenamiento o con cada fold):
 
@@ -57,11 +68,12 @@ MATERNA/
 │                                    # seudonimización, generador, experimentos, exportación a JSON…
 ├── config/variables_3280.json       # Catálogo único de 71 variables de la Res. 3280 y su decisión
 ├── data/raw/                        # Dataset sintético de 1.200 gestantes
+├── data/geo/                        # Límites y cabeceras del DANE; puntos y ubicaciones sintéticos (mapa)
 ├── models/                          # Modelos oficiales de la Fase 2 (.joblib) y metadatos
 ├── reports/metrics/ y figures/      # Métricas, experimentos, auditoría de sesgos y figuras
 ├── notebooks/                       # EDA (Fase 1, corregido) y modelado (Fase 2)
-├── tests/                           # 328 pruebas de Python (10 en Chrome)
-├── flutter_app/                     # Módulo 2: app Flutter (lib/, test/ con 441 pruebas, assets/ con los JSON)
+├── tests/                           # 358 pruebas de Python (10 en Chrome)
+├── flutter_app/                     # Módulo 2: app Flutter (lib/, test/ con 459 pruebas, assets/ con los JSON y geo/)
 ├── docs/                            # Documento técnico de la Fase 2
 └── .streamlit/                      # Configuración; secrets.toml.example como plantilla de usuarios
 ```
@@ -100,9 +112,9 @@ La app trae el modelo en `flutter_app/assets/`; si el administrador publica un m
 ### Pruebas
 
 ```bash
-pytest                             # 328 pruebas de Python, incluidas 10 en Chrome real (requiere Google Chrome)
-pytest -m "not e2e"                # 308, sin navegador
-cd flutter_app && flutter test     # 441 pruebas de Dart (paridad, motor, pantallas, base local, modo oscuro…)
+pytest                             # 358 pruebas de Python, incluidas 10 en Chrome real (requiere Google Chrome)
+pytest -m "not e2e"                # 348, sin navegador
+cd flutter_app && flutter test     # 459 pruebas de Dart (paridad, motor, pantallas, base local, mapa y visitas…)
 ```
 
 ## 5. Resultados (conjunto de prueba, n = 180, de los cuales 23 son Alto Riesgo)
@@ -147,12 +159,13 @@ Correcciones a la Fase 1 (detalle en el notebook de EDA): el EDA entregado anali
 - **Brecha por subgrupo.** El recall de Alto Riesgo en el área rural dispersa es 0,88 frente a 0,94 en cabecera. El subgrupo más bajo es la atención por auxiliar de enfermería (0,64, con solo 11 casos de Alto Riesgo). Ver `reports/metrics/auditoria_subgrupos.csv`.
 - **Umbrales por validar.** La proteinuria ≥ ++, los signos de alarma que elevan el triaje y la conducta sugerida deben validarse con un especialista en ginecobstetricia. Con FCF 60 o glucosa 300 el modelo da solo Riesgo Medio; esos umbrales debe definirlos un especialista.
 - **Seguridad local.** La base del teléfono no está cifrada; el PIN protege el acceso casual, no los archivos.
+- **Ubicaciones.** Las del dataset y los puntos de concentración son sintéticos; solo los límites y las cabeceras son reales. La distancia a la cabecera es en línea recta y sirve solo como referencia: no hay rutas por vías.
 - **Incertidumbre.** Con 23 casos de Alto Riesgo en prueba, los intervalos de confianza son amplios.
 - **Herramienta de apoyo.** No reemplaza el juicio clínico; la decisión final es del profesional de salud.
 
 ## 8. Trabajo futuro
 
-Validación con historias clínicas reales y anonimizadas mediante una alianza con una ESE/IPS · cierre de las brechas rural y de auxiliares con ajuste de umbral sobre datos reales · sincronización real con un servidor de la IPS · cifrado de la base local · incorporar al modelo las variables de la Res. 3280 que hoy solo generan alertas.
+Validación con historias clínicas reales y anonimizadas mediante una alianza con una ESE/IPS · cierre de las brechas rural y de auxiliares con ajuste de umbral sobre datos reales · sincronización real con un servidor de la IPS · cifrado de la base local · incorporar al modelo las variables de la Res. 3280 que hoy solo generan alertas · usar una lista oficial de rancherías y resguardos (con las comunidades) y la ubicación real de las IPS para la georreferenciación.
 
 ## 9. Flujo de trabajo con Git
 
