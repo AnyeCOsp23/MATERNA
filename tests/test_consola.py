@@ -127,8 +127,8 @@ def test_login_abre_el_laboratorio(entorno):
     at = iniciar_sesion(app_abierta(), "medico", CLAVES["medico"])
     assert not at.exception
     assert at.session_state["usuario"]["rol"] == "medico_auditor"
-    # la página de inicio es el laboratorio (Módulo 1), en la fase 01; el menú lateral lleva a las 13 vistas
-    assert len(menu(at)) == len(VISTAS) == 13 and menu(at)[0].key == "mt-nav-activa-01"
+    # la página de inicio es el laboratorio (Módulo 1), en la fase 01; el menú lateral lleva a las 14 vistas
+    assert len(menu(at)) == len(VISTAS) == 14 and menu(at)[0].key == "mt-nav-activa-01"
     assert any("Definir el problema" in m.value for m in at.markdown)
     menu(at)[9].click().run()  # 10 Evaluación
     assert not at.exception and at.session_state["vista"] == "10"

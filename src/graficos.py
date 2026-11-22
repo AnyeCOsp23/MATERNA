@@ -33,6 +33,7 @@ class Grafico:
     alto: int = 320
     titulo: str = ""
     datos: dict = field(default_factory=dict)  # resumen legible (para pruebas y accesibilidad)
+    mapa: tuple = None  # (nombre, GeoJSON como texto) que el navegador registra en ECharts antes de dibujar
 
 
 def js(codigo):
@@ -122,6 +123,8 @@ export default function ({ data, parentElement }) {
   caja.__json = data.opciones;
   const debug = (txt) => { if (data.debug) avisoDebug(caja, `reduce-motion: ${reducido()} · ${txt}`); };
   cargarEcharts().then(() => {
+    // mapas (GeoJSON local): se registran una sola vez por nombre, antes de dibujar
+    if (data.mapa && !echarts.getMap(data.mapa.nombre)) echarts.registerMap(data.mapa.nombre, JSON.parse(data.mapa.geojson));
     const opciones = opcionesFinales(caja.__json);
     if (caja.__grafico) {  // ya entró: transición a los datos nuevos sobre el mismo gráfico
       caja.__grafico.setOption(opciones, { replaceMerge: ["series"] });
@@ -160,8 +163,10 @@ def modo_debug(activo):
 
 def mostrar(g, key):
     """Dibuja el gráfico. `key` debe ser estable y única en la página: identifica al gráfico entre ejecuciones."""
-    _COMPONENTE(key=f"g-{key}", data={"opciones": _a_texto(g.opciones), "alto": g.alto, "titulo": g.titulo,
-                                       "debug": DEBUG["activo"]}, height=g.alto + 6)
+    datos = {"opciones": _a_texto(g.opciones), "alto": g.alto, "titulo": g.titulo, "debug": DEBUG["activo"]}
+    if g.mapa:
+        datos["mapa"] = {"nombre": g.mapa[0], "geojson": g.mapa[1]}
+    _COMPONENTE(key=f"g-{key}", data=datos, height=g.alto + 6)
 
 
 def _a_texto(opciones):
@@ -452,7 +457,81 @@ def barras_simples(etiquetas, valores, titulo, nombre_y, decimales=2, alto=250):
     return Grafico(opciones, alto, titulo, {"barras": len(valores)})
 
 
+# ------------------------------------------------------------------ mapas (GeoJSON local del DANE, sin mapa de fondo)
+SIN_DATOS = "#F2EEF0"          # municipios sin gestantes en los datos
+ESCALA_ALTO = ["#F6E7EE", "#D9A3BD", "#9B2D5C"]  # de poco a mucho Alto Riesgo (tonos de la clase Alto)
+ESCALA_CONTEO = ["#EEF3F2", "#8CC5BA", "#2F6F64"]
+
+
+def geojson_texto(departamento=None):
+    """GeoJSON de los municipios (de un departamento o de los dos) como texto, y su nombre para ECharts."""
+    from src import georreferencia
+    geo = georreferencia.municipios()
+    if departamento:
+        geo = {**geo, "features": [f for f in geo["features"] if f["properties"]["departamento"] == departamento]}
+    nombre = "materna-" + (departamento or "ambos").lower().replace(" ", "-")
+    return nombre, json.dumps(geo, ensure_ascii=False, separators=(",", ":"))
+
+
+def _geo_base(nombre_mapa, **extra):
+    """Mapa solo de límites: sin calles ni teselas. Se puede acercar con la rueda y arrastrar."""
+    return {"map": nombre_mapa, "nameProperty": "municipio", "roam": True, "aspectScale": 0.98,
+            "layoutCenter": ["50%", "47%"], "layoutSize": "92%",  # el mapa ocupa todo el alto del gráfico
+            "scaleLimit": {"min": 0.8, "max": 12}, "label": {"show": False},
+            "itemStyle": {"areaColor": SIN_DATOS, "borderColor": "#FFFFFF", "borderWidth": 0.8},
+            "emphasis": {"label": {"show": True, "color": TINTA, "fontSize": 11, "fontWeight": 600},
+                         "itemStyle": {"areaColor": "#E9DDE3"}}, **extra}
+
+
+def mapa_coropletico(tabla, departamento=None, medida="pct_alto", titulo="Municipios"):
+    """Municipios coloreados por % de Alto Riesgo (o por número de gestantes). Tooltip con el detalle."""
+    nombre, texto = geojson_texto(departamento)
+    filas = tabla.to_dict("records")
+    datos = [{"name": f["municipio"], "value": f[medida], "gestantes": int(f["gestantes"]), "alto": int(f["Alto Riesgo"]),
+              "medio": int(f["Riesgo Medio"]), "bajo": int(f["Bajo Riesgo"]), "pct": f["pct_alto"]} for f in filas]
+    maximo = max([d["value"] for d in datos] or [1]) or 1
+    es_pct = medida == "pct_alto"
+    opciones = _base(
+        tooltip={**_base()["tooltip"], "trigger": "item", "formatter": js(
+            "(p) => p.data ? '<b>' + p.name + '</b><br/>' + p.data.gestantes + ' gestantes · Alto ' + p.data.alto + "
+            "' (' + String(p.data.pct).replace('.', ',') + ' %)<br/>Medio ' + p.data.medio + ' · Bajo ' + p.data.bajo "
+            ": '<b>' + p.name + '</b><br/>Sin gestantes en los datos'")},
+        visualMap={"min": 0, "max": maximo, "calculable": False, "orient": "horizontal", "left": "center", "bottom": 4,
+                   "itemWidth": 12, "itemHeight": 120,
+                   "text": [f"{maximo:.1f} %".replace(".", ",") if es_pct else f"{int(maximo)} gestantes", "0"],
+                   "textStyle": {"color": TINTA_SUAVE, "fontSize": 11},
+                   "inRange": {"color": ESCALA_ALTO if es_pct else ESCALA_CONTEO}, "seriesIndex": 0},
+        series=[{"id": "municipios", "type": "map", **_geo_base(nombre), "data": datos, "selectedMode": False,
+                 "showLegendSymbol": False,  # sin el punto que ECharts pone en cada municipio
+                 "animationDurationUpdate": 600}])
+    return Grafico(opciones, 500, titulo, {"municipios": len(datos), "medida": medida}, mapa=(nombre, texto))
+
+
+def mapa_concentracion(tabla_puntos, clases=tuple(NOMBRES_CLASES), departamento=None, titulo="Puntos de concentración"):
+    """Un círculo por nivel de riesgo en cada punto: el tamaño es cuántas gestantes de ese nivel hay ahí.
+    Alto se dibuja encima para que se vea siempre."""
+    nombre, texto = geojson_texto(departamento)
+    maximo = max([int(tabla_puntos[c].max()) for c in clases if c in tabla_puntos and len(tabla_puntos)] or [1]) or 1
+    series = []
+    for k, clase in enumerate(c for c in NOMBRES_CLASES if c in clases):
+        datos = [{"name": f["nombre"], "value": [f["lon"], f["lat"], int(f[clase])], "municipio": f["municipio"],
+                  "tipo": f["tipo"], "total": int(f["gestantes"])}
+                 for f in tabla_puntos.to_dict("records") if f[clase] > 0]
+        series.append({"id": clase, "name": clase, "type": "scatter", "coordinateSystem": "geo", "data": datos,
+                       "z": 2 + NOMBRES_CLASES.index(clase),
+                       "symbolSize": js(f"(v) => 5 + 30 * Math.sqrt(v[2] / {maximo})"),
+                       "itemStyle": {"color": COLOR_CLASE[clase], "opacity": 0.78, "borderColor": "#FFFFFF", "borderWidth": 1},
+                       "emphasis": {"scale": 1.15, "itemStyle": {"opacity": 1}}, "animationDelay": js(f"(i) => {k * 150} + i * 8")})
+    opciones = _base(
+        geo=_geo_base(nombre), series=series, legend=_leyenda(data=[s["name"] for s in series], top="bottom"),
+        tooltip={**_base()["tooltip"], "trigger": "item", "formatter": js(
+            "(p) => '<b>' + p.name + '</b><br/>' + p.data.tipo + ' · ' + p.data.municipio + '<br/>' + p.seriesName + ': <b>' + "
+            "p.value[2] + '</b> de ' + p.data.total + ' gestantes'")})
+    return Grafico(opciones, 540, titulo, {"puntos": len(tabla_puntos), "clases": list(clases)}, mapa=(nombre, texto))
+
+
 # Las opciones se cachean (st.cache_data): con los mismos datos no se recalculan en cada ejecución.
 for _nombre in ("dispersion_presion", "barras_nulos", "barras_clases", "histogramas_comparados", "curva_aprendizaje",
-                "escalabilidad", "f1_por_particion", "dispersion_hiperparametros", "mapa_calor", "curvas_roc", "barras_simples"):
+                "escalabilidad", "f1_por_particion", "dispersion_hiperparametros", "mapa_calor", "curvas_roc", "barras_simples",
+                "mapa_coropletico", "mapa_concentracion"):
     globals()[_nombre] = st.cache_data(show_spinner=False, max_entries=128)(globals()[_nombre])

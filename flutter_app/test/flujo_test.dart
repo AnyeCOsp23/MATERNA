@@ -101,9 +101,9 @@ Future<void> terminarYEvaluar(WidgetTester tester) async {
 }
 
 void main() {
-  testWidgets('la barra flotante muestra las 4 pestañas y conserva el triaje a medio llenar', (tester) async {
+  testWidgets('la barra flotante muestra las 5 pestañas y conserva el triaje a medio llenar', (tester) async {
     await abrir(tester);
-    for (final nombre in ['Triaje', 'Carga IPS', 'Historial', 'Acerca de']) {
+    for (final nombre in ['Triaje', 'Carga IPS', 'Historial', 'Visitas', 'Acerca de']) {
       expect(find.bySemanticsLabel(nombre), findsOneWidget);
     }
     await escribir(tester, 'edad', '31');
@@ -298,7 +298,7 @@ void main() {
 
   testWidgets('«Acerca de» explica qué permite hacer la app, sin datos técnicos del modelo', (tester) async {
     await abrir(tester);
-    await tocar(tester, find.byKey(const Key('pestana-3')));
+    await tocar(tester, find.byKey(const Key('pestana-4')));
     expect(find.text('Herramienta de apoyo al diagnóstico maternal; no reemplaza el criterio médico profesional.'), findsOneWidget);
     expect(find.textContaining('Versión 1.0.0'), findsOneWidget);
     expect(find.text('Qué le permite hacer MATERNA'), findsOneWidget);

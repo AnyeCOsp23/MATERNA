@@ -38,6 +38,7 @@ GRUPOS = [
 TRANSVERSAL = "Transversal"
 EXTRAS = [
     ("etica", "Ética y limitaciones", "Ética y limitaciones", "Sesgos, datos sintéticos y lo que falta validar"),
+    ("mapa", "Mapa territorial", "Mapa territorial", "Dónde están las gestantes y dónde se concentra el Alto Riesgo"),
 ]
 VISTAS = {clave: {"menu": menu, "titulo": titulo, "sub": sub, "grupo": grupo}
           for grupo, fases in [*GRUPOS, (TRANSVERSAL, EXTRAS)] for clave, menu, titulo, sub in fases}
@@ -95,6 +96,7 @@ def menu(en_laboratorio, otras_paginas=()):
                 _item(clave, actual, recorridas)
         st.markdown(ui.menu_grupo(TRANSVERSAL), unsafe_allow_html=True)
         _item("etica", actual, recorridas, insignia="")
+        _item("mapa", actual, recorridas, insignia="")
         if otras_paginas:
             st.markdown(ui.menu_grupo("Otras vistas"), unsafe_allow_html=True)
             for pagina in otras_paginas:

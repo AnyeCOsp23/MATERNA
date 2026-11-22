@@ -53,7 +53,7 @@ Future<void> entrar(WidgetTester tester, String usuario, String pin) async {
 }
 
 Future<void> cerrarSesion(WidgetTester tester) async {
-  await tocar(tester, find.byKey(const Key('pestana-3')));
+  await tocar(tester, find.byKey(const Key('pestana-4')));
   await tocar(tester, find.byKey(const Key('cerrar-sesion')));
   await tester.pumpAndSettle();
 }
@@ -77,7 +77,7 @@ void main() {
     expect(codigo, matches(RegExp(r'^[A-Z2-9]{4}-[A-Z2-9]{4}$')));
     await tocar(tester, find.byKey(const Key('codigo-anotado')));
     expect(find.byKey(const Key('paso-actual')), findsOneWidget, reason: 'abrió el triaje');
-    await tocar(tester, find.byKey(const Key('pestana-3')));
+    await tocar(tester, find.byKey(const Key('pestana-4')));
     expect(find.text('auxiliar.rural'), findsOneWidget);
     expect(find.text('ESE Hospital de Uribia'), findsOneWidget);
   });
@@ -119,7 +119,7 @@ void main() {
 
     await registrar(tester, usuario: 'medico.uribia', pin: '1357');
     await tocar(tester, find.byKey(const Key('codigo-anotado')));
-    await tocar(tester, find.byKey(const Key('pestana-3')));
+    await tocar(tester, find.byKey(const Key('pestana-4')));
     expect(find.text('medico.uribia'), findsOneWidget);
     await cerrarSesion(tester);
     await entrar(tester, 'auxiliar.rural', '2580');
