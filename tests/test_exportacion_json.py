@@ -12,7 +12,7 @@ from src.data_preprocessing import cargar_dataset, marcar_fuera_de_rango, separa
 import joblib
 
 from src import publicacion
-from src.exportar_a_dart import DIR_ASSETS, TOLERANCIA, _sha256
+from src.exportar_a_dart import DIR_ASSETS, TOLERANCIA, _sha256, exportar_reglas
 from src.filtro_3280 import RUTA_CATALOGO, evaluar_alertas_3280, signos_alarma_que_escalan
 from src.inferencia_json import ClasificadorJSON, a_float32
 
@@ -112,6 +112,11 @@ def test_reglas_json_coinciden_con_el_motor(clf):
     assert umbrales == {"pas_severa": UMBRAL_PAS_SEVERA, "pad_severa": UMBRAL_PAD_SEVERA,
                         "convulsiones": None, "proteinuria": UMBRAL_PROTEINURIA}
     assert set(clf.reglas["protocolo"]) == set(clf.rf["clases"])
+
+
+def test_reglas_json_publicadas_estan_al_dia(clf):
+    # lo que lee la app (protocolo y sus títulos incluidos) es exactamente lo que exporta el Módulo 1
+    assert clf.reglas == exportar_reglas()
 
 
 def test_float32_como_scikit_learn():

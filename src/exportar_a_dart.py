@@ -3,7 +3,7 @@
 Genera en flutter_app/assets/:
   preproceso.json      medianas de imputación, centro/escala del RobustScaler y categorías del One-Hot
   modelo_rf.json       los 300 árboles (variable, umbral, hijos y probabilidades de las hojas)
-  reglas.json          los 4 signos críticos, las clases y los protocolos orientativos
+  reglas.json          los 4 signos críticos, las clases y los protocolos orientativos (con título y etiqueta por paso)
   casos_paridad.json   200 gestantes con la respuesta exacta de scikit-learn, para la prueba en Dart
   variables_3280.json  copia exacta del catálogo config/variables_3280.json (formulario y alertas de la ruta)
   casos_alertas.json   gestantes con las alertas de la ruta y los signos de alarma que elevan el triaje a Alto,
@@ -36,7 +36,7 @@ import pandas as pd
 import sklearn
 
 from src.clinical_rules import (
-    PROTOCOLO, UMBRAL_PAD_SEVERA, UMBRAL_PAS_SEVERA, UMBRAL_PROTEINURIA, evaluar_riesgo_hibrido,
+    PROTOCOLO, PROTOCOLO_TITULOS, UMBRAL_PAD_SEVERA, UMBRAL_PAS_SEVERA, UMBRAL_PROTEINURIA, evaluar_riesgo_hibrido,
 )
 from src.config import CLASE_ALTO, DIR_MODELOS, NOMBRES_CLASES, RAIZ, SEMILLA, VARS_CON_NULOS
 from src.data_preprocessing import preparar_datos
@@ -152,6 +152,8 @@ def exportar_reglas():
              "mensaje": "Proteinuria ≥ ++ en tira reactiva"},
         ],
         "protocolo": PROTOCOLO,
+        "protocolo_titulos": {c: [{"titulo": t, "etiqueta": e} for t, e in pasos]
+                              for c, pasos in PROTOCOLO_TITULOS.items()},
         "aviso": "Protocolos orientativos para la demostración académica; deben validarse con un asesor clínico.",
     }
 

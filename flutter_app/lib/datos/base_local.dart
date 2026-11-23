@@ -216,6 +216,13 @@ class BaseLocal {
   /// al responsable de datos para poner un PIN nuevo a quien perdió su PIN y su código de recuperación.
   Future<String?> claveIps() => _ajuste('clave_ips');
 
+  /// «Recordar usuario» del inicio de sesión: solo el nombre de usuario, nunca el PIN.
+  Future<String?> usuarioRecordado() => _ajuste('usuario_recordado');
+
+  Future<void> recordarUsuario(String? usuario) => usuario == null
+      ? _bd.delete('ajustes', where: 'clave = ?', whereArgs: ['usuario_recordado'])
+      : _bd.insert('ajustes', {'clave': 'usuario_recordado', 'valor': usuario}, conflictAlgorithm: ConflictAlgorithm.replace);
+
   Future<void> fijarClaveIps(String clave) async {
     if (!salValida(clave)) throw ArgumentError('La clave debe tener al menos $longitudMinimaSal caracteres.');
     await _bd.insert('ajustes', {'clave': 'clave_ips', 'valor': clave}, conflictAlgorithm: ConflictAlgorithm.replace);
@@ -504,6 +511,13 @@ class BaseLocal {
     if (estado == EstadoVisita.visitada) cambios['ultimo_contacto'] = (fecha ?? DateTime.now()).toIso8601String();
     final (deUsuario, argumentos) = _deUsuario(perfil.id);
     await _bd.update('ubicaciones', cambios,
+        where: ['id = ?', ?deUsuario].join(' AND '), whereArgs: [idUbicacion, ...argumentos]);
+  }
+
+  /// «Deshacer» de una marca de visita: deja el estado y el último contacto exactamente como estaban.
+  Future<void> restaurarVisita(int idUbicacion, EstadoVisita estado, DateTime ultimoContacto, {required Perfil perfil}) async {
+    final (deUsuario, argumentos) = _deUsuario(perfil.id);
+    await _bd.update('ubicaciones', {'estado': estado.name, 'ultimo_contacto': ultimoContacto.toIso8601String()},
         where: ['id = ?', ?deUsuario].join(' AND '), whereArgs: [idUbicacion, ...argumentos]);
   }
 

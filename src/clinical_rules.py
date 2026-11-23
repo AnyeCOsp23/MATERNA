@@ -137,3 +137,25 @@ PROTOCOLO = {
         "Verificar la micronutrición y el esquema de vacunación.",
     ],
 }
+
+# Título corto y etiqueta (cuándo o con qué prioridad) de cada paso, en el mismo orden que PROTOCOLO. La app los
+# muestra como encabezados desplegables; el texto completo del paso no cambia y se ve al desplegarlo.
+PROTOCOLO_TITULOS = {
+    "Alto Riesgo": [
+        ("Remisión inmediata", "URGENTE"),
+        ("Si hay convulsiones o presión muy alta", "SI APLICA"),
+        ("No dejar sola a la gestante", "DURANTE EL TRASLADO"),
+        ("Registrar el caso", "AL TERMINAR"),
+    ],
+    "Riesgo Medio": [
+        ("Valoración médica pronto", "EN LOS PRÓXIMOS DÍAS"),
+        ("Completar exámenes y repetir la presión", "PENDIENTE"),
+        ("Enseñar los signos de alarma", "A LA FAMILIA"),
+        ("Programar el seguimiento", "EQUIPO EXTRAMURAL"),
+    ],
+    "Bajo Riesgo": [
+        ("Seguir los controles prenatales", "RUTA 3280"),
+        ("Reforzar la educación", "SIGNOS DE ALARMA Y PARTO"),
+        ("Verificar micronutrición y vacunas", "EN CADA CONTROL"),
+    ],
+}

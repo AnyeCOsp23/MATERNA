@@ -101,6 +101,23 @@ Future<void> terminarYEvaluar(WidgetTester tester) async {
 }
 
 void main() {
+  test('conducta sugerida: cada paso con el título y la etiqueta del Módulo 1; sin ellos, «Paso N»', () {
+    for (final categoria in recursos.clasificador.clases) {
+      final pasos = recursos.pasosConducta(categoria);
+      expect(pasos.map((p) => p.texto), recursos.protocolo(categoria), reason: categoria); // texto completo intacto
+      expect(pasos.every((p) => p.titulo.isNotEmpty && p.etiqueta != null && !p.titulo.startsWith('Paso ')), isTrue);
+    }
+    final sinTitulos = RecursosMaterna.desdeTextos(
+      preproceso: leer('preproceso.json'),
+      modelo: leer('modelo_rf.json'),
+      reglas: leer('reglas.json').replaceFirst('"protocolo_titulos"', '"otra_clave"'),
+      catalogo: leer('variables_3280.json'),
+    );
+    final pasos = sinTitulos.pasosConducta('Bajo Riesgo');
+    expect(pasos.map((p) => p.titulo), ['Paso 1', 'Paso 2', 'Paso 3']);
+    expect(pasos.every((p) => p.etiqueta == null), isTrue);
+  });
+
   testWidgets('la barra flotante muestra las 5 pestañas y conserva el triaje a medio llenar', (tester) async {
     await abrir(tester);
     for (final nombre in ['Triaje', 'Carga IPS', 'Historial', 'Visitas', 'Acerca de']) {
@@ -211,7 +228,23 @@ void main() {
     expect(find.textContaining('la estimación sería'), findsNothing); // plegado
     await tocar(tester, find.text('Ver detalle'));
     expect(find.textContaining('Sin ese signo, la estimación sería Bajo Riesgo.'), findsOneWidget);
-    expect(find.textContaining('Remisión INMEDIATA'), findsOneWidget); // protocolo de Alto, no «próximos días»
+    // protocolo de Alto, no «próximos días»: pasos plegados con título corto; el texto completo, al desplegar
+    expect(find.text('Remisión inmediata'), findsOneWidget);
+    expect(find.text('URGENTE'), findsOneWidget);
+    expect(find.textContaining('Remisión INMEDIATA'), findsNothing);
+    expect(find.text('0 de 4 pasos'), findsOneWidget);
+    await tocar(tester, find.text('Remisión inmediata'));
+    expect(find.textContaining('Remisión INMEDIATA'), findsOneWidget);
+    expect(find.text('1 de 4 pasos'), findsOneWidget);
+    // uno abierto a la vez: abrir el paso 3 pliega el 1
+    await tocar(tester, find.text('No dejar sola a la gestante'));
+    expect(find.textContaining('Remisión INMEDIATA'), findsNothing);
+    expect(find.textContaining('vigilar signos vitales'), findsOneWidget);
+    expect(find.text('2 de 4 pasos'), findsOneWidget);
+    // tocar otra vez el abierto lo pliega, sin descontar lo leído
+    await tocar(tester, find.text('No dejar sola a la gestante'));
+    expect(find.byKey(const Key('conducta-texto')), findsNothing);
+    expect(find.text('2 de 4 pasos'), findsOneWidget);
   });
 
   testWidgets('violencias: urgente pero no obstétrica; no cambia el semáforo y va encima de él', (tester) async {

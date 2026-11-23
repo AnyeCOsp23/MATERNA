@@ -48,6 +48,15 @@ class Evaluacion {
   List<Alerta3280> get noUrgentes => alertas.where((a) => a.severidad != 'urgente').toList();
 }
 
+/// Un paso de la conducta sugerida: título corto, etiqueta (cuándo o con qué prioridad) y el texto completo.
+class PasoConducta {
+  const PasoConducta({required this.titulo, required this.etiqueta, required this.texto});
+
+  final String titulo;
+  final String? etiqueta;
+  final String texto;
+}
+
 class RecursosMaterna {
   RecursosMaterna({required this.clasificador, required this.catalogo, required this.reglas, this.geografia});
 
@@ -93,6 +102,22 @@ class RecursosMaterna {
       ((reglas['reglas'] as List).firstWhere((r) => r['id'] == id) as Map)['mensaje'] as String;
 
   List<String> protocolo(String categoria) => List<String>.from((reglas['protocolo'] as Map)[categoria] as List);
+
+  /// Pasos de la conducta sugerida con su título corto y su etiqueta, tal como los publica el Módulo 1
+  /// (`protocolo_titulos`). Si faltan o no van alineados con los pasos, cada uno se titula «Paso N», sin etiqueta.
+  List<PasoConducta> pasosConducta(String categoria) {
+    final textos = protocolo(categoria);
+    final titulos = (reglas['protocolo_titulos'] as Map?)?[categoria] as List?;
+    final alineados = titulos != null && titulos.length == textos.length;
+    return [
+      for (final (i, texto) in textos.indexed)
+        PasoConducta(
+          titulo: alineados ? (titulos[i] as Map)['titulo'] as String : 'Paso ${i + 1}',
+          etiqueta: alineados ? (titulos[i] as Map)['etiqueta'] as String : null,
+          texto: texto,
+        ),
+    ];
+  }
 
   String get aviso => reglas['aviso'] as String;
 

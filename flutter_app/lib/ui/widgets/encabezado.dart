@@ -170,21 +170,34 @@ class _BordePunteado extends CustomPainter {
 /// Filtro por nivel de riesgo (Carga IPS e Historial): -1 = todas; 2 = Alto, 1 = Medio, 0 = Bajo (índice de la
 /// clase del modelo). Solo cambia lo que se muestra, no la clasificación.
 class FiltroNivel extends StatelessWidget {
-  const FiltroNivel({super.key, required this.seleccion, required this.alCambiar});
+  const FiltroNivel({super.key, required this.seleccion, required this.alCambiar, this.conteos});
 
   /// null = todas.
   final int? seleccion;
   final ValueChanged<int?> alCambiar;
 
+  /// Cuántas hay en cada opción (clave null = todas); si se da, el número va junto a cada nombre.
+  final Map<int?, int>? conteos;
+
+  Widget _etiqueta(String texto, int? clase) {
+    final n = conteos?[clase];
+    return n == null
+        ? Text(texto)
+        : Text.rich(TextSpan(children: [
+            TextSpan(text: texto),
+            TextSpan(text: ' $n', style: const TextStyle(fontWeight: FontWeight.w400, fontSize: 12.5)),
+          ]));
+  }
+
   @override
   Widget build(BuildContext context) => SizedBox(
         width: double.infinity,
         child: SegmentedButton<int>(
-          segments: const [
-            ButtonSegment(value: -1, label: Text('Todas')),
-            ButtonSegment(value: 2, label: Text('Alto')),
-            ButtonSegment(value: 1, label: Text('Medio')),
-            ButtonSegment(value: 0, label: Text('Bajo')),
+          segments: [
+            ButtonSegment(value: -1, label: _etiqueta('Todas', null)),
+            ButtonSegment(value: 2, label: _etiqueta('Alto', 2)),
+            ButtonSegment(value: 1, label: _etiqueta('Medio', 1)),
+            ButtonSegment(value: 0, label: _etiqueta('Bajo', 0)),
           ],
           selected: {seleccion ?? -1},
           showSelectedIcon: false,
