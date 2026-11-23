@@ -507,6 +507,13 @@ class BaseLocal {
         where: ['id = ?', ?deUsuario].join(' AND '), whereArgs: [idUbicacion, ...argumentos]);
   }
 
+  /// «Deshacer» de una marca de visita: deja el estado y el último contacto exactamente como estaban.
+  Future<void> restaurarVisita(int idUbicacion, EstadoVisita estado, DateTime ultimoContacto, {required Perfil perfil}) async {
+    final (deUsuario, argumentos) = _deUsuario(perfil.id);
+    await _bd.update('ubicaciones', {'estado': estado.name, 'ultimo_contacto': ultimoContacto.toIso8601String()},
+        where: ['id = ?', ?deUsuario].join(' AND '), whereArgs: [idUbicacion, ...argumentos]);
+  }
+
   Future<int> pendientesDeSincronizar({int? idUsuario}) async {
     final (deUsuario, argumentos) = _deUsuario(idUsuario);
     final filas = await _bd.rawQuery(

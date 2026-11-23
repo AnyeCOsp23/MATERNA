@@ -96,7 +96,8 @@ class _EstadoAcercaDe extends State<PantallaAcercaDe> {
         ]),
       );
 
-  Widget _vineta(String texto) => Padding(
+  Widget _vineta(String texto, {String? clave}) => Padding(
+        key: clave == null ? null : Key(clave),
         padding: const EdgeInsets.only(top: 6),
         child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
           const Text('•  '),
@@ -215,6 +216,9 @@ class _EstadoAcercaDe extends State<PantallaAcercaDe> {
               _vineta('La información se guarda solo en este dispositivo y sin cifrar. El PIN evita que otras personas que '
                   'usan el dispositivo vean sus evaluaciones: proteja también el teléfono con su bloqueo y cierre sesión '
                   'al terminar.'),
+              _vineta('En «Mapa y visitas», los límites de los municipios y las cabeceras son del DANE; las rancherías, '
+                  'veredas y resguardos del mapa son lugares de prueba con nombres genéricos. Las distancias son en línea '
+                  'recta y el mapa funciona sin internet.', clave: 'acerca-mapa-prueba'),
               _vineta('La clave de la IPS también queda en el dispositivo; compártala solo con personal autorizado.'),
               _vineta('«Sincronizar» todavía no envía datos a ningún servidor: es una función de demostración.'),
               _vineta('Si olvida el PIN, puede crear uno nuevo con su código de recuperación o con la clave de la IPS; '
