@@ -87,7 +87,7 @@ class PantallaResultado extends StatelessWidget {
                   _OtrasAlertas(evaluacion.noUrgentes),
                 ],
                 const SizedBox(height: 14),
-                _Conducta(estilo: estilo, pasos: recursos.protocolo(categoria)),
+                _Conducta(estilo: estilo, pasos: recursos.pasosConducta(categoria)),
                 const SizedBox(height: 14),
                 _Detalle(evaluacion: evaluacion, recursos: recursos),
                 if (!soloLectura) ...[
@@ -370,38 +370,274 @@ class _OtrasAlertas extends StatelessWidget {
       );
 }
 
-/// Conducta sugerida en el aviso del color del nivel.
-class _Conducta extends StatelessWidget {
+/// Conducta sugerida como pasos desplegables: cada paso muestra su título corto y su etiqueta, y al tocarlo se
+/// despliega el texto completo (uno abierto a la vez). La barra y el contador llevan la cuenta de los pasos ya
+/// leídos y el siguiente por leer late unas pocas veces para guiar; con «reducir animaciones» nada se mueve.
+class _Conducta extends StatefulWidget {
   const _Conducta({required this.estilo, required this.pasos});
 
   final EstiloRiesgo estilo;
-  final List<String> pasos;
+  final List<PasoConducta> pasos;
 
   @override
-  Widget build(BuildContext context) => Container(
-        key: const Key('conducta'),
-        padding: const EdgeInsets.all(18),
-        decoration: BoxDecoration(color: estilo.fondo, borderRadius: BorderRadius.circular(18)),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text('Conducta sugerida', style: TextStyle(fontWeight: FontWeight.w800, color: estilo.tinta)),
-          const SizedBox(height: 2),
-          Text('Criterio pendiente de validación clínica',
-              key: const Key('conducta-por-validar'), style: TextStyle(color: estilo.tinta.withValues(alpha: .8), fontSize: 12)),
-          for (final (i, paso) in pasos.indexed)
-            Padding(
-              padding: const EdgeInsets.only(top: 10),
-              child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                CircleAvatar(
-                  radius: 11,
-                  backgroundColor: ColoresMaterna.tarjeta.withValues(alpha: .75),
-                  child: Text('${i + 1}', style: TextStyle(fontSize: 12, color: estilo.tinta, fontWeight: FontWeight.w700)),
-                ),
-                const SizedBox(width: 10),
-                Expanded(child: Text(paso, style: TextStyle(height: 1.4, color: estilo.tinta))),
-              ]),
+  State<_Conducta> createState() => _ConductaState();
+}
+
+class _ConductaState extends State<_Conducta> with SingleTickerProviderStateMixin {
+  static const _latidos = 3;
+
+  final _leidos = <int>{};
+  int? _abierto;
+  var _quieto = false;
+  var _iniciado = false;
+  var _latido = 0;
+  late final AnimationController _pulso = AnimationController(vsync: this, duration: const Duration(milliseconds: 1600))
+    ..addStatusListener((estado) {
+      if (estado == AnimationStatus.completed && ++_latido < _latidos) _pulso.forward(from: 0);
+    });
+
+  int? get _siguiente {
+    for (var i = 0; i < widget.pasos.length; i++) {
+      if (!_leidos.contains(i)) return i;
+    }
+    return null;
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final quieto = MediaQuery.of(context).disableAnimations;
+    if (_iniciado && quieto == _quieto) return; // p. ej. al girar el teléfono no se repite el latido
+    _iniciado = true;
+    _quieto = quieto;
+    quieto ? _pulso.stop() : _latir();
+  }
+
+  void _latir() {
+    if (_quieto || _siguiente == null) return;
+    _latido = 0;
+    _pulso.forward(from: 0);
+  }
+
+  void _tocar(int i) {
+    setState(() {
+      _abierto = _abierto == i ? null : i;
+      if (_abierto == i) _leidos.add(i);
+    });
+    _latir();
+  }
+
+  @override
+  void dispose() {
+    _pulso.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final e = widget.estilo;
+    final total = widget.pasos.length;
+    final duracion = _quieto ? Duration.zero : const Duration(milliseconds: 380);
+    return Container(
+      key: const Key('conducta'),
+      padding: const EdgeInsets.fromLTRB(14, 18, 14, 14),
+      decoration: BoxDecoration(color: e.fondo, borderRadius: BorderRadius.circular(22)),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          child: Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
+            Expanded(
+              child: Text('Conducta sugerida',
+                  style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18, color: e.tinta, letterSpacing: -.2)),
             ),
-        ]),
-      );
+            Text('${_leidos.length} de $total pasos',
+                key: const Key('conducta-contador'),
+                style: TextStyle(color: e.tinta.withValues(alpha: .8), fontSize: 12.5, fontWeight: FontWeight.w600)),
+          ]),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(4, 2, 4, 12),
+          child: Text('Criterio pendiente de validación clínica',
+              key: const Key('conducta-por-validar'), style: TextStyle(color: e.tinta.withValues(alpha: .8), fontSize: 12)),
+        ),
+        // barra de avance: un tramo por paso, se llena al leerlo
+        ExcludeSemantics(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(4, 0, 4, 12),
+            child: Row(children: [
+              for (var i = 0; i < total; i++) ...[
+                if (i > 0) const SizedBox(width: 5),
+                Expanded(
+                  child: AnimatedContainer(
+                    duration: duracion,
+                    height: 5,
+                    decoration: BoxDecoration(
+                      color: _leidos.contains(i) ? e.degradado.first : e.tinta.withValues(alpha: .14),
+                      borderRadius: BorderRadius.circular(3),
+                    ),
+                  ),
+                ),
+              ],
+            ]),
+          ),
+        ),
+        for (final (i, paso) in widget.pasos.indexed)
+          _PasoDesplegable(
+            key: Key('conducta-paso-$i'),
+            numero: i + 1,
+            paso: paso,
+            estilo: e,
+            abierto: _abierto == i,
+            leido: _leidos.contains(i),
+            pulso: i == _siguiente && _abierto != i && !_quieto ? _pulso : null,
+            duracion: duracion,
+            alTocar: () => _tocar(i),
+          ),
+        AnimatedOpacity(
+          opacity: _leidos.isEmpty ? 1 : 0,
+          duration: duracion,
+          child: Padding(
+            padding: const EdgeInsets.only(top: 2),
+            child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+              Icon(Icons.expand_more_rounded, size: 18, color: e.tinta),
+              const SizedBox(width: 4),
+              Flexible(
+                child: Text('Toca cada paso para ver el detalle',
+                    style: TextStyle(color: e.tinta, fontSize: 12.5, fontWeight: FontWeight.w600)),
+              ),
+            ]),
+          ),
+        ),
+      ]),
+    );
+  }
+}
+
+class _PasoDesplegable extends StatelessWidget {
+  const _PasoDesplegable({
+    super.key,
+    required this.numero,
+    required this.paso,
+    required this.estilo,
+    required this.abierto,
+    required this.leido,
+    required this.pulso,
+    required this.duracion,
+    required this.alTocar,
+  });
+
+  final int numero;
+  final PasoConducta paso;
+  final EstiloRiesgo estilo;
+  final bool abierto;
+  final bool leido;
+
+  /// Solo el siguiente paso por leer recibe el latido.
+  final Animation<double>? pulso;
+  final Duration duracion;
+  final VoidCallback alTocar;
+
+  @override
+  Widget build(BuildContext context) {
+    final e = estilo;
+    final acento = e.degradado.first;
+    final radio = BorderRadius.circular(20);
+    final tarjeta = AnimatedContainer(
+      duration: duracion,
+      decoration: BoxDecoration(
+        color: ColoresMaterna.tarjeta,
+        borderRadius: radio,
+        border: Border.all(color: abierto ? acento.withValues(alpha: .45) : Colors.transparent, width: 2),
+        boxShadow: [BoxShadow(color: ColoresMaterna.sombra, blurRadius: 18, offset: const Offset(0, 6))],
+      ),
+      child: Material(
+        type: MaterialType.transparency,
+        child: InkWell(
+          borderRadius: radio,
+          onTap: alTocar,
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Semantics(
+              button: true,
+              expanded: abierto,
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Row(children: [
+                  AnimatedContainer(
+                    duration: duracion,
+                    width: 32,
+                    height: 32,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(color: leido ? acento : e.fondo, borderRadius: BorderRadius.circular(11)),
+                    child: Text('$numero',
+                        style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: leido ? Colors.white : e.tinta)),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      if (paso.etiqueta != null)
+                        Text(paso.etiqueta!,
+                            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: .4, color: e.tinta)),
+                      Text(paso.titulo,
+                          style: TextStyle(
+                              fontSize: 15.5, fontWeight: FontWeight.w700, height: 1.25, color: ColoresMaterna.tinta)),
+                    ]),
+                  ),
+                  const SizedBox(width: 8),
+                  Container(
+                    width: 30,
+                    height: 30,
+                    decoration: BoxDecoration(color: e.fondo, shape: BoxShape.circle),
+                    child: AnimatedRotation(
+                      turns: abierto ? .5 : 0,
+                      duration: duracion,
+                      curve: Curves.easeOutBack,
+                      child: Icon(Icons.expand_more_rounded, size: 20, color: e.tinta),
+                    ),
+                  ),
+                ]),
+              ),
+            ),
+            AnimatedSize(
+              duration: duracion,
+              curve: Curves.easeOutCubic,
+              alignment: Alignment.topCenter,
+              child: abierto
+                  ? Padding(
+                      padding: const EdgeInsets.fromLTRB(56, 0, 16, 16),
+                      child: Text(paso.texto,
+                          key: const Key('conducta-texto'),
+                          style: TextStyle(fontSize: 14, height: 1.5, color: ColoresMaterna.tinta)),
+                    )
+                  : const SizedBox(width: double.infinity),
+            ),
+          ]),
+        ),
+      ),
+    );
+    final p = pulso;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: p == null
+          ? tarjeta
+          : AnimatedBuilder(
+              animation: p,
+              child: tarjeta,
+              // halo que se expande y se desvanece alrededor del paso siguiente
+              builder: (context, hijo) => DecoratedBox(
+                decoration: BoxDecoration(
+                  borderRadius: radio,
+                  boxShadow: [
+                    BoxShadow(
+                      color: acento.withValues(alpha: .4 * math.sin(math.pi * p.value)),
+                      spreadRadius: 8 * p.value,
+                    ),
+                  ],
+                ),
+                child: hijo,
+              ),
+            ),
+    );
+  }
 }
 
 /// Aviso con el fondo y el texto de un nivel (p. ej. ámbar para un dato faltante).

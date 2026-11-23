@@ -5,7 +5,7 @@ import pytest
 
 from conftest import REGISTRO_SANO, a_dataframe, registros_aleatorios
 from src.clinical_rules import (
-    PROTOCOLO, evaluar_reglas, evaluar_riesgo_hibrido, mascara_reglas, predecir_hibrido,
+    PROTOCOLO, PROTOCOLO_TITULOS, evaluar_reglas, evaluar_riesgo_hibrido, mascara_reglas, predecir_hibrido,
 )
 from src.config import CLASE_ALTO, NOMBRES_CLASES
 from src.data_preprocessing import cargar_dataset
@@ -85,6 +85,16 @@ def test_propiedad_toda_regla_activa_termina_en_alto(modelo_principal):
 
 def test_hay_protocolo_para_cada_categoria():
     assert set(PROTOCOLO) == set(NOMBRES_CLASES) and all(len(p) >= 3 for p in PROTOCOLO.values())
+
+
+def test_cada_paso_del_protocolo_tiene_titulo_y_etiqueta():
+    # la app muestra cada paso como un desplegable con su título corto: deben ir alineados uno a uno
+    assert set(PROTOCOLO_TITULOS) == set(PROTOCOLO)
+    for categoria, pasos in PROTOCOLO.items():
+        titulos = PROTOCOLO_TITULOS[categoria]
+        assert len(titulos) == len(pasos), categoria
+        for titulo, etiqueta in titulos:
+            assert 0 < len(titulo) <= 40 and 0 < len(etiqueta) <= 25 and etiqueta == etiqueta.upper()
 
 
 # ------------------------------------------------------------------ Fase 3: signos de alarma de la ruta 3280

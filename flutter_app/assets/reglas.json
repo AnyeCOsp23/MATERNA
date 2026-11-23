@@ -54,5 +54,57 @@
    "Verificar la micronutrición y el esquema de vacunación."
   ]
  },
+ "protocolo_titulos": {
+  "Alto Riesgo": [
+   {
+    "titulo": "Remisión inmediata",
+    "etiqueta": "URGENTE"
+   },
+   {
+    "titulo": "Si hay convulsiones o presión muy alta",
+    "etiqueta": "SI APLICA"
+   },
+   {
+    "titulo": "No dejar sola a la gestante",
+    "etiqueta": "DURANTE EL TRASLADO"
+   },
+   {
+    "titulo": "Registrar el caso",
+    "etiqueta": "AL TERMINAR"
+   }
+  ],
+  "Riesgo Medio": [
+   {
+    "titulo": "Valoración médica pronto",
+    "etiqueta": "EN LOS PRÓXIMOS DÍAS"
+   },
+   {
+    "titulo": "Completar exámenes y repetir la presión",
+    "etiqueta": "PENDIENTE"
+   },
+   {
+    "titulo": "Enseñar los signos de alarma",
+    "etiqueta": "A LA FAMILIA"
+   },
+   {
+    "titulo": "Programar el seguimiento",
+    "etiqueta": "EQUIPO EXTRAMURAL"
+   }
+  ],
+  "Bajo Riesgo": [
+   {
+    "titulo": "Seguir los controles prenatales",
+    "etiqueta": "RUTA 3280"
+   },
+   {
+    "titulo": "Reforzar la educación",
+    "etiqueta": "SIGNOS DE ALARMA Y PARTO"
+   },
+   {
+    "titulo": "Verificar micronutrición y vacunas",
+    "etiqueta": "EN CADA CONTROL"
+   }
+  ]
+ },
  "aviso": "Protocolos orientativos para la demostración académica; deben validarse con un asesor clínico."
 }
