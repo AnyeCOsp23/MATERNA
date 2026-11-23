@@ -64,8 +64,21 @@ void main() {
   testWidgets('primera vez: inicio de sesión, registro con código de recuperación y entrada directa', (tester) async {
     await arrancar(tester);
     expect(find.text('Iniciar sesión'), findsWidgets);
-    expect(find.textContaining('Funciona sin conexión'), findsNothing); // ya está en «Acerca de»
+    // aviso «Funciona sin conexión» fijo abajo (el punto titila unas veces y queda fijo: la prueba llegó a asentarse);
+    // «Recordar usuario» (nunca el PIN) y «¿Olvidó su PIN?» en una fila
+    expect(find.byKey(const Key('aviso-sin-conexion-pie')), findsOneWidget);
+    expect(find.text('Funciona sin conexión'), findsOneWidget);
+    expect(tester.hasRunningAnimations, isFalse);
+    expect(find.text('Recordar usuario'), findsOneWidget);
+    expect(find.text('Recordar PIN'), findsNothing);
+    expect(find.text('¿Olvidó su PIN?'), findsOneWidget);
+    expect(tester.widget<TextField>(find.byKey(const Key('campo-pin'))).decoration!.hintText, '••••', reason: 'PIN de ejemplo');
     await tocar(tester, find.byKey(const Key('ir-registro')));
+    // al crear la cuenta: la píldora va bajo el título, en lugar del subtítulo largo (y el aviso de abajo no va)
+    expect(find.byKey(const Key('aviso-sin-conexion')), findsOneWidget);
+    expect(find.byKey(const Key('aviso-sin-conexion-pie')), findsNothing);
+    expect(find.text('Funciona sin conexión · datos solo en este dispositivo'), findsOneWidget);
+    expect(find.textContaining('Configure su acceso'), findsNothing);
     await tocar(tester, find.byKey(const Key('crear-acceso')));
     await esperar(tester);
     expect(find.textContaining('letras minúsculas'), findsOneWidget);
@@ -124,6 +137,55 @@ void main() {
     await cerrarSesion(tester);
     await entrar(tester, 'auxiliar.rural', '2580');
     expect(find.byKey(const Key('paso-actual')), findsOneWidget);
+  });
+
+  testWidgets('el punto de «Funciona sin conexión» titila al abrir y después queda fijo y encendido', (tester) async {
+    tester.view.physicalSize = const Size(600, 1500);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final base = (await tester.runAsync(() => BaseLocal.abrir(databaseFactoryFfiNoIsolate, inMemoryDatabasePath)))!;
+    addTearDown(() => tester.runAsync(base.cerrar));
+    await tester.pumpWidget(MaternaApp(inicio: Future.value((recursos, base)), preferencias: Future.value(Preferencias.enMemoria())));
+    // primero pasa la animación del logo; se espera a que aparezca el inicio de sesión
+    for (var i = 0; i < 100 && find.byKey(const Key('aviso-sin-conexion-punto')).evaluate().isEmpty; i++) {
+      await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 10)));
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+    await tester.pump(const Duration(milliseconds: 400));
+    double brillo() => tester
+        .widget<FadeTransition>(find.ancestor(of: find.byKey(const Key('aviso-sin-conexion-punto')), matching: find.byType(FadeTransition)).first)
+        .opacity
+        .value;
+    expect(brillo(), lessThan(1), reason: 'titilando');
+    await tester.pumpAndSettle();
+    expect(brillo(), 1, reason: 'al terminar queda encendido');
+  });
+
+  testWidgets('«Recordar usuario»: la próxima vez el usuario aparece escrito; el PIN nunca se guarda', (tester) async {
+    final base = await arrancar(tester);
+    await registrar(tester);
+    await tocar(tester, find.byKey(const Key('codigo-anotado')));
+    await cerrarSesion(tester);
+    await escribir(tester, 'usuario', 'auxiliar.rural');
+    await escribir(tester, 'pin', '2580');
+    await tocar(tester, find.byKey(const Key('recordar-usuario')));
+    await tocar(tester, find.byKey(const Key('entrar')));
+    await esperar(tester);
+    expect(await tester.runAsync(base.usuarioRecordado), 'auxiliar.rural');
+    await cerrarSesion(tester);
+    await esperar(tester);
+    expect(texto(tester, const Key('campo-usuario')), 'auxiliar.rural');
+    expect(texto(tester, const Key('campo-pin')), isEmpty, reason: 'el PIN no se recuerda');
+    expect(tester.widget<Checkbox>(find.byType(Checkbox)).value, isTrue);
+    // desmarcar y entrar: se olvida
+    await escribir(tester, 'pin', '2580');
+    await tocar(tester, find.byKey(const Key('recordar-usuario')));
+    await tocar(tester, find.byKey(const Key('entrar')));
+    await esperar(tester);
+    expect(await tester.runAsync(base.usuarioRecordado), isNull);
+    await cerrarSesion(tester);
+    await esperar(tester);
+    expect(texto(tester, const Key('campo-usuario')), isEmpty);
   });
 
   testWidgets('PIN olvidado con el código de recuperación: PIN nuevo sin borrar nada', (tester) async {
