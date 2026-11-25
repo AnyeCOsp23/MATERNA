@@ -104,10 +104,41 @@ def test_el_grafico_del_mapa_usa_las_mismas_cifras(datos):
     assert sum(d["gestantes"] for d in serie["data"]) == 1200
     p = geo.por_punto(datos)
     puntos = graficos.mapa_concentracion(p, ("Alto Riesgo",))
-    (alto,) = puntos.opciones["series"]
-    assert sum(d["value"][2] for d in alto["data"]) == 152 and "tile" not in json.dumps(puntos.opciones).lower()
+    anillos = [s for s in puntos.opciones["series"] if s["type"] == "pie"]
+    assert sum(d["value"] for s in anillos for d in s["data"]) == 152 and "tile" not in json.dumps(puntos.opciones).lower()
+    assert all(s["coordinateSystem"] == "geo" for s in anillos)
     cesar = graficos.mapa_coropletico(m[m["departamento"] == "Cesar"], "Cesar")
     assert {f["properties"]["departamento"] for f in json.loads(cesar.mapa[1])["features"]} == {"Cesar"}
+
+
+def test_mapa_de_municipios_por_porcentaje_del_nivel_elegido(datos):
+    """Con un nivel, el color es el % de ese nivel en cada municipio (no la cantidad, que sigue al tamaño del municipio)
+    y la escala va del menor al mayor valor real, con el color de ese nivel."""
+    from src import graficos
+    m = geo.por_municipio(datos)
+    g = graficos.mapa_coropletico(m, None, ("Riesgo Medio",))
+    serie, escala = g.opciones["series"][0], g.opciones["visualMap"]
+    esperado = {f["municipio"]: round(100 * f["Riesgo Medio"] / f["gestantes"], 1) for f in m.to_dict("records")}
+    assert {d["name"]: d["value"] for d in serie["data"]} == esperado
+    assert escala["min"] <= min(esperado.values()) and escala["max"] >= max(esperado.values()) and escala["min"] > 0
+    assert escala["inRange"]["color"] == graficos.ESCALA_NIVEL["Riesgo Medio"]
+    # dos niveles: vino; «Cantidad»: cuántas gestantes de esos niveles, desde 0
+    dos = graficos.mapa_coropletico(m, None, ("Bajo Riesgo", "Riesgo Medio"), "cantidad")
+    assert dos.opciones["visualMap"]["inRange"]["color"] == graficos.ESCALA_VARIOS and dos.opciones["visualMap"]["min"] == 0
+    assert sum(d["value"] for d in dos.opciones["series"][0]["data"]) == int(m["Bajo Riesgo"].sum() + m["Riesgo Medio"].sum())
+
+
+def test_un_anillo_por_lugar_con_la_mezcla_de_riesgo(datos):
+    from src import graficos
+    p = geo.por_punto(datos)
+    g = graficos.mapa_concentracion(p)
+    anillos = [s for s in g.opciones["series"] if s["type"] == "pie"]
+    assert len(anillos) == len(p)  # uno por lugar (antes eran hasta tres círculos superpuestos)
+    assert sum(d["value"] for s in anillos for d in s["data"]) == 1200
+    grande = max(anillos, key=lambda s: s["radius"][1])
+    fila = p.loc[p["nombre"] == grande["name"]].iloc[0]
+    assert {d["name"]: d["value"] for d in grande["data"]} == {c: int(fila[c]) for c in geo.NOMBRES_CLASES if fila[c] > 0}
+    assert grande["radius"][0] < grande["radius"][1]  # con hueco: anillo
 
 
 def vista_mapa():
@@ -128,6 +159,9 @@ def test_vista_mapa_territorial_con_filtros():
     at.pills(key="mapa_niveles").set_value(["Alto Riesgo"]).run()
     assert not at.exception
     assert at.dataframe[0].value["De Alto Riesgo"].sum() == 152 and (at.dataframe[1].value["Alto"] > 0).all()
+    assert "% de Alto Riesgo" in at.dataframe[0].value.columns
+    at.segmented_control(key="mapa_medida").set_value("Cantidad").run()
+    assert not at.exception
     at.segmented_control(key="mapa_depto").set_value("La Guajira").run()
     guajira = at.dataframe[0].value
     assert set(guajira["Departamento"]) == {"La Guajira"} and guajira["Gestantes"].sum() == 769
