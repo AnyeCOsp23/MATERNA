@@ -964,9 +964,13 @@ def fase_mapa():
                "municipio (semilla 42), cerca de su cabecera o de un punto de concentración con nombre genérico. Los límites "
                "municipales y las cabeceras sí son reales (DANE, Marco Geoestadístico Nacional 2024). La ubicación **no es una "
                "variable del modelo**.", icon=":material/info:")
-    c = st.columns([2, 3], vertical_alignment="bottom")
+    c = st.columns([2, 3, 2], vertical_alignment="bottom")
     depto = c[0].segmented_control("Departamento", ["Ambos", "La Guajira", "Cesar"], default="Ambos", key="mapa_depto")
     niveles = c[1].pills("Nivel de riesgo", NOMBRES_CLASES, selection_mode="multi", default=NOMBRES_CLASES, key="mapa_niveles")
+    modo = c[2].segmented_control("Municipios por", ["Porcentaje", "Cantidad"], default="Porcentaje", key="mapa_medida",
+                                  help="El porcentaje compara municipios de distinto tamaño. La cantidad sigue casi igual al "
+                                       "tamaño del municipio: los grandes salen oscuros con cualquier nivel.")
+    modo = "cantidad" if modo == "Cantidad" else "porcentaje"
     depto = None if depto in (None, "Ambos") else depto
     niveles = [n for n in NOMBRES_CLASES if n in (niveles or NOMBRES_CLASES)]  # sin selección = todos
     todos = len(niveles) == len(NOMBRES_CLASES)
@@ -974,26 +978,33 @@ def fase_mapa():
 
     m = municipios if depto is None else municipios[municipios["departamento"] == depto]
     m = m.assign(seleccion=m[niveles].sum(axis=1))
+    m = m.assign(pct_seleccion=(100 * m["seleccion"] / m["gestantes"]).round(1))
     p = puntos_tabla if depto is None else puntos_tabla[puntos_tabla["departamento"] == depto]
     p = p[p[niveles].sum(axis=1) > 0]
 
-    medida, nota = ("pct_alto", "color: % de Alto Riesgo") if todos else ("seleccion", f"color: gestantes de {texto_niveles}")
+    if modo == "porcentaje":
+        nota = "color: % de Alto Riesgo en cada municipio" if todos else f"color: % de gestantes de {texto_niveles} en cada municipio"
+    else:
+        nota = "color: cuántas gestantes hay" if todos else f"color: cuántas gestantes de {texto_niveles} hay"
     with lab.tarjeta("mapa-municipios", "Gestantes por municipio", nota):
-        grafico(graficos.mapa_coropletico(m, depto, medida, "Mapa de municipios"), f"mapa-municipios-{depto}")
+        grafico(graficos.mapa_coropletico(m, depto, tuple(niveles), modo, "Mapa de municipios"),
+                f"mapa-municipios-{depto}-{modo}-{'-'.join(n.split()[0] for n in niveles)}")
         st.caption("Pase el cursor por un municipio para ver sus cifras; use la rueda para acercar y arrastre para moverse. "
-                   "Los municipios en gris no tienen gestantes en los datos.")
+                   "La escala va del menor al mayor valor de los municipios mostrados. Solo 8 de los 40 municipios tienen "
+                   "gestantes en los datos sintéticos: los demás salen en gris.")
         tabla_m = m.rename(columns={"municipio": "Municipio", "departamento": "Departamento", "gestantes": "Gestantes",
                                     "Bajo Riesgo": "Bajo", "Riesgo Medio": "Medio", "Alto Riesgo": "Alto", "pct_alto": "% Alto"})
         columnas = ["Municipio", "Departamento", "Gestantes", "Bajo", "Medio", "Alto", "% Alto"]
         if not todos:
-            tabla_m = tabla_m.rename(columns={"seleccion": f"De {texto_niveles}"})
-            columnas.append(f"De {texto_niveles}")
+            tabla_m = tabla_m.rename(columns={"seleccion": f"De {texto_niveles}", "pct_seleccion": f"% de {texto_niveles}"})
+            columnas += [f"De {texto_niveles}", f"% de {texto_niveles}"]
         st.dataframe(tabla_m[columnas], hide_index=True, width="stretch")
-    with lab.tarjeta("mapa-puntos", "Dónde se concentran", "tamaño: cuántas gestantes · color: nivel de riesgo"):
+    with lab.tarjeta("mapa-puntos", "Dónde se concentran", "tamaño: cuántas gestantes · anillo: mezcla de riesgo"):
         grafico(graficos.mapa_concentracion(p, tuple(niveles), depto, "Mapa de puntos de concentración"),
                 f"mapa-puntos-{depto}-{'-'.join(n.split()[0] for n in niveles)}")
-        st.caption("Cada lugar muestra un círculo por nivel de riesgo; el de Alto Riesgo va encima. Elija solo «Alto Riesgo» "
-                   "para ver dónde buscar primero. Los puntos de concentración son sintéticos y las cabeceras, reales.")
+        st.caption("Cada lugar es un anillo: su tamaño es cuántas gestantes hay ahí y sus colores, cómo se reparten entre Bajo, "
+                   "Medio y Alto. Pase el cursor para ver el detalle. Elija solo «Alto Riesgo» para ver dónde buscar primero. "
+                   "Los puntos de concentración son sintéticos y las cabeceras, reales.")
         tabla_p = p.sort_values(["Alto Riesgo", "gestantes"], ascending=False).rename(columns={
             "nombre": "Lugar", "tipo": "Tipo", "municipio": "Municipio", "gestantes": "Gestantes", "Bajo Riesgo": "Bajo",
             "Riesgo Medio": "Medio", "Alto Riesgo": "Alto", "pct_alto": "% Alto"})

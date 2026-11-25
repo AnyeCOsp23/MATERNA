@@ -72,7 +72,7 @@ MATERNA/
 ├── models/                          # Modelos oficiales de la Fase 2 (.joblib) y metadatos
 ├── reports/metrics/ y figures/      # Métricas, experimentos, auditoría de sesgos y figuras
 ├── notebooks/                       # EDA (Fase 1, corregido) y modelado (Fase 2)
-├── tests/                           # 360 pruebas de Python (10 en Chrome)
+├── tests/                           # 362 pruebas de Python (10 en Chrome)
 ├── flutter_app/                     # Módulo 2: app Flutter (lib/, test/ con 467 pruebas, assets/ con los JSON y geo/)
 ├── docs/                            # Documento técnico de la Fase 2
 └── .streamlit/                      # Configuración; secrets.toml.example como plantilla de usuarios
@@ -112,8 +112,8 @@ La app trae el modelo en `flutter_app/assets/`; si el administrador publica un m
 ### Pruebas
 
 ```bash
-pytest                             # 360 pruebas de Python, incluidas 10 en Chrome real (requiere Google Chrome)
-pytest -m "not e2e"                # 350, sin navegador
+pytest                             # 362 pruebas de Python, incluidas 10 en Chrome real (requiere Google Chrome)
+pytest -m "not e2e"                # 352, sin navegador
 cd flutter_app && flutter test     # 467 pruebas de Dart (paridad, motor, pantallas, base local, mapa y visitas…)
 ```
 

@@ -11,6 +11,7 @@ Colores validados para daltonismo con el validador de paletas (adyacentes y todo
 - dos series (entrenamiento / validación, sintético / IPS): vino #7B2D5B y rosa #D8639B.
 """
 import json
+import math
 from dataclasses import dataclass, field
 
 import numpy as np
@@ -461,6 +462,10 @@ def barras_simples(etiquetas, valores, titulo, nombre_y, decimales=2, alto=250):
 SIN_DATOS = "#F2EEF0"          # municipios sin gestantes en los datos
 ESCALA_ALTO = ["#F6E7EE", "#D9A3BD", "#9B2D5C"]  # de poco a mucho Alto Riesgo (tonos de la clase Alto)
 ESCALA_CONTEO = ["#EEF3F2", "#8CC5BA", "#2F6F64"]
+# una escala por nivel (el color de la clase al final) y otra vino cuando se eligen varios niveles
+ESCALA_NIVEL = {"Bajo Riesgo": ["#E7F3F0", "#93CBBF", "#2F9C8A"], "Riesgo Medio": ["#FBF1DE", "#EDC278", "#C2861F"],
+                "Alto Riesgo": ESCALA_ALTO}
+ESCALA_VARIOS = ["#F3E6EE", "#C58AAA", "#7B2D5B"]
 
 
 def geojson_texto(departamento=None):
@@ -483,51 +488,108 @@ def _geo_base(nombre_mapa, **extra):
                          "itemStyle": {"areaColor": "#E9DDE3"}}, **extra}
 
 
-def mapa_coropletico(tabla, departamento=None, medida="pct_alto", titulo="Municipios"):
-    """Municipios coloreados por % de Alto Riesgo (o por número de gestantes). Tooltip con el detalle."""
+def mapa_coropletico(tabla, departamento=None, niveles=tuple(NOMBRES_CLASES), modo="porcentaje", titulo="Municipios"):
+    """Municipios coloreados según los niveles elegidos, con el detalle en el tooltip.
+
+    Porcentaje (por defecto): con todos los niveles, el % de Alto Riesgo; con algunos, el % de gestantes del municipio
+    que son de esos niveles. Así se comparan municipios de distinto tamaño. Cantidad: cuántas gestantes de esos niveles
+    (sigue casi igual al tamaño del municipio). La escala va del menor al mayor valor real, para que se noten las
+    diferencias, y el color es el del nivel elegido (vino si son varios)."""
     nombre, texto = geojson_texto(departamento)
-    filas = tabla.to_dict("records")
-    datos = [{"name": f["municipio"], "value": f[medida], "gestantes": int(f["gestantes"]), "alto": int(f["Alto Riesgo"]),
-              "medio": int(f["Riesgo Medio"]), "bajo": int(f["Bajo Riesgo"]), "pct": f["pct_alto"]} for f in filas]
-    maximo = max([d["value"] for d in datos] or [1]) or 1
-    es_pct = medida == "pct_alto"
+    niveles = [n for n in NOMBRES_CLASES if n in niveles] or list(NOMBRES_CLASES)
+    todos = len(niveles) == len(NOMBRES_CLASES)
+    porcentaje = modo == "porcentaje"
+    datos = []
+    for f in tabla.to_dict("records"):
+        sel = sum(int(f[n]) for n in niveles)
+        if porcentaje:
+            valor = f["pct_alto"] if todos else round(100 * sel / f["gestantes"], 1) if f["gestantes"] else 0.0
+        else:
+            valor = int(f["gestantes"]) if todos else sel
+        datos.append({"name": f["municipio"], "value": valor, "gestantes": int(f["gestantes"]), "alto": int(f["Alto Riesgo"]),
+                      "medio": int(f["Riesgo Medio"]), "bajo": int(f["Bajo Riesgo"]), "pct": f["pct_alto"]})
+    valores = [d["value"] for d in datos] or [0]
+    if porcentaje:
+        minimo, maximo = math.floor(min(valores)), math.ceil(max(valores))
+        if maximo <= minimo:
+            maximo = minimo + 1
+        textos = [f"{maximo} %", f"{minimo} %"]
+    else:
+        minimo, maximo = 0, max(max(valores), 1)
+        textos = [f"{int(maximo)} gestantes", "0"]
+    if todos:
+        escala = ESCALA_ALTO if porcentaje else ESCALA_CONTEO
+    else:
+        escala = ESCALA_NIVEL[niveles[0]] if len(niveles) == 1 else ESCALA_VARIOS
     opciones = _base(
         tooltip={**_base()["tooltip"], "trigger": "item", "formatter": js(
             "(p) => p.data ? '<b>' + p.name + '</b><br/>' + p.data.gestantes + ' gestantes · Alto ' + p.data.alto + "
             "' (' + String(p.data.pct).replace('.', ',') + ' %)<br/>Medio ' + p.data.medio + ' · Bajo ' + p.data.bajo "
             ": '<b>' + p.name + '</b><br/>Sin gestantes en los datos'")},
-        visualMap={"min": 0, "max": maximo, "calculable": False, "orient": "horizontal", "left": "center", "bottom": 4,
-                   "itemWidth": 12, "itemHeight": 120,
-                   "text": [f"{maximo:.1f} %".replace(".", ",") if es_pct else f"{int(maximo)} gestantes", "0"],
+        visualMap={"min": minimo, "max": maximo, "calculable": False, "orient": "horizontal", "left": "center", "bottom": 4,
+                   "itemWidth": 12, "itemHeight": 140, "text": textos,
                    "textStyle": {"color": TINTA_SUAVE, "fontSize": 11},
-                   "inRange": {"color": ESCALA_ALTO if es_pct else ESCALA_CONTEO}, "seriesIndex": 0},
+                   "inRange": {"color": escala}, "seriesIndex": 0},
         series=[{"id": "municipios", "type": "map", **_geo_base(nombre), "data": datos, "selectedMode": False,
                  "showLegendSymbol": False,  # sin el punto que ECharts pone en cada municipio
                  "animationDurationUpdate": 600}])
-    return Grafico(opciones, 500, titulo, {"municipios": len(datos), "medida": medida}, mapa=(nombre, texto))
+    return Grafico(opciones, 500, titulo, {"municipios": len(datos), "niveles": niveles, "modo": modo}, mapa=(nombre, texto))
+
+
+def _encuadre_puntos(geojson, filas):
+    """Abre el mapa acercado a donde hay lugares (centro y zoom de su recuadro), no a los dos departamentos completos:
+    así los anillos no quedan amontonados en una esquina. Se puede alejar con la rueda."""
+    if not filas:
+        return {}
+    coords = [c for f in json.loads(geojson)["features"] for c in _coordenadas(f["geometry"])]
+    lat_mapa = max(c[1] for c in coords) - min(c[1] for c in coords)
+    lons, lats = [f["lon"] for f in filas], [f["lat"] for f in filas]
+    alto = max(max(lats) - min(lats), 0.3)
+    zoom = round(min(2.6, max(1.0, 0.8 * lat_mapa / alto)), 2)
+    return {"center": [round((min(lons) + max(lons)) / 2, 4), round((min(lats) + max(lats)) / 2, 4)], "zoom": zoom}
+
+
+def _coordenadas(geometria):
+    poligonos = geometria["coordinates"] if geometria["type"] == "MultiPolygon" else [geometria["coordinates"]]
+    return [c for poligono in poligonos for anillo in poligono for c in anillo]
 
 
 def mapa_concentracion(tabla_puntos, clases=tuple(NOMBRES_CLASES), departamento=None, titulo="Puntos de concentración"):
-    """Un círculo por nivel de riesgo en cada punto: el tamaño es cuántas gestantes de ese nivel hay ahí.
-    Alto se dibuja encima para que se vea siempre."""
+    """Un anillo por lugar: su tamaño es cuántas gestantes (de los niveles elegidos) hay ahí y sus colores, cómo se
+    reparten entre Bajo, Medio y Alto. Con el número en el centro cuando cabe. Antes eran hasta tres círculos
+    superpuestos por lugar, difíciles de leer."""
     nombre, texto = geojson_texto(departamento)
-    maximo = max([int(tabla_puntos[c].max()) for c in clases if c in tabla_puntos and len(tabla_puntos)] or [1]) or 1
-    series = []
-    for k, clase in enumerate(c for c in NOMBRES_CLASES if c in clases):
-        datos = [{"name": f["nombre"], "value": [f["lon"], f["lat"], int(f[clase])], "municipio": f["municipio"],
-                  "tipo": f["tipo"], "total": int(f["gestantes"])}
-                 for f in tabla_puntos.to_dict("records") if f[clase] > 0]
-        series.append({"id": clase, "name": clase, "type": "scatter", "coordinateSystem": "geo", "data": datos,
-                       "z": 2 + NOMBRES_CLASES.index(clase),
-                       "symbolSize": js(f"(v) => 5 + 30 * Math.sqrt(v[2] / {maximo})"),
-                       "itemStyle": {"color": COLOR_CLASE[clase], "opacity": 0.78, "borderColor": "#FFFFFF", "borderWidth": 1},
-                       "emphasis": {"scale": 1.15, "itemStyle": {"opacity": 1}}, "animationDelay": js(f"(i) => {k * 150} + i * 8")})
+    clases = [c for c in NOMBRES_CLASES if c in clases] or list(NOMBRES_CLASES)
+    filas = [f for f in tabla_puntos.to_dict("records") if sum(int(f[c]) for c in clases) > 0]
+    maximo = max([sum(int(f[c]) for c in clases) for f in filas] or [1])
+    # los grandes primero: los pequeños quedan encima y se pueden tocar
+    filas.sort(key=lambda f: -sum(int(f[c]) for c in clases))
+    series, conteos = [], []
+    for k, f in enumerate(filas):
+        total = sum(int(f[c]) for c in clases)
+        radio = round(6 + 14 * math.sqrt(total / maximo), 1)
+        detalle = " · ".join(f"{c.split()[0] if c != 'Riesgo Medio' else 'Medio'} {int(f[c])}" for c in reversed(clases))
+        datos = [{"name": c, "value": int(f[c]), "lugar": f["nombre"], "tipo": f["tipo"], "municipio": f["municipio"],
+                  "total": total, "detalle": detalle, "itemStyle": {"color": COLOR_CLASE[c]}} for c in clases if f[c] > 0]
+        series.append({"type": "pie", "name": f["nombre"], "coordinateSystem": "geo", "geoIndex": 0, "center": [f["lon"], f["lat"]],
+                       "radius": [round(radio * 0.52, 1), radio], "data": datos, "z": 2 + k / 1000,
+                       "label": {"show": False}, "labelLine": {"show": False}, "startAngle": 90,
+                       "itemStyle": {"borderColor": "#FFFFFF", "borderWidth": 1.2},
+                       "emphasis": {"scale": True, "scaleSize": 4},
+                       "animationDelay": k * 12})
+        if radio >= 13:  # el número en el centro solo cuando cabe
+            conteos.append({"name": f["nombre"], "value": [f["lon"], f["lat"], total]})
+    series.append({"id": "conteos", "type": "scatter", "coordinateSystem": "geo", "geoIndex": 0, "data": conteos, "symbolSize": 0,
+                   "silent": True, "z": 5, "label": {"show": True, "formatter": js("(p) => p.value[2]"), "color": TINTA,
+                                                      "fontSize": 10, "fontWeight": 700}})
     opciones = _base(
-        geo=_geo_base(nombre), series=series, legend=_leyenda(data=[s["name"] for s in series], top="bottom"),
+        geo=_geo_base(nombre, **_encuadre_puntos(texto, filas)),
+        series=series,
+        legend=_leyenda(data=list(clases), top="bottom"),
         tooltip={**_base()["tooltip"], "trigger": "item", "formatter": js(
-            "(p) => '<b>' + p.name + '</b><br/>' + p.data.tipo + ' · ' + p.data.municipio + '<br/>' + p.seriesName + ': <b>' + "
-            "p.value[2] + '</b> de ' + p.data.total + ' gestantes'")})
-    return Grafico(opciones, 540, titulo, {"puntos": len(tabla_puntos), "clases": list(clases)}, mapa=(nombre, texto))
+            "(p) => p.data && p.data.lugar ? '<b>' + p.data.lugar + '</b><br/>' + p.data.tipo + ' · ' + p.data.municipio + "
+            "'<br/><b>' + p.data.total + '</b> gestantes: ' + p.data.detalle : ''")})
+    return Grafico(opciones, 540, titulo, {"puntos": len(filas), "clases": list(clases)}, mapa=(nombre, texto))
 
 
 # Las opciones se cachean (st.cache_data): con los mismos datos no se recalculan en cada ejecución.
